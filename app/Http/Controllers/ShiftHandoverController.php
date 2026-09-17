@@ -91,7 +91,7 @@ class ShiftHandoverController extends Controller
     {
         $rows = [
             'Date' => optional($shiftHandover->date)->format('d-m-Y'),
-            'Time' => $shiftHandover->time,
+            'Time' => substr((string) $shiftHandover->time, 0, 5),
             'Shift' => $shiftHandover->shift,
             'Handed Over By' => $shiftHandover->full_name,
         ];

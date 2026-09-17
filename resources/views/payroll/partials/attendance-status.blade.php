@@ -21,7 +21,7 @@
                         </form>
                     </td>
                     <td class="text-end">
-                        <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#editStatus{{ $row->id }}"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#editStatus{{ $row->id }}" data-open-record title="Open"><i class="bi bi-pencil-square"></i></button>
                         <form method="POST" action="{{ route('payroll.attendance-status.destroy', $row) }}" class="d-inline" onsubmit="return confirm('Delete this status?')">@csrf @method('DELETE')
                             <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
                         </form>

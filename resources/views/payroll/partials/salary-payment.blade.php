@@ -143,7 +143,7 @@
                     <td class="text-end text-nowrap">
                         <a class="btn-icon" href="{{ route('payroll.salary-slip.view', $row) }}" target="_blank" title="Salary slip"><i class="bi bi-receipt"></i></a>
                         @if($canEdit)
-                            <button class="btn-icon" data-bs-toggle="modal" data-bs-target="#pay{{ $row->id }}" title="Update payment"><i class="bi bi-pencil-square"></i></button>
+                            <button class="btn-icon" data-bs-toggle="modal" data-bs-target="#pay{{ $row->id }}" data-open-record title="Update payment"><i class="bi bi-pencil-square"></i></button>
                         @endif
                     </td>
                 </tr>

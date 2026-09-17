@@ -1,22 +1,40 @@
 @extends('layouts.app')
-@section('title', 'Reset Password')
+@section('title', 'Reset password')
 @section('content')
-<div class="d-flex align-items-center justify-content-center" style="min-height:100vh; margin:-24px;">
-    <div class="card p-4" style="max-width:420px; width:100%;">
-        <div class="text-center mb-3">
-            <div class="brand-font" style="font-size:22px; font-weight:700; color:var(--p800);">Reset your password</div>
-            <div class="text-muted" style="font-size:13.5px;">We'll email you a reset link, valid for 10 minutes.</div>
+<div class="auth-shell">
+    <div class="auth-card">
+        <div class="auth-brand">
+            <span class="auth-mark">HP</span>
+            <div>
+                <div class="auth-name">Hotel Pallav</div>
+                <div class="auth-sub">Management Suite</div>
+            </div>
         </div>
+
+        <h1 class="auth-title">Forgot your password?</h1>
+        <p class="auth-lead">Enter your username. If your account has an email address, we'll send a reset link valid for 10 minutes.</p>
+
+        @if(session('success'))
+            <div class="auth-note ok"><i class="bi bi-check-circle"></i> {{ session('success') }}</div>
+        @endif
+        @if(session('error'))
+            <div class="auth-note err"><i class="bi bi-exclamation-circle"></i> {{ session('error') }}</div>
+        @endif
+
         <form method="POST" action="{{ route('password.email') }}">
             @csrf
             <div class="mb-3">
-                <label class="form-label">Email</label>
-                <input type="email" name="email" class="form-control" required autofocus>
+                <label class="form-label" for="username">Username</label>
+                <div class="input-icon">
+                    <i class="bi bi-person"></i>
+                    <input id="username" name="username" class="form-control" autocomplete="username" autocapitalize="none" required autofocus>
+                </div>
             </div>
-            <button class="btn btn-p w-100 py-2">Send Reset Link</button>
+            <button class="btn btn-p w-100 py-2" data-busy-label="Sending…">Send reset link</button>
         </form>
-        <div class="text-center mt-3">
-            <a href="{{ route('login') }}" style="color:var(--p700); font-size:13.5px; font-weight:600;">Back to login</a>
+
+        <div class="auth-foot">
+            <a href="{{ route('login') }}" class="auth-link"><i class="bi bi-arrow-left"></i> Back to sign in</a>
         </div>
     </div>
 </div>

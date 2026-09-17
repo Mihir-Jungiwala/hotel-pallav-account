@@ -77,7 +77,7 @@
     @if($signaturePath && file_exists(public_path('storage/'.$signaturePath)))
         <img src="{{ public_path('storage/'.$signaturePath) }}" style="max-height:44px;">
     @endif
-    <div class="sign-line" style="display:inline-block; min-width:210px;">
+    <div class="sign-line" style="width:210px; text-align:left; margin-top:30px;">
         <strong>{{ $signatoryName ?: 'Authorised Signatory' }}</strong><br>
         <span class="muted" style="font-size:8pt;">{{ $signatoryDesignation }}</span><br>
         <span class="muted" style="font-size:8pt;">{{ $company->name }}</span>

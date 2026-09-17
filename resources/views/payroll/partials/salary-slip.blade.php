@@ -21,7 +21,7 @@
                     <td>₹{{ number_format($row->net_salary, 2) }}</td>
                     <td class="small text-muted">{{ $row->processed_at->format('d-m-Y H:i') }}</td>
                     <td class="text-end">
-                        <a class="btn btn-sm btn-outline-p" href="{{ route('payroll.salary-slip.view', $row) }}" target="_blank"><i class="bi bi-eye"></i> View</a>
+                        <a class="btn btn-sm btn-outline-p" href="{{ route('payroll.salary-slip.view', $row) }}" target="_blank"><i class="bi bi-file-earmark-pdf"></i> Salary Slip</a>
                     </td>
                 </tr>
             @empty

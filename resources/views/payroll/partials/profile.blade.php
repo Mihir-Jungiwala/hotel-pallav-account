@@ -14,7 +14,7 @@
                     <td>{{ $row->code }}</td>
                     <td>{{ $row->owner_name }}</td>
                     <td>
-                        <form method="POST" action="{{ route('payroll.company.toggle-active', $row) }}">
+                        <form method="POST" action="{{ route('payroll.company.toggle-active', $row) }}" data-status-toggle>
                             @csrf
                             <button class="btn btn-sm {{ $row->is_active ? 'btn-outline-success' : 'btn-outline-secondary' }}">
                                 {{ $row->is_active ? 'Active' : 'Inactive' }}
@@ -22,8 +22,7 @@
                         </form>
                     </td>
                     <td class="text-end">
-                        <a class="btn btn-sm btn-outline-p" href="{{ route('payroll.company.view', $row) }}" target="_blank"><i class="bi bi-eye"></i></a>
-                        <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#editCompany{{ $row->id }}"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#editCompany{{ $row->id }}" data-open-record title="Open"><i class="bi bi-pencil-square"></i></button>
                         <form method="POST" action="{{ route('payroll.company.destroy', $row) }}" class="d-inline" onsubmit="return confirm('Delete this company?')">
                             @csrf @method('DELETE')
                             <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
@@ -33,9 +32,12 @@
 
                 <div class="modal fade" id="editCompany{{ $row->id }}" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
                     <form method="POST" action="{{ route('payroll.company.update', $row) }}" enctype="multipart/form-data">@csrf @method('PUT')
-                        <div class="modal-header"><h5 class="modal-title">Edit {{ $row->name }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                        <div class="modal-header"><h5 class="modal-title">{{ $row->name }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                         <div class="modal-body">@include('payroll.partials._company-fields', ['target' => $row])</div>
-                        <div class="modal-footer"><button class="btn btn-p">Save Changes</button></div>
+                        <div class="modal-footer">
+                            <a class="btn btn-outline-p me-auto" href="{{ route('payroll.company.view', $row) }}" target="_blank"><i class="bi bi-file-earmark-pdf"></i> Company PDF</a>
+                            <button class="btn btn-p">Save Changes</button>
+                        </div>
                     </form>
                 </div></div></div>
             @empty

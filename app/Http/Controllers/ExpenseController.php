@@ -213,7 +213,7 @@ class ExpenseController extends Controller
     {
         return array_merge([
             'Date' => optional($record->date)->format('d-m-Y'),
-            'Time' => $record->time,
+            'Time' => substr((string) $record->time, 0, 5),
             'Recorded By' => $record->full_name,
             $personLabel => $personValue,
         ], $extra, [

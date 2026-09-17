@@ -80,7 +80,7 @@ class RevenueController extends Controller
             'record' => $deposit,
             'rows' => [
                 'Date' => optional($deposit->date)->format('d-m-Y'),
-                'Time' => $deposit->time,
+                'Time' => substr((string) $deposit->time, 0, 5),
                 'Recorded By' => $deposit->full_name,
                 'Depositor' => $deposit->depositor,
                 'Amount' => '₹'.number_format($deposit->amount, 2),
@@ -98,7 +98,7 @@ class RevenueController extends Controller
             'record' => $deposit,
             'rows' => [
                 'Date' => optional($deposit->date)->format('d-m-Y'),
-                'Time' => $deposit->time,
+                'Time' => substr((string) $deposit->time, 0, 5),
                 'Recorded By' => $deposit->full_name,
                 'Depositor' => $deposit->depositor,
                 'Amount' => '₹'.number_format($deposit->amount, 2),

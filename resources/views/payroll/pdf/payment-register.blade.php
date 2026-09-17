@@ -19,30 +19,21 @@
 
 @section('content')
 
-<style>
-    table.tight th { font-size: 7pt !important; padding: 5px 5px !important; white-space: nowrap; }
-    table.tight td { font-size: 7.5pt !important; padding: 4px 5px !important; white-space: nowrap; }
-    table.tight td.wrap { white-space: normal; }
-</style>
-
-<table class="grid avoid-break tight" style="margin-bottom:10px;">
-    <thead><tr>
-        <th class="num">Net Payable</th><th class="num">Paid</th><th class="num">Outstanding</th><th class="num">Fully Settled</th>
-    </tr></thead>
-    <tbody><tr>
-        <td class="num"><strong>{{ number_format($net, 2) }}</strong></td>
-        <td class="num">{{ number_format($paid, 2) }}</td>
-        <td class="num">{{ number_format($outstanding, 2) }}</td>
-        <td class="num">{{ $fullyPaid }} of {{ $payments->count() }}</td>
+<table class="stats avoid-break">
+    <tr>
+        <td><div class="s-label">Net Payable</div><div class="s-value accent">&#8377;{{ number_format($net, 2) }}</div></td>
+        <td><div class="s-label">Paid</div><div class="s-value">&#8377;{{ number_format($paid, 2) }}</div></td>
+        <td><div class="s-label">Outstanding</div><div class="s-value">&#8377;{{ number_format($outstanding, 2) }}</div></td>
+        <td><div class="s-label">Fully Settled</div><div class="s-value">{{ $fullyPaid }} of {{ $payments->count() }}</div></td>
     </tr></tbody>
 </table>
 
 <table class="grid tight">
     <thead>
         <tr>
-            <th>#</th><th>ID</th><th>Employee</th><th>Mode</th>
+            <th style="width:16px;">#</th><th>ID</th><th>Employee</th><th>Mode</th>
             <th class="num">Net Salary</th><th class="num">Paid</th><th class="num">Balance</th>
-            <th>Status</th><th>Paid On</th><th>Reference</th><th>Remarks</th>
+            <th>Status</th><th>Paid On</th><th>Reference</th><th style="width:26%;">Remarks</th>
         </tr>
     </thead>
     <tbody>
@@ -56,14 +47,14 @@
             <td class="num">{{ number_format($row->net_salary, 2) }}</td>
             <td class="num">{{ number_format($row->paid_amount, 2) }}</td>
             <td class="num">{{ number_format($row->balance(), 2) }}</td>
-            <td><span style="padding:2px 7px; border-radius:8px; background:{{ $bg }}; color:{{ $fg }}; font-weight:bold; font-size:7pt;">{{ $row->payment_status }}</span></td>
+            <td><span class="chip" style="background:{{ $bg }}; color:{{ $fg }}; font-size:7pt;">{{ $row->payment_status }}</span></td>
             <td>{{ optional($row->paid_at)->format('d M Y') ?: '—' }}</td>
             <td>{{ $row->payment_reference ?: '—' }}</td>
             <td class="wrap">{{ \Illuminate\Support\Str::limit($row->payment_remarks, 60) ?: '—' }}</td>
         </tr>
     @endforeach
         <tr class="total">
-            <td colspan="4" class="wrap">Total &middot; {{ \App\Support\NumberToWords::convert($net) }}</td>
+            <td colspan="4">Total</td>
             <td class="num">{{ number_format($net, 2) }}</td>
             <td class="num">{{ number_format($paid, 2) }}</td>
             <td class="num">{{ number_format($outstanding, 2) }}</td>
@@ -71,6 +62,10 @@
         </tr>
     </tbody>
 </table>
+
+<div class="muted" style="font-size:7.5pt; margin-top:8px;">
+    In words: {{ \App\Support\NumberToWords::convert($net) }}.
+</div>
 
 <div class="sign-area">
     <table>

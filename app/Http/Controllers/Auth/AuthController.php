@@ -5,16 +5,19 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\User;
+use App\Models\UserAuditLog;
+use App\Support\PasswordPolicy;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    private const COMPLEXITY_REGEX = '/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,}$/';
-
     public function showLogin()
     {
         if (Auth::check()) {
@@ -26,104 +29,121 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
+        $data = $request->validate([
+            'username' => ['required', 'string', 'max:50'],
+            'password' => ['required', 'string', 'max:128'],
         ]);
 
-        if (! Auth::attempt($credentials, true)) {
-            return back()->withErrors(['email' => 'Invalid credentials.'])->withInput();
+        $username = Str::lower(trim($data['username']));
+
+        // Per-IP brake against spraying many usernames
+        $ipKey = 'login-ip:'.$request->ip();
+        if (RateLimiter::tooManyAttempts($ipKey, 20)) {
+            $this->fail('Too many login attempts from this device. Try again in '.ceil(RateLimiter::availableIn($ipKey) / 60).' minute(s).');
+        }
+        RateLimiter::hit($ipKey, 900);
+
+        $user = User::whereRaw('LOWER(username) = ?', [$username])->first();
+
+        if ($user && $user->isLocked()) {
+            $this->fail('This account is locked after too many failed attempts. Try again after '.$user->locked_until->format('H:i').' or ask an administrator to unlock it.');
         }
 
+        if (! $user || ! Hash::check($data['password'], $user->password)) {
+            if ($user) {
+                $this->registerFailure($user);
+            }
+            // Same message whether or not the username exists
+            $this->fail('Incorrect username or password.');
+        }
+
+        if (! $user->is_active) {
+            $this->fail('This account is deactivated. Contact your administrator.');
+        }
+
+        Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
+        RateLimiter::clear($ipKey);
 
         $now = now();
+        $user->forceFill([
+            'failed_login_attempts' => 0,
+            'locked_until' => null,
+            'last_login_at' => $now,
+            'last_login_ip' => $request->ip(),
+        ])->save();
+
         ActivityLog::create([
-            'user_id' => Auth::id(),
+            'user_id' => $user->id,
             'activity_type' => 'Login',
             'activity_time' => $now,
             'login_date' => $now->toDateString(),
             'login_time' => $now->toTimeString(),
         ]);
 
+        if ($user->must_change_password) {
+            return redirect()->route('profile.show', ['tab' => 'password'])
+                ->with('error', 'Please set a new password before continuing.');
+        }
+
         return redirect()->intended(route('dashboard'));
+    }
+
+    private function registerFailure(User $user): void
+    {
+        $attempts = $user->failed_login_attempts + 1;
+        $lock = $attempts >= PasswordPolicy::MAX_ATTEMPTS;
+
+        $user->forceFill([
+            'failed_login_attempts' => $lock ? 0 : $attempts,
+            'locked_until' => $lock ? now()->addMinutes(PasswordPolicy::LOCK_MINUTES) : $user->locked_until,
+        ])->save();
+
+        if ($lock) {
+            UserAuditLog::record('login.locked', $user, ['minutes' => PasswordPolicy::LOCK_MINUTES], $user);
+        }
+    }
+
+    private function fail(string $message): never
+    {
+        throw ValidationException::withMessages(['username' => $message]);
     }
 
     public function logout(Request $request)
     {
-        $log = ActivityLog::where('user_id', Auth::id())->where('activity_type', 'Login')->latest('id')->first();
-
-        if ($log) {
-            $now = now();
-            $log->logout_date = $now->toDateString();
-            $log->logout_time = $now->toTimeString();
-
-            if ($log->login_time) {
-                $minutes = $now->diffInMinutes($log->login_date.' '.$log->login_time);
-                $log->minutes_logged_in = sprintf('%02d:%02d', intdiv($minutes, 60), $minutes % 60);
-            }
-
-            $log->save();
-        }
+        $this->closeActivityLog();
 
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login');
+        return redirect()->route('login')->with('success', 'You have been signed out.');
     }
 
-    public function register(Request $request)
+    public static function closeActivityLog(): void
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users,email'],
-            'password' => ['required', 'confirmed', 'regex:'.self::COMPLEXITY_REGEX],
-            'role' => ['required', 'in:Admin,Editor,Viewer'],
-        ], [
-            'password.regex' => 'Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number, and a special character.',
-        ]);
+        $log = ActivityLog::where('user_id', Auth::id())
+            ->where('activity_type', 'Login')
+            ->whereNull('logout_time')
+            ->latest('id')->first();
 
-        User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'role' => $validated['role'],
-        ]);
+        if (! $log) {
+            return;
+        }
 
-        return redirect()->route('users.index')->with('success', 'User account created.');
+        $now = now();
+        $minutes = $log->login_time ? (int) abs($now->diffInMinutes($log->login_date->format('Y-m-d').' '.$log->login_time)) : 0;
+
+        $log->forceFill([
+            'logout_date' => $now->toDateString(),
+            'logout_time' => $now->toTimeString(),
+            'minutes_logged_in' => sprintf('%02d:%02d', intdiv($minutes, 60), $minutes % 60),
+        ])->save();
     }
 
-    public function index()
-    {
-        $users = User::when(! Auth::user()->isSuperAdmin(), fn ($q) => $q->where('name', '!=', 'SuperAdmin'))
-            ->orderBy('name')
-            ->get();
-
-        return view('users.index', compact('users'));
-    }
-
-    public function destroy(User $user)
-    {
-        $user->delete();
-
-        return back()->with('success', 'User account deleted.');
-    }
-
-    public function updateRole(Request $request, User $user)
-    {
-        $request->validate(['role' => ['required', 'in:Admin,Editor,Viewer']]);
-        $user->update(['role' => $request->role]);
-
-        return back()->with('success', 'Role updated.');
-    }
-
-    public function toggleActive(User $user)
-    {
-        $user->update(['is_active' => ! $user->is_active]);
-
-        return back()->with('success', 'Status updated.');
-    }
+    /* ------------------------------------------------------------------
+     | Forgotten password — requested by username, mailed to the account
+     |------------------------------------------------------------------ */
 
     public function showForgot()
     {
@@ -132,11 +152,22 @@ class AuthController extends Controller
 
     public function sendResetLink(Request $request)
     {
-        $request->validate(['email' => 'required|email']);
+        $request->validate(['username' => ['required', 'string', 'max:50']]);
 
-        $status = Password::sendResetLink($request->only('email'));
+        $key = 'reset:'.$request->ip();
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            return back()->with('error', 'Too many requests. Please wait a few minutes.');
+        }
+        RateLimiter::hit($key, 600);
 
-        return back()->with('success', __($status));
+        $user = User::whereRaw('LOWER(username) = ?', [Str::lower(trim($request->username))])->first();
+
+        if ($user && $user->is_active && $user->email) {
+            Password::sendResetLink(['email' => $user->email]);
+        }
+
+        // Never reveal whether the username exists or has an email on file
+        return back()->with('success', 'If that account has an email address on file, a reset link has been sent. Otherwise, ask your administrator to reset the password.');
     }
 
     public function showReset(string $token, Request $request)
@@ -147,30 +178,31 @@ class AuthController extends Controller
     public function reset(Request $request)
     {
         $request->validate([
-            'token' => 'required',
-            'email' => 'required|email',
-            'password' => ['required', 'confirmed', 'regex:'.self::COMPLEXITY_REGEX],
-        ], [
-            'password.regex' => 'Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number, and a special character.',
-        ]);
+            'token' => ['required'],
+            'email' => ['required', 'email'],
+            'password' => PasswordPolicy::rules(),
+        ], ['password.regex' => PasswordPolicy::MESSAGE]);
 
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function (User $user, string $password) {
-                if (Hash::check($password, $user->password)) {
-                    return;
-                }
-
-                $user->forceFill(['password' => Hash::make($password)])->save();
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                    'must_change_password' => false,
+                    'password_changed_at' => now(),
+                    'failed_login_attempts' => 0,
+                    'locked_until' => null,
+                    'remember_token' => Str::random(60),
+                ])->save();
 
                 event(new PasswordReset($user));
             }
         );
 
         if ($status === Password::PASSWORD_RESET) {
-            return redirect()->route('login')->with('success', 'Password changed successfully. Please log in.');
+            return redirect()->route('login')->with('success', 'Password changed. You can sign in now.');
         }
 
-        return back()->withErrors(['email' => __($status)]);
+        return back()->withErrors(['password' => __($status)]);
     }
 }

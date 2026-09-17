@@ -162,10 +162,15 @@
             .content{ padding:16px; }
         }
     </style>
-    <link rel="stylesheet" href="{{ asset('assets/pms.css') }}?v=5">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/plugins/monthSelect/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
+    <link rel="stylesheet" href="{{ asset('assets/pms.css') }}?v=6">
+    <link rel="stylesheet" href="{{ asset('assets/pms-ui.css') }}?v=1">
     @stack('styles')
 </head>
-<body class="@hasSection('subnav') has-subnav @else no-subnav @endif">
+<body class="@hasSection('subnav') has-subnav @else no-subnav @endif @guest guest-page @endguest"
+      @auth data-role="{{ auth()->user()->role }}" data-can-write="{{ auth()->user()->canWrite() ? '1' : '0' }}" data-can-delete="{{ auth()->user()->canDelete() ? '1' : '0' }}" @endauth>
 
 @auth
 <div class="sidebar" id="sidebar">
@@ -174,7 +179,7 @@
         <span class="logo-text">Hotel&nbsp;Pallav<span>Management Suite</span></span>
     </div>
     <nav class="sidebar-nav">
-        <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+        <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}" title="Dashboard"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
 
         <div class="sidebar-section">Billing</div>
         <a href="{{ route('bill-master.advances') }}" class="{{ request()->routeIs('bill-master.advances') ? 'active' : '' }}" title="Advances"><i class="bi bi-wallet2"></i><span>Advances</span></a>
@@ -187,14 +192,17 @@
         <a href="{{ route('shift-handover.index') }}" class="{{ request()->routeIs('shift-handover.*') ? 'active' : '' }}" title="Shift Handover"><i class="bi bi-arrow-left-right"></i><span>Shift Handover</span></a>
 
         <div class="sidebar-section">Payroll</div>
-        <a href="{{ route('payroll.index') }}" class="{{ request()->routeIs('payroll.*') ? 'active' : '' }}" title="Payroll (PMS)"><i class="bi bi-people-fill"></i><span>Payroll (PMS)</span></a>
+        <a href="{{ route('payroll.index') }}" class="{{ request()->routeIs('payroll.*') ? 'active' : '' }}" title="Payroll"><i class="bi bi-people-fill"></i><span>Payroll</span></a>
 
         <div class="sidebar-section">People</div>
         <a href="{{ route('company.index') }}" class="{{ request()->routeIs('company.*') ? 'active' : '' }}" title="Company Profiles"><i class="bi bi-building"></i><span>Company Profiles</span></a>
 
         <div class="sidebar-section">System</div>
         <a href="{{ route('reports.index') }}" class="{{ request()->routeIs('reports.*') ? 'active' : '' }}" title="Reports"><i class="bi bi-file-earmark-text"></i><span>Reports</span></a>
-        <a href="{{ route('users.index') }}" class="{{ request()->routeIs('users.*') ? 'active' : '' }}" title="User Accounts"><i class="bi bi-people"></i><span>User Accounts</span></a>
+        @if(auth()->user()->isAdmin())
+            <a href="{{ route('users.index') }}" class="{{ request()->routeIs('users.*') ? 'active' : '' }}" title="User Accounts"><i class="bi bi-people"></i><span>User Accounts</span></a>
+        @endif
+        <a href="{{ route('profile.show') }}" class="{{ request()->routeIs('profile.*') ? 'active' : '' }}" title="My Profile"><i class="bi bi-person-circle"></i><span>My Profile</span></a>
     </nav>
 </div>
 
@@ -219,37 +227,62 @@
             @endif
             <h1>@yield('title', 'Dashboard')</h1>
         </div>
-        <div class="d-flex align-items-center gap-3">
-            <span class="badge-p px-3 py-2 rounded-pill">
-                {{ auth()->user()->name }}@if(auth()->user()->name !== auth()->user()->role) <span style="opacity:.7">&middot; {{ auth()->user()->role }}</span>@endif
-            </span>
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button class="btn btn-sm btn-outline-p"><i class="bi bi-box-arrow-right"></i> Logout</button>
-            </form>
+        @php $me = auth()->user(); @endphp
+        <div class="dropdown">
+            <button class="user-menu-btn" data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="avatar role-av-{{ strtolower($me->role) }}" style="width:32px;height:32px;font-size:11px;">{{ $me->initials() }}</span>
+                <span class="um-text">
+                    <span class="um-name">{{ $me->name }}</span>
+                    <span class="um-role">{{ $me->role }}</span>
+                </span>
+                <i class="bi bi-chevron-down"></i>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end pms-dropdown">
+                <div class="px-3 py-2">
+                    <div class="fw-semibold" style="font-size:13px;">{{ $me->name }}</div>
+                    <div class="text-muted" style="font-size:11.5px;">&#64;{{ $me->username }}</div>
+                </div>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="{{ route('profile.show') }}"><i class="bi bi-person"></i> My Profile</a>
+                <a class="dropdown-item" href="{{ route('profile.show', ['tab' => 'password']) }}"><i class="bi bi-key"></i> Change Password</a>
+                @if($me->isAdmin())
+                    <a class="dropdown-item" href="{{ route('users.index') }}"><i class="bi bi-people"></i> User Accounts</a>
+                @endif
+                <div class="dropdown-divider"></div>
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button class="dropdown-item text-danger"><i class="bi bi-box-arrow-right"></i> Sign out</button>
+                </form>
+            </div>
         </div>
     </div>
     @endauth
 
     <div class="content">
         {{-- Flash messages are handed to the toast layer, which surfaces them
-             without pushing the page around. --}}
-        @if(session('success'))
-            <div data-flash="success" hidden>{{ session('success') }}</div>
-        @endif
-        @if(session('error'))
-            <div data-flash="error" hidden>{{ session('error') }}</div>
-        @endif
-        @foreach($errors->all() as $error)
-            <div data-flash="error" hidden>{{ $error }}</div>
-        @endforeach
+             without pushing the page around. Guest pages show them inline. --}}
+        @auth
+            @if(session('success'))
+                <div data-flash="success" hidden>{{ session('success') }}</div>
+            @endif
+            @if(session('error'))
+                <div data-flash="error" hidden>{{ session('error') }}</div>
+            @endif
+            @foreach($errors->all() as $error)
+                <div data-flash="error" hidden>{{ $error }}</div>
+            @endforeach
+        @endauth
 
         @yield('content')
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="{{ asset('assets/pms.js') }}?v=4"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/plugins/monthSelect/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script src="{{ asset('assets/pms.js') }}?v=5"></script>
+<script src="{{ asset('assets/pms-ui.js') }}?v=1"></script>
 @stack('scripts')
 </body>
 </html>

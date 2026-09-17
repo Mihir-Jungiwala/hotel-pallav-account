@@ -11,7 +11,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        $middleware->alias([
+            'account.usable' => \App\Http\Middleware\EnsureAccountIsUsable::class,
+            'role.permissions' => \App\Http\Middleware\EnforceRolePermissions::class,
+            'admin' => \App\Http\Middleware\RequireAdmin::class,
+        ]);
+
+        // Signed-in users are sent to the dashboard, guests to the login page
+        $middleware->redirectGuestsTo(fn () => route('login'));
+        $middleware->redirectUsersTo(fn () => route('dashboard'));
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

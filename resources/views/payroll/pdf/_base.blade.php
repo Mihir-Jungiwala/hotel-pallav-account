@@ -53,11 +53,10 @@
     h2.section {
         font-size: 8pt; font-weight: bold;
         color: #5B21B6; text-transform: uppercase; letter-spacing: 0.9pt;
-        margin: 14px 0 6px; padding-bottom: 3px;
+        margin: 16px 0 6px; padding-bottom: 3px;
         border-bottom: 0.8pt solid #DFD3FD;
         page-break-after: avoid;
     }
-    h2.section:first-of-type { margin-top: 4px; }
 
     table { width: 100%; border-collapse: collapse; }
     .avoid-break { page-break-inside: avoid; }
@@ -83,7 +82,25 @@
         border-top: 0.8pt solid #C6B0FB; border-bottom: none;
     }
     .num { text-align: right; }
+    .center { text-align: center; }
     table.grid th.num { text-align: right; }
+    table.grid th.center, table.grid td.center { text-align: center; }
+
+    /* Dense grid for wide registers — keeps every column inside the page */
+    table.tight th { font-size: 6.5pt; padding: 5px 4px; letter-spacing: 0.2pt; white-space: nowrap; }
+    table.tight td { font-size: 7.5pt; padding: 4px 4px; white-space: nowrap; }
+    table.tight td.wrap { white-space: normal; }
+
+    /* Equal-width summary figures */
+    table.stats { margin-bottom: 10px; table-layout: fixed; }
+    table.stats td {
+        background: #F7F4FF; padding: 7px 10px; vertical-align: top;
+        border-right: 6px solid #fff;
+    }
+    table.stats td:last-child { border-right: none; }
+    table.stats .s-label { font-size: 6.5pt; font-weight: bold; color: #6B6486; text-transform: uppercase; letter-spacing: 0.6pt; }
+    table.stats .s-value { font-size: 11pt; font-weight: bold; color: #1B1235; margin-top: 1px; }
+    table.stats .s-value.accent { color: #4A1A8F; }
 
     /* Highlight panel */
     .panel {
@@ -95,7 +112,7 @@
     .panel .words { font-size: 8pt; color: #4A4262; font-style: italic; margin-top: 1px; }
 
     .chip {
-        display: inline-block; padding: 2px 8px; border-radius: 9px;
+        display: inline-block; padding: 1px 8px; border-radius: 9px; line-height: 1.35; vertical-align: middle;
         background: #EFE9FE; color: #5B21B6; font-size: 7.5pt; font-weight: bold;
     }
     .chip.ok { background: #DCFCE7; color: #166534; }
@@ -103,7 +120,10 @@
 
     .muted { color: #6B6486; }
     .sign-area { margin-top: 26px; page-break-inside: avoid; }
-    .sign-line { border-top: 0.8pt solid #C6B0FB; padding-top: 5px; font-size: 8pt; }
+    .sign-line {
+        display: inline-block; width: 200px; text-align: center;
+        border-top: 0.8pt solid #C6B0FB; padding-top: 5px; font-size: 8pt;
+    }
 </style>
 </head>
 <body>

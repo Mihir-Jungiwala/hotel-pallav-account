@@ -19,7 +19,7 @@
                     <td>₹{{ number_format($r->total, 2) }}</td>
                     <td class="text-end">
                         <a class="btn btn-sm btn-outline-p" href="{{ route('shift-handover.view', $r) }}" target="_blank"><i class="bi bi-file-pdf"></i></a>
-                        <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#editShift{{ $r->id }}"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#editShift{{ $r->id }}" data-open-record title="Open"><i class="bi bi-pencil-square"></i></button>
                         <form method="POST" action="{{ route('shift-handover.destroy', $r) }}" class="d-inline" onsubmit="return confirm('Delete this record?')">
                             @csrf @method('DELETE')
                             <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>

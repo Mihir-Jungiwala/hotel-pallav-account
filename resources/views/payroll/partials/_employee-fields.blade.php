@@ -46,6 +46,7 @@
             <div class="col-md-6">
                 <label class="form-label">Employee Photo <span class="wz-optional">optional</span></label>
                 <input type="file" name="photo" class="form-control" accept="image/*">
+                @include('payroll.partials._current-file', ['path' => $e->photo_path ?? null, 'label' => 'Current photo'])
             </div>
 
             <div class="col-12">
@@ -139,6 +140,7 @@
             <div class="col-md-4">
                 <label class="form-label">ID Proof Image</label>
                 <input type="file" name="id_proof_image" class="form-control" accept="image/*">
+                @include('payroll.partials._current-file', ['path' => $e->id_proof_image_path ?? null, 'label' => 'Current ID proof'])
             </div>
 
             <div class="col-12"><hr>

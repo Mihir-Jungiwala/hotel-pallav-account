@@ -53,7 +53,7 @@
             <tr><td>{{ optional($e->date)->format('d-m-Y') }} {{ $e->time }}</td><td>{{ $e->expense_name }}</td><td>₹{{ number_format($e->amount,2) }}</td><td>{{ $e->full_name }}</td>
                 <td class="text-end">
                     <a class="btn btn-sm btn-outline-p" href="{{ route('expense.hotel-misc.view',$e) }}" target="_blank"><i class="bi bi-file-pdf"></i></a>
-                    <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#editHotelMisc{{ $e->id }}"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#editHotelMisc{{ $e->id }}" data-open-record title="Open"><i class="bi bi-pencil-square"></i></button>
                     <form method="POST" action="{{ route('expense.hotel-misc.destroy',$e) }}" class="d-inline" onsubmit="return confirm('Delete?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
                 </td></tr>
             <div class="modal fade" id="editHotelMisc{{ $e->id }}" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
@@ -84,7 +84,7 @@
             <tr><td>{{ optional($e->date)->format('d-m-Y') }} {{ $e->time }}</td><td>{{ $e->expense_name }}</td><td>₹{{ number_format($e->amount,2) }}</td><td>{{ $e->full_name }}</td>
                 <td class="text-end">
                     <a class="btn btn-sm btn-outline-p" href="{{ route('expense.food-misc.view',$e) }}" target="_blank"><i class="bi bi-file-pdf"></i></a>
-                    <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#editFoodMisc{{ $e->id }}"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#editFoodMisc{{ $e->id }}" data-open-record title="Open"><i class="bi bi-pencil-square"></i></button>
                     <form method="POST" action="{{ route('expense.food-misc.destroy',$e) }}" class="d-inline" onsubmit="return confirm('Delete?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
                 </td></tr>
             <div class="modal fade" id="editFoodMisc{{ $e->id }}" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
@@ -115,7 +115,7 @@
             <tr><td>{{ optional($a->date)->format('d-m-Y') }} {{ $a->time }}</td><td>{{ optional($a->staff)->name }}</td><td>{{ $a->year_month }}</td><td>₹{{ number_format($a->amount,2) }}</td><td>{{ $a->full_name }}</td>
                 <td class="text-end">
                     <a class="btn btn-sm btn-outline-p" href="{{ route('expense.staff-advance.view',$a) }}" target="_blank"><i class="bi bi-file-pdf"></i></a>
-                    <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#editAdvance{{ $a->id }}"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#editAdvance{{ $a->id }}" data-open-record title="Open"><i class="bi bi-pencil-square"></i></button>
                     <form method="POST" action="{{ route('expense.staff-advance.destroy',$a) }}" class="d-inline" onsubmit="return confirm('Delete?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
                 </td></tr>
             <div class="modal fade" id="editAdvance{{ $a->id }}" tabindex="-1"><div class="modal-dialog"><div class="modal-content">

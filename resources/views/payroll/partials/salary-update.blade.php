@@ -18,8 +18,7 @@
                         @endif
                     </td>
                     <td class="text-end text-nowrap">
-                        <button class="btn btn-sm btn-outline-p view-history" data-url="{{ route('payroll.salary-update.history', $row) }}" data-name="{{ $row->name }}"><i class="bi bi-eye"></i></button>
-                        <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#updateSalary{{ $row->id }}"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#updateSalary{{ $row->id }}" data-open-record title="Open"><i class="bi bi-pencil-square"></i></button>
                     </td>
                 </tr>
 
@@ -56,7 +55,10 @@
                             </div>
                             <div class="form-text mt-2">Only fields you actually change are recorded in the update history. Previous records are never overwritten.</div>
                         </div>
-                        <div class="modal-footer"><button class="btn btn-p">Save Update</button></div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-p me-auto view-history" data-url="{{ route('payroll.salary-update.history', $row) }}" data-name="{{ $row->name }}"><i class="bi bi-clock-history"></i> Update History</button>
+                            <button class="btn btn-p">Save Update</button>
+                        </div>
                     </form>
                 </div></div></div>
             @empty
@@ -79,7 +81,13 @@ document.querySelectorAll('.view-history').forEach(function(button){
     button.addEventListener('click', async function(){
         document.getElementById('historyTitle').textContent = 'Update History — ' + button.dataset.name;
         document.getElementById('historyBody').innerHTML = 'Loading…';
-        historyModal.show();
+        const owner = button.closest('.modal');
+        if (owner) {
+            owner.addEventListener('hidden.bs.modal', () => historyModal.show(), { once: true });
+            bootstrap.Modal.getInstance(owner).hide();
+        } else {
+            historyModal.show();
+        }
         const response = await fetch(button.dataset.url);
         document.getElementById('historyBody').innerHTML = await response.text();
     });

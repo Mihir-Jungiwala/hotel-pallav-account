@@ -20,33 +20,47 @@ use App\Http\Controllers\Payroll\SalaryReportController;
 use App\Http\Controllers\Payroll\SalarySlipController;
 use App\Http\Controllers\Payroll\SalaryUpdateController;
 use App\Http\Controllers\Payroll\SeparationController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RevenueController;
 use App\Http\Controllers\ShiftHandoverController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 // Guest routes
 Route::middleware('guest')->group(function () {
     Route::get('/', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login'])->name('login.attempt');
+    Route::get('/login', [AuthController::class, 'showLogin']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:30,1')->name('login.attempt');
     Route::get('/forgot-password', [AuthController::class, 'showForgot'])->name('password.request');
-    Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email');
+    Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->middleware('throttle:10,1')->name('password.email');
     Route::get('/reset-password/{token}', [AuthController::class, 'showReset'])->name('password.reset');
-    Route::post('/reset-password', [AuthController::class, 'reset'])->name('password.update');
+    Route::post('/reset-password', [AuthController::class, 'reset'])->middleware('throttle:10,1')->name('password.update');
 });
 
-// Authenticated routes
-Route::middleware('auth')->group(function () {
+// Authenticated routes — every request re-checks the account and the role ceiling
+Route::middleware(['auth', 'auth.session', 'account.usable', 'role.permissions'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // User accounts
-    Route::get('/users', [AuthController::class, 'index'])->name('users.index');
-    Route::post('/users', [AuthController::class, 'register'])->name('users.register');
-    Route::delete('/users/{user}', [AuthController::class, 'destroy'])->name('users.destroy');
-    Route::patch('/users/{user}/role', [AuthController::class, 'updateRole'])->name('users.update-role');
-    Route::post('/users/{user}/toggle-active', [AuthController::class, 'toggleActive'])->name('users.toggle-active');
+    // My profile (every role)
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [ProfileController::class, 'changePassword'])->name('profile.password');
+
+    // User accounts (Admin and SuperAdmin)
+    Route::middleware('admin')->prefix('users')->name('users.')->group(function () {
+        Route::get('/', [UserController::class, 'index'])->name('index');
+        Route::get('/activity', [UserController::class, 'activity'])->name('activity');
+        Route::post('/', [UserController::class, 'store'])->name('store');
+        Route::put('/{user}', [UserController::class, 'update'])->name('update');
+        Route::delete('/{user}', [UserController::class, 'destroy'])->name('destroy');
+        Route::post('/{user}/toggle-active', [UserController::class, 'toggleActive'])->name('toggle-active');
+        Route::post('/{user}/unlock', [UserController::class, 'unlock'])->name('unlock');
+        Route::put('/{user}/password', [UserController::class, 'resetPassword'])->name('reset-password');
+        Route::post('/{user}/transfer-superadmin', [UserController::class, 'transferSuperAdmin'])->name('transfer-superadmin');
+    });
 
     // Company profiles
     Route::get('/company', [CompanyProfileController::class, 'index'])->name('company.index');

@@ -38,16 +38,30 @@ class MockDataSeeder extends Seeder
 
     public function run(): void
     {
-        $this->admin = User::firstWhere('email', 'superadmin@hotelpallav.com');
+        $this->admin = User::firstWhere('username', 'superadmin');
 
         $this->editor = User::updateOrCreate(
-            ['email' => 'admin@hotelpallav.com'],
-            ['name' => 'Priya Shah', 'password' => Hash::make('Admin@1234'), 'role' => 'Admin', 'is_active' => true]
+            ['username' => 'admin'],
+            [
+                'name' => 'Priya Shah', 'email' => 'admin@hotelpallav.com', 'password' => Hash::make('Admin@1234'),
+                'role' => 'Admin', 'is_active' => true, 'created_by' => $this->admin->id, 'password_changed_at' => now(),
+            ]
         );
 
         User::updateOrCreate(
-            ['email' => 'frontdesk@hotelpallav.com'],
-            ['name' => 'Rahul Mehta', 'password' => Hash::make('Editor@1234'), 'role' => 'Editor', 'is_active' => true]
+            ['username' => 'frontdesk'],
+            [
+                'name' => 'Rahul Mehta', 'email' => 'frontdesk@hotelpallav.com', 'password' => Hash::make('Editor@1234'),
+                'role' => 'Editor', 'is_active' => true, 'created_by' => $this->editor->id, 'password_changed_at' => now(),
+            ]
+        );
+
+        User::updateOrCreate(
+            ['username' => 'accounts'],
+            [
+                'name' => 'Neha Desai', 'email' => null, 'password' => Hash::make('Viewer@1234'),
+                'role' => 'Viewer', 'is_active' => true, 'created_by' => $this->editor->id, 'password_changed_at' => now(),
+            ]
         );
 
         $this->seedCompanyProfiles();

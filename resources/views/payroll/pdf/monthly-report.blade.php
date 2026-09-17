@@ -21,16 +21,13 @@
     h2.section { margin: 9px 0 4px !important; }
 </style>
 
-<table class="grid avoid-break tight" style="margin-bottom:6px;">
-    <thead><tr>
-        <th>Employees</th><th class="num">Gross Earnings</th><th class="num">Total Deductions</th><th class="num">Net Payout</th>
-    </tr></thead>
-    <tbody><tr>
-        <td>{{ $rows->count() }} processed</td>
-        <td class="num">{{ number_format($totalGross, 2) }}</td>
-        <td class="num">{{ number_format($totalDed, 2) }}</td>
-        <td class="num"><strong>{{ number_format($totalNet, 2) }}</strong></td>
-    </tr></tbody>
+<table class="stats avoid-break" style="margin-bottom:4px;">
+    <tr>
+        <td><div class="s-label">Employees</div><div class="s-value">{{ $rows->count() }} processed</div></td>
+        <td><div class="s-label">Gross Earnings</div><div class="s-value">&#8377;{{ number_format($totalGross, 2) }}</div></td>
+        <td><div class="s-label">Total Deductions</div><div class="s-value">&#8377;{{ number_format($totalDed, 2) }}</div></td>
+        <td><div class="s-label">Net Payout</div><div class="s-value accent">&#8377;{{ number_format($totalNet, 2) }}</div></td>
+    </tr>
 </table>
 
 <h2 class="section">Attendance</h2>

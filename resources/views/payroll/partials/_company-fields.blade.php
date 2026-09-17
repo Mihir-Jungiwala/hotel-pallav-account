@@ -22,6 +22,7 @@
             <div class="col-md-6">
                 <label class="form-label">Company Logo <span class="wz-optional">optional</span></label>
                 <input type="file" name="logo" class="form-control" accept="image/*">
+                @include('payroll.partials._current-file', ['path' => $c->logo_path ?? null, 'label' => 'Current logo'])
             </div>
 
             <div class="col-md-6">
@@ -103,6 +104,7 @@
             <div class="col-md-4">
                 <label class="form-label">Signature Image <span class="wz-optional">optional</span></label>
                 <input type="file" name="signature_image" class="form-control" accept="image/*">
+                @include('payroll.partials._current-file', ['path' => $c->signature_image_path ?? null, 'label' => 'Current signature'])
             </div>
         </div>
     </div>

@@ -69,15 +69,13 @@
                         @endif
                     </td>
                     <td class="text-end text-nowrap">
-                        <a class="btn-icon" href="{{ route('payroll.separation.view', $row) }}" target="_blank" title="Exit summary"><i class="bi bi-eye"></i></a>
-
                         @if($row->canIssueExperienceLetter() && $hasExperienceTemplate)
                             <a class="btn-icon" href="{{ route('payroll.separation.experience-letter', $row) }}" target="_blank" title="Experience letter">
                                 <i class="bi bi-file-earmark-check"></i>
                             </a>
                         @endif
 
-                        <button class="btn-icon" data-bs-toggle="modal" data-bs-target="#editSeparation{{ $row->id }}" title="Edit"><i class="bi bi-pencil"></i></button>
+                        <button class="btn-icon" data-bs-toggle="modal" data-bs-target="#editSeparation{{ $row->id }}" data-open-record title="Open"><i class="bi bi-pencil-square"></i></button>
 
                         @if(! $row->hasRejoined())
                             <button class="btn-icon" data-bs-toggle="modal" data-bs-target="#rejoin{{ $row->id }}" title="Rejoin employee"><i class="bi bi-arrow-counterclockwise"></i></button>
@@ -93,12 +91,15 @@
 
                 <div class="modal fade" id="editSeparation{{ $row->id }}" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
                     <form method="POST" action="{{ route('payroll.separation.update', $row) }}" enctype="multipart/form-data">@csrf @method('PUT')
-                        <div class="modal-header"><h5 class="modal-title">Edit Exit &mdash; {{ optional($emp)->name }}</h5>
+                        <div class="modal-header"><h5 class="modal-title">Exit &mdash; {{ optional($emp)->name }}</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                         <div class="modal-body">
                             @include('payroll.partials._separation-fields', ['target' => $row, 'activeEmployees' => $activeEmployees])
                         </div>
-                        <div class="modal-footer"><button class="btn btn-p">Save Changes</button></div>
+                        <div class="modal-footer">
+                            <a class="btn btn-outline-p me-auto" href="{{ route('payroll.separation.view', $row) }}" target="_blank"><i class="bi bi-file-earmark-pdf"></i> Exit Summary PDF</a>
+                            <button class="btn btn-p">Save Changes</button>
+                        </div>
                     </form>
                 </div></div></div>
 

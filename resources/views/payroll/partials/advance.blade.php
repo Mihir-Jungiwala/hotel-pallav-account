@@ -29,22 +29,26 @@
                         @endif
                     </td>
                     <td class="text-end text-nowrap">
-                        <a class="btn btn-sm btn-outline-p" href="{{ route('payroll.advance.view', $row) }}" target="_blank"><i class="bi bi-eye"></i></a>
-                        @unless($row->is_carry_forward)
-                            <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#editAdvance{{ $row->id }}"><i class="bi bi-pencil"></i></button>
+                        @if($row->is_carry_forward)
+                            <a class="btn btn-sm btn-outline-p" href="{{ route('payroll.advance.view', $row) }}" target="_blank" title="Advance PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+                        @else
+                            <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#editAdvance{{ $row->id }}" data-open-record title="Open"><i class="bi bi-pencil-square"></i></button>
                             <form method="POST" action="{{ route('payroll.advance.destroy', $row) }}" class="d-inline" onsubmit="return confirm('Delete this advance?')">@csrf @method('DELETE')
                                 <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
                             </form>
-                        @endunless
+                        @endif
                     </td>
                 </tr>
 
                 @unless($row->is_carry_forward)
                 <div class="modal fade" id="editAdvance{{ $row->id }}" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
                     <form method="POST" action="{{ route('payroll.advance.update', $row) }}">@csrf @method('PUT')
-                        <div class="modal-header"><h5 class="modal-title">Edit Advance</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                        <div class="modal-header"><h5 class="modal-title">Advance &mdash; {{ optional($row->employee)->name }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                         <div class="modal-body">@include('payroll.partials._advance-fields', ['target' => $row])</div>
-                        <div class="modal-footer"><button class="btn btn-p">Save Changes</button></div>
+                        <div class="modal-footer">
+                            <a class="btn btn-outline-p me-auto" href="{{ route('payroll.advance.view', $row) }}" target="_blank"><i class="bi bi-file-earmark-pdf"></i> Advance PDF</a>
+                            <button class="btn btn-p">Save Changes</button>
+                        </div>
                     </form>
                 </div></div></div>
                 @endunless

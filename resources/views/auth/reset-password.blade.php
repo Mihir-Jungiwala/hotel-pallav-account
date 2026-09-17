@@ -1,28 +1,44 @@
 @extends('layouts.app')
-@section('title', 'Set New Password')
+@section('title', 'Choose a new password')
 @section('content')
-<div class="d-flex align-items-center justify-content-center" style="min-height:100vh; margin:-24px;">
-    <div class="card p-4" style="max-width:440px; width:100%;">
-        <div class="text-center mb-3">
-            <div class="brand-font" style="font-size:22px; font-weight:700; color:var(--p800);">Choose a new password</div>
+<div class="auth-shell">
+    <div class="auth-card">
+        <div class="auth-brand">
+            <span class="auth-mark">HP</span>
+            <div>
+                <div class="auth-name">Hotel Pallav</div>
+                <div class="auth-sub">Management Suite</div>
+            </div>
         </div>
+
+        <h1 class="auth-title">Choose a new password</h1>
+        <p class="auth-lead">{{ \App\Support\PasswordPolicy::MESSAGE }}</p>
+
+        @if($errors->any())
+            <div class="auth-note err"><i class="bi bi-exclamation-circle"></i> {{ $errors->first() }}</div>
+        @endif
+
         <form method="POST" action="{{ route('password.update') }}">
             @csrf
             <input type="hidden" name="token" value="{{ $token }}">
+            <input type="hidden" name="email" value="{{ old('email', $email) }}">
+
             <div class="mb-3">
-                <label class="form-label">Email</label>
-                <input type="email" name="email" class="form-control" value="{{ old('email', $email) }}" required>
+                <label class="form-label" for="password">New password</label>
+                <div class="input-icon">
+                    <i class="bi bi-lock"></i>
+                    <input id="password" type="password" name="password" class="form-control" autocomplete="new-password" required data-strength>
+                    <button type="button" class="reveal-btn" data-reveal="#password" aria-label="Show password"><i class="bi bi-eye"></i></button>
+                </div>
             </div>
             <div class="mb-3">
-                <label class="form-label">New Password</label>
-                <input type="password" name="password" class="form-control" required>
-                <div class="form-text">Min 8 characters, with uppercase, lowercase, number and special character.</div>
+                <label class="form-label" for="password_confirmation">Confirm password</label>
+                <div class="input-icon">
+                    <i class="bi bi-lock"></i>
+                    <input id="password_confirmation" type="password" name="password_confirmation" class="form-control" autocomplete="new-password" required>
+                </div>
             </div>
-            <div class="mb-3">
-                <label class="form-label">Confirm Password</label>
-                <input type="password" name="password_confirmation" class="form-control" required>
-            </div>
-            <button class="btn btn-p w-100 py-2">Update Password</button>
+            <button class="btn btn-p w-100 py-2" data-busy-label="Saving…">Update password</button>
         </form>
     </div>
 </div>

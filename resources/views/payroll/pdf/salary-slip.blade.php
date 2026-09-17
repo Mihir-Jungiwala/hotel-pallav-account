@@ -48,36 +48,35 @@
         <td class="k">Payment Mode</td>
         <td class="v">
             {{ $processing->payment_mode ?: '—' }}
-            <span class="chip {{ $processing->payment_status === 'Paid' ? 'ok' : 'warn' }}">{{ $processing->payment_status }}</span>
         </td>
     </tr>
 </table>
 
 {{-- Attendance breakdown --}}
 <h2 class="section">Attendance Summary</h2>
-<table class="grid avoid-break">
+<table class="grid avoid-break att-summary">
     <thead>
         <tr>
-            <th class="num">Days</th>
-            <th class="num">100%</th>
-            <th class="num">75%</th>
-            <th class="num">50%</th>
-            <th class="num">25%</th>
-            <th class="num">0%</th>
-            <th class="num">Payable</th>
-            <th class="num">Overtime</th>
+            <th class="center">Days</th>
+            <th class="center">100%</th>
+            <th class="center">75%</th>
+            <th class="center">50%</th>
+            <th class="center">25%</th>
+            <th class="center">0%</th>
+            <th class="center">Payable</th>
+            <th class="center">Overtime</th>
         </tr>
     </thead>
     <tbody>
         <tr>
-            <td class="num">{{ $processing->total_days_in_month }}</td>
-            <td class="num">{{ (int) $processing->days_100 }}</td>
-            <td class="num">{{ (int) $processing->days_75 }}</td>
-            <td class="num">{{ (int) $processing->days_50 }}</td>
-            <td class="num">{{ (int) $processing->days_25 }}</td>
-            <td class="num">{{ (int) $processing->days_0 }}</td>
-            <td class="num"><strong>{{ number_format($processing->total_payable_days, 2) }}</strong></td>
-            <td class="num">{{ number_format($processing->overtime_hours, 2) }} hrs</td>
+            <td class="center">{{ $processing->total_days_in_month }}</td>
+            <td class="center">{{ (int) $processing->days_100 }}</td>
+            <td class="center">{{ (int) $processing->days_75 }}</td>
+            <td class="center">{{ (int) $processing->days_50 }}</td>
+            <td class="center">{{ (int) $processing->days_25 }}</td>
+            <td class="center">{{ (int) $processing->days_0 }}</td>
+            <td class="center"><strong>{{ number_format($processing->total_payable_days, 2) }}</strong></td>
+            <td class="center">{{ number_format($processing->overtime_hours, 2) }} hrs</td>
         </tr>
     </tbody>
 </table>

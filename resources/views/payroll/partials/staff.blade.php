@@ -73,14 +73,13 @@
                     <td class="money">₹{{ number_format($row->salary, 2) }}</td>
                     <td>{{ $row->payment_mode }}</td>
                     <td>
-                        <form method="POST" action="{{ route('payroll.employee.toggle-active', $row) }}">@csrf
+                        <form method="POST" action="{{ route('payroll.employee.toggle-active', $row) }}" data-status-toggle>@csrf
                             <button class="btn btn-sm {{ $row->is_active ? 'btn-outline-success' : 'btn-outline-secondary' }}">{{ $row->is_active ? 'Active' : 'Inactive' }}</button>
                         </form>
                     </td>
                     <td class="text-end text-nowrap">
-                        <a class="btn-icon" href="{{ route('payroll.employee.view', $row) }}" target="_blank" title="View record"><i class="bi bi-eye"></i></a>
                         <a class="btn-icon" href="{{ route('payroll.joining-letter.generate', $row) }}" target="_blank" title="Joining letter"><i class="bi bi-file-earmark-text"></i></a>
-                        <button class="btn-icon" data-bs-toggle="modal" data-bs-target="#editEmployee{{ $row->id }}" title="Edit"><i class="bi bi-pencil"></i></button>
+                        <button class="btn-icon" data-bs-toggle="modal" data-bs-target="#editEmployee{{ $row->id }}" data-open-record title="Open"><i class="bi bi-pencil-square"></i></button>
                         <form method="POST" action="{{ route('payroll.employee.destroy', $row) }}" class="d-inline" onsubmit="return confirm('Delete this employee?')">@csrf @method('DELETE')
                             <button class="btn-icon danger" title="Delete"><i class="bi bi-trash"></i></button>
                         </form>
@@ -89,9 +88,12 @@
 
                 <div class="modal fade employee-modal" id="editEmployee{{ $row->id }}" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
                     <form method="POST" action="{{ route('payroll.employee.update', $row) }}" enctype="multipart/form-data">@csrf @method('PUT')
-                        <div class="modal-header"><h5 class="modal-title">Edit {{ $row->name }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                        <div class="modal-header"><h5 class="modal-title">{{ $row->name }} <span class="text-muted fw-normal fs-6">&middot; {{ $row->employee_code }}</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                         <div class="modal-body">@include('payroll.partials._employee-fields', ['target' => $row])</div>
-                        <div class="modal-footer"><button class="btn btn-p">Save Changes</button></div>
+                        <div class="modal-footer">
+                            <a class="btn btn-outline-p me-auto" href="{{ route('payroll.employee.view', $row) }}" target="_blank"><i class="bi bi-file-earmark-pdf"></i> Employee PDF</a>
+                            <button class="btn btn-p">Save Changes</button>
+                        </div>
                     </form>
                 </div></div></div>
             @empty

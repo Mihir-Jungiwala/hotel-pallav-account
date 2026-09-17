@@ -125,7 +125,7 @@
         // Focus the first real field so the keyboard is immediately useful
         document.addEventListener('shown.bs.modal', (event) => {
             const field = event.target.querySelector(
-                '.modal-body input:not([type=hidden]):not([type=file]), .modal-body select, .modal-body textarea'
+                '.modal-body input:not([type=hidden]):not([type=file]):not([data-no-autofocus]):not(:disabled), .modal-body select:not(.tomselected):not(:disabled), .modal-body textarea:not(:disabled)'
             );
             if (field) field.focus({ preventScroll: true });
         });
@@ -535,7 +535,7 @@
                 const last = index === steps.length - 1;
                 back.hidden = index === 0;
                 next.hidden = last;
-                if (submitButton) submitButton.hidden = !last;
+                if (submitButton) submitButton.hidden = !last || form.dataset.readonly === 'true';
 
                 wizard.closest('.modal-body')?.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
             }
