@@ -1,0 +1,124 @@
+@php
+    $brandName = $company->name;
+    $brandMeta = trim(collect([$company->address, $company->city, $company->state])->filter()->implode(', '));
+    $docType = 'Monthly Salary Report';
+    $docSub = $start->format('F Y');
+
+    $totalNet = $rows->sum('net_salary');
+    $totalGross = $rows->sum('attendance_salary') + $rows->sum('overtime_amount') + $rows->sum('bonus_amount') + $rows->sum('incentive_amount');
+    $totalDed = $rows->sum('deduction_amount') + $rows->sum('advance_deduction');
+@endphp
+
+@extends('payroll.pdf._base')
+
+@section('content')
+
+<style>
+    /* Dense tables so a full month for the whole team lands on one landscape page */
+    table.tight th { font-size: 6.5pt !important; padding: 4px 4px !important; letter-spacing: 0.2pt !important; }
+    table.tight td { font-size: 7pt !important; padding: 3px 4px !important; white-space: nowrap; }
+    table.att td { height: 13px; }
+    h2.section { margin: 9px 0 4px !important; }
+</style>
+
+<table class="grid avoid-break tight" style="margin-bottom:6px;">
+    <thead><tr>
+        <th>Employees</th><th class="num">Gross Earnings</th><th class="num">Total Deductions</th><th class="num">Net Payout</th>
+    </tr></thead>
+    <tbody><tr>
+        <td>{{ $rows->count() }} processed</td>
+        <td class="num">{{ number_format($totalGross, 2) }}</td>
+        <td class="num">{{ number_format($totalDed, 2) }}</td>
+        <td class="num"><strong>{{ number_format($totalNet, 2) }}</strong></td>
+    </tr></tbody>
+</table>
+
+<h2 class="section">Attendance</h2>
+<table class="att" style="border-collapse:collapse; width:100%; font-size:6pt;">
+    <thead>
+        <tr>
+            <th style="background:#F3EEFE; color:#5B21B6; text-align:left; padding:4px 5px; width:92px;">Employee</th>
+            @for($day = 1; $day <= $daysInMonth; $day++)
+                @php $d = $start->copy()->day($day); @endphp
+                <th style="background:{{ $d->isSunday() ? '#FFEDD5' : '#F3EEFE' }}; color:{{ $d->isSunday() ? '#C2410C' : '#5B21B6' }};
+                           text-align:center; padding:3px 0; {{ $d->isMonday() && $day > 1 ? 'border-left:1.4pt solid #A886F7;' : '' }}">
+                    {{ $day }}<br><span style="font-size:5pt;">{{ substr($d->format('D'), 0, 2) }}</span>
+                </th>
+            @endfor
+            <th style="background:#F3EEFE; color:#5B21B6; text-align:right; padding:3px 4px;">Days</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach($rows as $row)
+        @php $employeeEntries = $entries[$row->employee_id] ?? collect(); @endphp
+        <tr>
+            <td style="padding:1px 5px; border-bottom:0.5pt solid #F1ECFD; white-space:nowrap;">
+                <strong>{{ \Illuminate\Support\Str::limit($row->employee_name, 16) }}</strong>
+                <span style="color:#6B6486; font-size:5.5pt;">{{ $row->employee_code }}</span>
+            </td>
+            @for($day = 1; $day <= $daysInMonth; $day++)
+                @php
+                    $d = $start->copy()->day($day);
+                    $key = ($employeeEntries[$day] ?? null)?->shortcut_key;
+                    $color = $key && isset($statuses[strtoupper($key)]) ? $statuses[strtoupper($key)]['color'] : null;
+                @endphp
+                <td style="text-align:center; padding:2px 0; border-bottom:0.5pt solid #F1ECFD;
+                           {{ $d->isMonday() && $day > 1 ? 'border-left:1.4pt solid #A886F7;' : '' }}
+                           {{ $color ? 'background:'.$color.'; color:#fff; font-weight:bold;' : 'color:#C9C3DC;' }}">
+                    {{ $key ?: '·' }}
+                </td>
+            @endfor
+            <td style="text-align:right; padding:3px 4px; border-bottom:0.5pt solid #F1ECFD;"><strong>{{ number_format($row->total_payable_days, 2) }}</strong></td>
+        </tr>
+    @endforeach
+    </tbody>
+</table>
+
+<div style="margin-top:5px; font-size:6.5pt; color:#6B6486;">
+    @foreach($statuses as $key => $meta)
+        <span style="margin-right:8px;">
+            <span style="padding:1px 4px; border-radius:3px; background:{{ $meta['color'] }}; color:#fff; font-weight:bold;">{{ $key }}</span>
+            {{ $meta['name'] }}
+        </span>
+    @endforeach
+</div>
+
+<h2 class="section">Salary</h2>
+<table class="grid tight">
+    <thead>
+        <tr>
+            <th>ID</th><th>Name</th><th>Designation</th>
+            <th class="num">Salary</th><th class="num">Days</th><th class="num">Attendance</th>
+            <th class="num">OT</th><th class="num">Bonus</th><th class="num">Incentive</th>
+            <th class="num">Deductions</th><th class="num">Advance</th><th class="num">Net</th>
+            <th>Mode</th><th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach($rows as $row)
+        <tr>
+            <td>{{ $row->employee_code }}</td>
+            <td><strong>{{ \Illuminate\Support\Str::limit($row->employee_name, 20) }}</strong></td>
+            <td>{{ \Illuminate\Support\Str::limit($row->designation, 28) }}</td>
+            <td class="num">{{ number_format($row->monthly_salary, 2) }}</td>
+            <td class="num">{{ number_format($row->total_payable_days, 2) }}</td>
+            <td class="num">{{ number_format($row->attendance_salary, 2) }}</td>
+            <td class="num">{{ number_format($row->overtime_amount, 2) }}</td>
+            <td class="num">{{ number_format($row->bonus_amount, 2) }}</td>
+            <td class="num">{{ number_format($row->incentive_amount, 2) }}</td>
+            <td class="num">{{ number_format($row->deduction_amount, 2) }}</td>
+            <td class="num">{{ number_format($row->advance_deduction, 2) }}</td>
+            <td class="num"><strong>{{ number_format($row->net_salary, 2) }}</strong></td>
+            <td>{{ $row->payment_mode }}</td>
+            <td>{{ $row->payment_status }}</td>
+        </tr>
+    @endforeach
+        <tr class="total">
+            <td colspan="11">Total net payout &middot; {{ \App\Support\NumberToWords::convert($totalNet) }}</td>
+            <td class="num">{{ number_format($totalNet, 2) }}</td>
+            <td colspan="2"></td>
+        </tr>
+    </tbody>
+</table>
+
+@endsection
