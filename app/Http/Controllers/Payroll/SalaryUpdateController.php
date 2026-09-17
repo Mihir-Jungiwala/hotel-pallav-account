@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Payroll;
 
+use App\Support\ForceMode;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\SalaryUpdateHistory;
@@ -56,7 +57,7 @@ class SalaryUpdateController extends Controller
             }
         }
 
-        if (! $changes) {
+        if (ForceMode::locked(! $changes, 'No tracked fields were changed')) {
             return back()->with('error', 'No tracked fields were changed.');
         }
 

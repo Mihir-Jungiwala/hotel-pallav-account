@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Payroll;
 
+use App\Support\ForceMode;
 use App\Http\Controllers\Controller;
 use App\Models\BonusIncentive;
 use App\Models\SalaryProcessing;
@@ -59,11 +60,11 @@ class BonusIncentiveController extends Controller
 
     public function update(Request $request, BonusIncentive $entry)
     {
-        if (! Auth::user()->isAdmin()) {
+        if (ForceMode::locked(! Auth::user()->isAdmin(), 'Only Admin users can update these records')) {
             return back()->with('error', 'Only Admin users can update these records.');
         }
 
-        if ($this->periodProcessed($entry)) {
+        if (ForceMode::locked($this->periodProcessed($entry), 'Salary Processing is already completed for this period,')) {
             return back()->with('error', 'Salary Processing is already completed for this period, so this entry cannot be changed.');
         }
 
@@ -74,11 +75,11 @@ class BonusIncentiveController extends Controller
 
     public function destroy(BonusIncentive $entry)
     {
-        if (! Auth::user()->isAdmin()) {
+        if (ForceMode::locked(! Auth::user()->isAdmin(), 'Only Admin users can delete these records')) {
             return back()->with('error', 'Only Admin users can delete these records.');
         }
 
-        if ($this->periodProcessed($entry)) {
+        if (ForceMode::locked($this->periodProcessed($entry), 'Salary Processing is already completed for this period,')) {
             return back()->with('error', 'Salary Processing is already completed for this period, so this entry cannot be deleted.');
         }
 

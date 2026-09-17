@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\UnitContext;
+use App\Support\ForceMode;
 use App\Models\ShiftHandover;
 use App\Support\NumberToWords;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -12,7 +14,8 @@ class ShiftHandoverController extends Controller
 {
     public function index()
     {
-        $records = ShiftHandover::with('user')->latest('date')->latest('time')->get();
+        $records = UnitContext::scope(ShiftHandover::with(['user', 'businessUnit']))
+            ->latest('date')->latest('time')->get();
 
         return view('shift_handover.index', compact('records'));
     }
@@ -59,6 +62,7 @@ class ShiftHandoverController extends Controller
         $data = $this->computeTotals($request->validate($this->rules()));
         $data['user_id'] = Auth::id();
         $data['full_name'] = Auth::user()->name;
+        $data['business_unit_id'] = UnitContext::forNewRecord($request->string('business_unit')->toString());
 
         ShiftHandover::create($data);
 
@@ -67,11 +71,17 @@ class ShiftHandoverController extends Controller
 
     public function update(Request $request, ShiftHandover $shiftHandover)
     {
-        if (! Auth::user()->canManage($shiftHandover->user)) {
+        if (ForceMode::locked(! Auth::user()->canManage($shiftHandover->user), 'Not allowed to edit this record')) {
             return back()->with('error', 'Not allowed to edit this record.');
         }
 
         $data = $this->computeTotals($request->validate($this->rules()));
+
+        // A handover can be moved to the other business while both are in view
+        if ($request->filled('business_unit')) {
+            $data['business_unit_id'] = UnitContext::forNewRecord($request->string('business_unit')->toString());
+        }
+
         $shiftHandover->update($data);
 
         return back()->with('success', 'Shift handover updated.');
@@ -79,7 +89,7 @@ class ShiftHandoverController extends Controller
 
     public function destroy(ShiftHandover $shiftHandover)
     {
-        if (! Auth::user()->canManage($shiftHandover->user)) {
+        if (ForceMode::locked(! Auth::user()->canManage($shiftHandover->user), 'Not allowed to delete this record')) {
             return back()->with('error', 'Not allowed to delete this record.');
         }
         $shiftHandover->delete();

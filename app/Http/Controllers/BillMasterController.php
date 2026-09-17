@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\UnitContext;
+use App\Support\ForceMode;
 use App\Models\BillMasterAdvance;
 use App\Models\BillMasterBill;
 use App\Models\CompanyProfile;
@@ -10,6 +12,27 @@ use Illuminate\Support\Facades\Auth;
 
 class BillMasterController extends Controller
 {
+    /**
+     * Bills and advances legitimately hold both businesses on one record, so
+     * the switcher keeps the rows that carry an amount for the chosen side.
+     */
+    private function scopeToUnit($query, array $columns)
+    {
+        $unit = UnitContext::current();
+
+        if ($unit === null) {
+            return $query;
+        }
+
+        $prefix = $unit->slug;
+
+        return $query->where(function ($q) use ($columns, $prefix) {
+            foreach ($columns as $column) {
+                $q->orWhere(str_replace('{unit}', $prefix, $column), '>', 0);
+            }
+        });
+    }
+
     /* ---------------------------------------------------------------
      | Advances
      |----------------------------------------------------------------*/
@@ -17,7 +40,10 @@ class BillMasterController extends Controller
     public function advances()
     {
         return view('bill_master.advances', [
-            'advances' => BillMasterAdvance::with('company')->latest('payment_date')->latest('id')->get(),
+            'advances' => $this->scopeToUnit(
+                BillMasterAdvance::with('company')->latest('payment_date')->latest('id'),
+                ['{unit}_amount']
+            )->get(),
             'companies' => CompanyProfile::orderBy('name')->get(),
         ]);
     }
@@ -57,7 +83,7 @@ class BillMasterController extends Controller
 
     public function updateAdvance(Request $request, BillMasterAdvance $advance)
     {
-        if (! $advance->isUnused() || $advance->isRefunded()) {
+        if (ForceMode::locked(! $advance->isUnused() || $advance->isRefunded(), 'This advance has already been used or refunded')) {
             return back()->with('error', 'This advance has already been used or refunded and cannot be edited.');
         }
 
@@ -86,11 +112,11 @@ class BillMasterController extends Controller
 
     public function destroyAdvance(BillMasterAdvance $advance)
     {
-        if (! Auth::user()->canManage($advance->creator)) {
+        if (ForceMode::locked(! Auth::user()->canManage($advance->creator), 'Not allowed to delete this record')) {
             return back()->with('error', 'Not allowed to delete this record.');
         }
 
-        if (! $advance->isUnused()) {
+        if (ForceMode::locked(! $advance->isUnused(), 'This advance has already been partly used and')) {
             return back()->with('error', 'This advance has already been partly used and cannot be deleted.');
         }
 
@@ -101,7 +127,7 @@ class BillMasterController extends Controller
 
     public function refundAdvance(Request $request, BillMasterAdvance $advance)
     {
-        if ($advance->isRefunded()) {
+        if (ForceMode::locked($advance->isRefunded(), 'This advance has already been refunded')) {
             return back()->with('error', 'This advance has already been refunded.');
         }
 
@@ -119,7 +145,7 @@ class BillMasterController extends Controller
         $hotelRefund = $data['hotel_refund_amount'] ?? 0;
         $foodRefund = $data['food_refund_amount'] ?? 0;
 
-        if ($hotelRefund > $advance->hotel_balance || $foodRefund > $advance->food_balance) {
+        if (ForceMode::locked($hotelRefund > $advance->hotel_balance || $foodRefund > $advance->food_balance, 'Refund amount cannot exceed the available advance balance')) {
             return back()->with('error', 'Refund amount cannot exceed the available advance balance.')->withInput();
         }
 
@@ -158,7 +184,10 @@ class BillMasterController extends Controller
     public function bills()
     {
         return view('bill_master.bills', [
-            'bills' => BillMasterBill::with('company')->latest('bill_date')->latest('id')->get(),
+            'bills' => $this->scopeToUnit(
+                BillMasterBill::with('company')->latest('bill_date')->latest('id'),
+                ['total_{unit}_amount', 'debit_{unit}_amount', 'balance_{unit}_amount']
+            )->get(),
             'companies' => CompanyProfile::orderBy('name')->get(),
             'advances' => BillMasterAdvance::orderBy('guest_name')->get(),
         ]);
@@ -244,7 +273,7 @@ class BillMasterController extends Controller
 
     public function updateBill(Request $request, BillMasterBill $bill)
     {
-        if ($bill->hasDebitBillRecorded()) {
+        if (ForceMode::locked($bill->hasDebitBillRecorded(), 'A debit bill has already been generated for')) {
             return back()->with('error', 'A debit bill has already been generated for this bill; it cannot be edited.');
         }
 
@@ -270,7 +299,7 @@ class BillMasterController extends Controller
 
     public function destroyBill(BillMasterBill $bill)
     {
-        if ($bill->hasDebitBillRecorded()) {
+        if (ForceMode::locked($bill->hasDebitBillRecorded(), 'A debit bill has already been generated for')) {
             return back()->with('error', 'A debit bill has already been generated for this bill; it cannot be deleted.');
         }
 
@@ -291,20 +320,27 @@ class BillMasterController extends Controller
 
     public function debitBills()
     {
-        $bills = BillMasterBill::with('company')
-            ->where(function ($q) {
+        $query = BillMasterBill::with('company')->latest('bill_date');
+        $unit = UnitContext::current();
+
+        if ($unit) {
+            $side = $unit->slug;
+            $query->whereRaw("LOWER({$side}_mode_of_payment) = ?", ['debit']);
+        } else {
+            $query->where(function ($q) {
                 $q->whereRaw('LOWER(hotel_mode_of_payment) = ?', ['debit'])
                     ->orWhereRaw('LOWER(food_mode_of_payment) = ?', ['debit']);
-            })
-            ->latest('bill_date')
-            ->get();
+            });
+        }
+
+        $bills = $query->get();
 
         return view('bill_master.debit-bills', compact('bills'));
     }
 
     public function storeDebitBill(Request $request, BillMasterBill $bill)
     {
-        if ($bill->hasDebitBillRecorded()) {
+        if (ForceMode::locked($bill->hasDebitBillRecorded(), 'Debit bill already recorded for this bill')) {
             return back()->with('error', 'Debit bill already recorded for this bill.');
         }
 

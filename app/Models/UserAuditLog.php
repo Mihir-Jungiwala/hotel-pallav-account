@@ -28,6 +28,10 @@ class UserAuditLog extends Model
         'profile.updated' => 'Updated own profile',
         'profile.password_changed' => 'Changed own password',
         'login.locked' => 'Locked after failed logins',
+        'force.enabled' => 'Armed force mode',
+        'force.disabled' => 'Disarmed force mode',
+        'force.override' => 'Forced past a lock',
+        'unit.switched' => 'Switched business unit',
     ];
 
     public function actor(): BelongsTo

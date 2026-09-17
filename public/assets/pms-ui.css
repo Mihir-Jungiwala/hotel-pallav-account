@@ -303,3 +303,98 @@ span.flatpickr-weekday { font-size: 10.5px !important; font-weight: 800 !importa
 @media (prefers-reduced-motion: reduce) {
     .auth-card, .pms-dropdown.show, .ts-dropdown, .flatpickr-calendar.animate.open { animation: none !important; }
 }
+
+/* ===========================================================================
+   Business switcher (sidebar)
+   =========================================================================== */
+
+.unit-switch { position: relative; margin: 0 0 14px; }
+.unit-switch-btn {
+    width: 100%; display: flex; align-items: center; gap: 10px; text-align: left;
+    padding: 8px 10px; border-radius: 13px; color: #fff;
+    background: rgba(255, 255, 255, .10); border: 1px solid rgba(255, 255, 255, .16);
+    transition: background-color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
+}
+.unit-switch-btn:hover, .unit-switch.open .unit-switch-btn { background: rgba(255, 255, 255, .18); border-color: rgba(255, 255, 255, .32); }
+.unit-switch-btn .us-mark {
+    width: 30px; height: 30px; flex: none; border-radius: 9px; display: flex; align-items: center; justify-content: center;
+    background: rgba(255, 255, 255, .2); font-size: 14px;
+}
+.unit-switch-btn .us-text { flex: 1; min-width: 0; }
+.unit-switch-btn .us-label { display: block; font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #DCC9FF; }
+.unit-switch-btn .us-name {
+    display: block; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.unit-switch-btn .us-caret { color: #DCC9FF; font-size: 12px; }
+
+.unit-menu {
+    position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 1200;
+    background: #fff; border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--sh-xl);
+    padding: 6px; opacity: 0; transform: translateY(-6px); pointer-events: none;
+    transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+}
+.unit-switch.open .unit-menu { opacity: 1; transform: none; pointer-events: auto; }
+.unit-menu .um-head {
+    font-size: 9.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--muted); padding: 5px 8px 6px;
+}
+.unit-menu .um-item {
+    width: 100%; display: flex; align-items: center; gap: 9px; text-align: left;
+    padding: 8px; border: none; background: none; border-radius: 10px; color: var(--ink);
+    transition: background-color var(--dur-micro) var(--ease-out);
+}
+.unit-menu .um-item:hover, .unit-menu .um-item.active { background: var(--p50); }
+.unit-menu .um-item > .bi-check-lg { margin-left: auto; color: var(--p600); }
+.unit-menu .um-mark {
+    width: 28px; height: 28px; flex: none; border-radius: 9px; color: #fff; font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+}
+.unit-menu .um-mark.both { background: linear-gradient(135deg, #7C3AED 50%, #0F766E 50%); }
+.unit-menu .um-body { min-width: 0; }
+.unit-menu .um-name { display: block; font-size: 13px; font-weight: 700; }
+.unit-menu .um-hint { display: block; font-size: 10.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+body.sidebar-collapsed .unit-switch-btn { padding: 8px; justify-content: center; }
+body.sidebar-collapsed .unit-switch-btn .us-text,
+body.sidebar-collapsed .unit-switch-btn .us-caret { display: none; }
+body.sidebar-collapsed .unit-menu { left: 0; width: 240px; right: auto; }
+
+/* Unit badge for combined lists */
+.unit-tag {
+    display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
+    font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+    background: var(--p50); color: var(--p700); border: 1px solid var(--line);
+}
+.unit-tag.food { background: #ECFDF5; color: #0F766E; border-color: #CCFBF1; }
+
+/* ===========================================================================
+   Force mode (SuperAdmin override)
+   =========================================================================== */
+
+.force-btn {
+    display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px;
+    font-size: 12px; font-weight: 700; border: 1px solid var(--line); background: #fff; color: var(--ink2);
+    transition: border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+}
+.force-btn:hover { border-color: var(--p300); box-shadow: var(--sh-sm); }
+.force-btn.on { background: #FEF2F2; border-color: #FCA5A5; color: #B91C1C; }
+.force-btn.on i { animation: forcePulse 1.8s ease-in-out infinite; }
+@keyframes forcePulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+@media (max-width: 720px) { .force-btn span { display: none; } }
+
+.force-banner {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: linear-gradient(90deg, #7F1D1D, #B91C1C);
+    color: #fff; padding: 9px 16px; font-size: 12.5px; font-weight: 600;
+}
+.force-banner i { font-size: 15px; }
+.force-banner form { margin-left: auto; }
+.force-banner button {
+    border: 1px solid rgba(255, 255, 255, .5); background: rgba(255, 255, 255, .12); color: #fff;
+    font-size: 11.5px; font-weight: 700; padding: 4px 11px; border-radius: 999px;
+}
+.force-banner button:hover { background: rgba(255, 255, 255, .22); }
+
+@media (prefers-reduced-motion: reduce) {
+    .force-btn.on i { animation: none !important; }
+}

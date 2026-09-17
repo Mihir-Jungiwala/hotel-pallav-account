@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Payroll;
 
+use App\Support\ForceMode;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceEntry;
 use App\Models\AttendanceMonth;
@@ -19,7 +20,7 @@ class AttendanceController extends Controller
     {
         $month->revertStaleUnlock(session()->getId());
 
-        if (! $month->isEditable()) {
+        if (ForceMode::locked(! $month->isEditable(), 'This attendance month is locked An Admin must')) {
             return back()->with('error', 'This attendance month is locked. An Admin must unlock it before changes can be made.');
         }
 
@@ -94,17 +95,17 @@ class AttendanceController extends Controller
     {
         $month->revertStaleUnlock(session()->getId());
 
-        if (! $month->isComplete()) {
+        if (ForceMode::locked(! $month->isComplete(), 'Salary can only be generated once the attendance')) {
             return back()->with('error', 'Salary can only be generated once the attendance month is over.');
         }
 
-        if ($month->is_locked) {
+        if (ForceMode::locked($month->is_locked, 'Salary has already been generated for this month')) {
             return back()->with('error', 'Salary has already been generated for this month. An Admin must unlock attendance to re-generate.');
         }
 
         $incomplete = $this->processor->employeesWithIncompleteAttendance($month);
 
-        if ($incomplete) {
+        if (ForceMode::locked($incomplete, 'Salary Generation cannot be completed Please complete attendance')) {
             return back()->with('error', 'Salary Generation cannot be completed. Please complete attendance entries for all active employees before generating salary.');
         }
 
@@ -115,13 +116,13 @@ class AttendanceController extends Controller
 
     public function regenerateSalary(AttendanceMonth $month)
     {
-        if (! Auth::user()->isAdmin()) {
+        if (ForceMode::locked(! Auth::user()->isAdmin(), 'Only Admin users can re-generate salary')) {
             return back()->with('error', 'Only Admin users can re-generate salary.');
         }
 
         $incomplete = $this->processor->employeesWithIncompleteAttendance($month);
 
-        if ($incomplete) {
+        if (ForceMode::locked($incomplete, 'Salary Generation cannot be completed Please complete attendance')) {
             return back()->with('error', 'Salary Generation cannot be completed. Please complete attendance entries for all active employees before generating salary.');
         }
 
@@ -132,11 +133,11 @@ class AttendanceController extends Controller
 
     public function unlock(AttendanceMonth $month)
     {
-        if (! Auth::user()->isAdmin()) {
+        if (ForceMode::locked(! Auth::user()->isAdmin(), 'Only Admin users can unlock attendance')) {
             return back()->with('error', 'Only Admin users can unlock attendance.');
         }
 
-        if (! $month->is_locked) {
+        if (ForceMode::locked(! $month->is_locked, 'This attendance month is not locked')) {
             return back()->with('error', 'This attendance month is not locked.');
         }
 

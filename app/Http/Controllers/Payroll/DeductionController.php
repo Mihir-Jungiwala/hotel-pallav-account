@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Payroll;
 
+use App\Support\ForceMode;
 use App\Http\Controllers\Controller;
 use App\Models\Deduction;
 use App\Support\PayrollContext;
@@ -52,7 +53,7 @@ class DeductionController extends Controller
 
     public function destroy(Deduction $deduction)
     {
-        if ($deduction->assignments()->exists()) {
+        if (ForceMode::locked($deduction->assignments()->exists(), 'This deduction is already assigned to an employee')) {
             return back()->with('error', 'This deduction is already assigned to an employee and cannot be deleted.');
         }
 

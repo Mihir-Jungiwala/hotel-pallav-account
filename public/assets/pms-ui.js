@@ -296,8 +296,66 @@
        Boot
        ----------------------------------------------------------------------- */
 
+    /* -----------------------------------------------------------------------
+       Business switcher
+       ----------------------------------------------------------------------- */
+
+    function wireUnitSwitch() {
+        const root = document.getElementById('unitSwitch');
+        if (!root) return;
+
+        const button = root.querySelector('.unit-switch-btn');
+        const close = () => { root.classList.remove('open'); button.setAttribute('aria-expanded', 'false'); };
+
+        button.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const open = root.classList.toggle('open');
+            button.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!root.contains(event.target)) close();
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') close();
+        });
+    }
+
+    /* -----------------------------------------------------------------------
+       Force mode — the browser must stop refusing input too, or the server
+       never sees what the SuperAdmin is trying to save.
+       ----------------------------------------------------------------------- */
+
+    function wireForceMode() {
+        if (body.dataset.forceMode !== '1') return;
+
+        const relax = (root) => {
+            root.querySelectorAll('form:not([data-self-service]) :is(input, select, textarea)').forEach((field) => {
+                ['required', 'min', 'max', 'step', 'pattern', 'maxlength', 'minlength'].forEach((attr) => {
+                    if (field.hasAttribute(attr)) {
+                        field.dataset['kept' + attr] = field.getAttribute(attr);
+                        field.removeAttribute(attr);
+                    }
+                });
+                field.setCustomValidity('');
+            });
+
+            root.querySelectorAll('form:not([data-self-service])').forEach((form) => {
+                form.setAttribute('novalidate', 'novalidate');
+            });
+        };
+
+        relax(document);
+
+        // Modals and rows rendered later get the same treatment
+        document.addEventListener('show.bs.modal', (event) => relax(event.target));
+    }
+
     function boot() {
         wirePasswordTools();
+        wireUnitSwitch();
+        wireForceMode();
         wireRoleGating();
         wireDatePickers();
         wireSelects();

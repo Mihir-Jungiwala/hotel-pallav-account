@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Payroll;
 
+use App\Support\ForceMode;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\EmployeeDeduction;
@@ -129,7 +130,7 @@ class EmployeeController extends Controller
 
     public function destroy(Employee $employee)
     {
-        if ($blocker = $employee->blockingDependency()) {
+        if (ForceMode::locked($blocker = $employee->blockingDependency(), 'This employee is already used in {$blocker} and')) {
             return back()->with('error', "This employee is already used in {$blocker} and cannot be deleted. Remove the dependent records first, or mark the employee Inactive.");
         }
 

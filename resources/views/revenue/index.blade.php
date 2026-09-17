@@ -1,12 +1,21 @@
 @extends('layouts.app')
 @section('title', 'Revenue')
 @section('content')
+@php use App\Support\UnitContext; @endphp
 
-<div class="d-flex justify-content-end gap-2 mb-3">
-    <button class="btn btn-p" data-bs-toggle="modal" data-bs-target="#addHotelDeposit"><i class="bi bi-plus-lg"></i> Hotel Deposit</button>
-    <button class="btn btn-outline-p" data-bs-toggle="modal" data-bs-target="#addFoodDeposit"><i class="bi bi-plus-lg"></i> Food Deposit</button>
+<div class="d-flex justify-content-between align-items-center gap-2 mb-3 flex-wrap">
+    <span class="unit-tag"><i class="bi bi-eye"></i> {{ UnitContext::label() }}</span>
+    <div class="d-flex gap-2 flex-wrap">
+        @if(UnitContext::shows('hotel'))
+            <button class="btn btn-p" data-bs-toggle="modal" data-bs-target="#addHotelDeposit"><i class="bi bi-plus-lg"></i> Hotel Deposit</button>
+        @endif
+        @if(UnitContext::shows('food'))
+            <button class="btn btn-outline-p" data-bs-toggle="modal" data-bs-target="#addFoodDeposit"><i class="bi bi-plus-lg"></i> Food Deposit</button>
+        @endif
+    </div>
 </div>
 
+@if(UnitContext::shows('hotel'))
 <div class="card mb-4">
     <div class="card-header">Hotel Cash Deposits</div>
     <div class="table-responsive">
@@ -15,7 +24,7 @@
             <tbody>
             @forelse($hotelDeposits as $d)
                 <tr>
-                    <td>{{ optional($d->date)->format('d-m-Y') }} {{ $d->time }}</td>
+                    <td>{{ optional($d->date)->format('d-m-Y') }} {{ substr((string) $d->time, 0, 5) }}</td>
                     <td>{{ $d->depositor }}</td>
                     <td>₹{{ number_format($d->amount, 2) }}</td>
                     <td>{{ $d->full_name }}</td>
@@ -34,7 +43,9 @@
         </table>
     </div>
 </div>
+@endif
 
+@if(UnitContext::shows('food'))
 <div class="card">
     <div class="card-header">Food Cash Deposits</div>
     <div class="table-responsive">
@@ -43,7 +54,7 @@
             <tbody>
             @forelse($foodDeposits as $d)
                 <tr>
-                    <td>{{ optional($d->date)->format('d-m-Y') }} {{ $d->time }}</td>
+                    <td>{{ optional($d->date)->format('d-m-Y') }} {{ substr((string) $d->time, 0, 5) }}</td>
                     <td>{{ $d->depositor }}</td>
                     <td>₹{{ number_format($d->amount, 2) }}</td>
                     <td>{{ $d->full_name }}</td>
@@ -62,6 +73,8 @@
         </table>
     </div>
 </div>
+
+@endif
 
 @foreach(['hotel' => 'addHotelDeposit', 'food' => 'addFoodDeposit'] as $type => $modalId)
 <div class="modal fade" id="{{ $modalId }}" tabindex="-1">

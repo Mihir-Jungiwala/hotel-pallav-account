@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Payroll;
 
+use App\Support\ForceMode;
 use App\Http\Controllers\Controller;
 use App\Models\PayrollCompany;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -48,7 +49,7 @@ class PayrollCompanyController extends Controller
         $activeCount = PayrollCompany::where('is_active', true)->count();
         $limit = (int) config('payroll.max_companies');
 
-        if ($activeCount >= $limit) {
+        if (ForceMode::locked($activeCount >= $limit, 'You have reached the maximum of {$limit} active')) {
             return back()->with('error', "You have reached the maximum of {$limit} active companies. Deactivate a company before adding another.");
         }
 
@@ -84,7 +85,7 @@ class PayrollCompanyController extends Controller
 
     public function destroy(PayrollCompany $company)
     {
-        if ($company->hasPayrollData()) {
+        if (ForceMode::locked($company->hasPayrollData(), 'This company already holds payroll data and cannot')) {
             return back()->with('error', 'This company already holds payroll data and cannot be deleted. Mark it Inactive instead.');
         }
 
@@ -99,7 +100,7 @@ class PayrollCompanyController extends Controller
             $activeCount = PayrollCompany::where('is_active', true)->count();
             $limit = (int) config('payroll.max_companies');
 
-            if ($activeCount >= $limit) {
+            if (ForceMode::locked($activeCount >= $limit, 'You have reached the maximum of {$limit} active')) {
                 return back()->with('error', "You have reached the maximum of {$limit} active companies.");
             }
         }

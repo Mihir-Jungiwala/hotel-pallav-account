@@ -20,4 +20,9 @@ class ShiftHandover extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function businessUnit(): BelongsTo
+    {
+        return $this->belongsTo(BusinessUnit::class);
+    }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\UnitContext;
 use App\Models\BillMasterBill;
 use App\Models\CompanyProfile;
 use App\Models\FoodCashDeposit;
@@ -23,14 +24,23 @@ class DashboardController extends Controller
 
         $totalStaff = Employee::where('is_active', true)->count();
         $totalCompany = CompanyProfile::count();
-        $shiftHandover = ShiftHandover::latest('date')->latest('time')->first();
+        $shiftHandover = UnitContext::scope(ShiftHandover::query())->latest('date')->latest('time')->first();
+
+        $hotelUnitId = UnitContext::find('hotel')?->id;
+        $foodUnitId = UnitContext::find('food')?->id;
+
+        // A staff advance is an expense of whichever business paid it
+        $advancesFor = fn (?int $unitId) => StaffAdvance::whereDate('date', $today)
+            ->when($unitId, fn ($q, $id) => $q->where('business_unit_id', $id))
+            ->sum('amount');
 
         $hotelExpense = HotelCashWithdrawal::whereDate('date', $today)->sum('amount')
-            + HotelMiscExpense::whereDate('date', $today)->sum('amount');
+            + HotelMiscExpense::whereDate('date', $today)->sum('amount')
+            + $advancesFor($hotelUnitId);
 
         $foodExpense = FoodCashWithdrawal::whereDate('date', $today)->sum('amount')
             + FoodMiscExpense::whereDate('date', $today)->sum('amount')
-            + StaffAdvance::whereDate('date', $today)->sum('amount');
+            + $advancesFor($foodUnitId);
 
         $hotelIncome = HotelCashDeposit::whereDate('date', $today)->sum('amount')
             + \App\Models\BillMasterAdvance::whereDate('payment_date', $today)->whereRaw('LOWER(hotel_mode) = ?', ['cash'])->sum('hotel_amount')
@@ -60,6 +70,9 @@ class DashboardController extends Controller
             'foodBalance' => $foodIncome - $foodExpense,
             'totalDebitHotelBills' => $totalDebitHotelBills,
             'totalDebitFoodBills' => $totalDebitFoodBills,
+            'showHotel' => UnitContext::shows('hotel'),
+            'showFood' => UnitContext::shows('food'),
+            'unitLabel' => UnitContext::label(),
         ]);
     }
 }

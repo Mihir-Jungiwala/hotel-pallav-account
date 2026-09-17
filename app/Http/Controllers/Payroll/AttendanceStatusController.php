@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Payroll;
 
+use App\Support\ForceMode;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceStatus;
 use App\Support\PayrollContext;
@@ -65,7 +66,7 @@ class AttendanceStatusController extends Controller
 
     public function destroy(AttendanceStatus $status)
     {
-        if ($status->entries()->exists()) {
+        if (ForceMode::locked($status->entries()->exists(), 'This attendance status is already used in Attendance')) {
             return back()->with('error', 'This attendance status is already used in Attendance Management and cannot be deleted.');
         }
 

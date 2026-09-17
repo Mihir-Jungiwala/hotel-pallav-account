@@ -166,18 +166,22 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/plugins/monthSelect/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
     <link rel="stylesheet" href="{{ asset('assets/pms.css') }}?v=6">
-    <link rel="stylesheet" href="{{ asset('assets/pms-ui.css') }}?v=1">
+    <link rel="stylesheet" href="{{ asset('assets/pms-ui.css') }}?v=2">
     @stack('styles')
 </head>
 <body class="@hasSection('subnav') has-subnav @else no-subnav @endif @guest guest-page @endguest"
-      @auth data-role="{{ auth()->user()->role }}" data-can-write="{{ auth()->user()->canWrite() ? '1' : '0' }}" data-can-delete="{{ auth()->user()->canDelete() ? '1' : '0' }}" @endauth>
+      @auth data-role="{{ auth()->user()->role }}" data-can-write="{{ auth()->user()->canWrite() ? '1' : '0' }}" data-can-delete="{{ auth()->user()->canDelete() ? '1' : '0' }}"
+      data-force-mode="{{ \App\Support\ForceMode::enabled() ? '1' : '0' }}" @endauth>
 
 @auth
 <div class="sidebar" id="sidebar">
     <div class="logo">
-        <span class="logo-mark">HP</span>
-        <span class="logo-text">Hotel&nbsp;Pallav<span>Management Suite</span></span>
+        <span class="logo-mark">{{ \App\Support\UnitContext::current()?->code ?? 'HP' }}</span>
+        <span class="logo-text">{{ \App\Support\UnitContext::current()?->name ?? 'Pallav Group' }}<span>Management Suite</span></span>
     </div>
+
+    @include('partials._unit-switch')
+
     <nav class="sidebar-nav">
         <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}" title="Dashboard"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
 
@@ -227,7 +231,18 @@
             @endif
             <h1>@yield('title', 'Dashboard')</h1>
         </div>
-        @php $me = auth()->user(); @endphp
+        @php $me = auth()->user(); $forceOn = \App\Support\ForceMode::enabled(); @endphp
+        <div class="d-flex align-items-center gap-2">
+        @if(\App\Support\ForceMode::availableTo())
+            <form method="POST" action="{{ route('force-mode.toggle') }}" data-no-busy="true" data-self-service>
+                @csrf
+                <button class="force-btn {{ $forceOn ? 'on' : '' }}"
+                        title="{{ $forceOn ? 'Force mode is armed — click to turn it off' : 'Arm force mode: validation and record locks off for your account' }}">
+                    <i class="bi bi-lightning-charge-fill"></i>
+                    <span>Force mode: {{ $forceOn ? 'ON' : 'OFF' }}</span>
+                </button>
+            </form>
+        @endif
         <div class="dropdown">
             <button class="user-menu-btn" data-bs-toggle="dropdown" aria-expanded="false">
                 <span class="avatar role-av-{{ strtolower($me->role) }}" style="width:32px;height:32px;font-size:11px;">{{ $me->initials() }}</span>
@@ -255,7 +270,19 @@
                 </form>
             </div>
         </div>
+        </div>
     </div>
+
+    @if($forceOn)
+        <div class="force-banner">
+            <i class="bi bi-lightning-charge-fill"></i>
+            <span>Force mode is armed. Field checks and record locks are off for your account, and every override is written to the audit log.</span>
+            <form method="POST" action="{{ route('force-mode.toggle') }}" data-no-busy="true" data-self-service>
+                @csrf
+                <button>Turn off</button>
+            </form>
+        </div>
+    @endif
     @endauth
 
     <div class="content">
@@ -282,7 +309,7 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/plugins/monthSelect/index.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script src="{{ asset('assets/pms.js') }}?v=5"></script>
-<script src="{{ asset('assets/pms-ui.js') }}?v=1"></script>
+<script src="{{ asset('assets/pms-ui.js') }}?v=3"></script>
 @stack('scripts')
 </body>
 </html>

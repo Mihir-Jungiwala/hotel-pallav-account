@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Payroll;
 
+use App\Support\ForceMode;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\EmployeeSeparation;
@@ -44,7 +45,7 @@ class SeparationController extends Controller
 
         $employee = Employee::where('payroll_company_id', $company->id)->findOrFail($data['employee_id']);
 
-        if (EmployeeSeparation::where('employee_id', $employee->id)->whereNull('rejoined_at')->exists()) {
+        if (ForceMode::locked(EmployeeSeparation::where('employee_id', $employee->id)->whereNull('rejoined_at')->exists(), 'This employee already has an open separation record')) {
             return back()->with('error', 'This employee already has an open separation record.');
         }
 
@@ -88,7 +89,7 @@ class SeparationController extends Controller
 
     public function destroy(EmployeeSeparation $separation)
     {
-        if (! Auth::user()->isAdmin()) {
+        if (ForceMode::locked(! Auth::user()->isAdmin(), 'Only Admin users can delete a separation record')) {
             return back()->with('error', 'Only Admin users can delete a separation record.');
         }
 
@@ -152,7 +153,7 @@ class SeparationController extends Controller
 
         abort_if($letter === null, 404, 'No experience letter template configured for this company.');
 
-        if (! $separation->canIssueExperienceLetter()) {
+        if (ForceMode::locked(! $separation->canIssueExperienceLetter(), 'An experience letter can only be issued once')) {
             return back()->with('error', 'An experience letter can only be issued once the employee is marked Relieved.');
         }
 

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\UnitContext;
+use App\Support\ForceMode;
 use App\Models\FoodCashDeposit;
 use App\Models\HotelCashDeposit;
 use App\Support\NumberToWords;
@@ -13,8 +15,14 @@ class RevenueController extends Controller
 {
     public function index()
     {
-        $hotelDeposits = HotelCashDeposit::with('user')->latest('date')->latest('time')->get();
-        $foodDeposits = FoodCashDeposit::with('user')->latest('date')->latest('time')->get();
+        // Each side of the business keeps its own cash book
+        $hotelDeposits = UnitContext::shows('hotel')
+            ? HotelCashDeposit::with('user')->latest('date')->latest('time')->get()
+            : collect();
+
+        $foodDeposits = UnitContext::shows('food')
+            ? FoodCashDeposit::with('user')->latest('date')->latest('time')->get()
+            : collect();
 
         return view('revenue.index', compact('hotelDeposits', 'foodDeposits'));
     }
@@ -55,7 +63,7 @@ class RevenueController extends Controller
 
     public function destroyHotel(HotelCashDeposit $deposit)
     {
-        if (! Auth::user()->canManage($deposit->user)) {
+        if (ForceMode::locked(! Auth::user()->canManage($deposit->user), 'You are not allowed to delete this record')) {
             return back()->with('error', 'You are not allowed to delete this record.');
         }
         $deposit->delete();
@@ -65,7 +73,7 @@ class RevenueController extends Controller
 
     public function destroyFood(FoodCashDeposit $deposit)
     {
-        if (! Auth::user()->canManage($deposit->user)) {
+        if (ForceMode::locked(! Auth::user()->canManage($deposit->user), 'You are not allowed to delete this record')) {
             return back()->with('error', 'You are not allowed to delete this record.');
         }
         $deposit->delete();

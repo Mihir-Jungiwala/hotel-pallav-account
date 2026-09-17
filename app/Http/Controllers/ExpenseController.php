@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\UnitContext;
+use App\Support\ForceMode;
 use App\Models\FoodCashWithdrawal;
 use App\Models\FoodMiscExpense;
 use App\Models\HotelCashWithdrawal;
@@ -17,12 +19,17 @@ class ExpenseController extends Controller
 {
     public function index()
     {
+        $hotel = UnitContext::shows('hotel');
+        $food = UnitContext::shows('food');
+
         return view('expense.index', [
-            'hotelWithdrawals' => HotelCashWithdrawal::with('user')->latest('date')->latest('time')->get(),
-            'foodWithdrawals' => FoodCashWithdrawal::with('user')->latest('date')->latest('time')->get(),
-            'hotelMisc' => HotelMiscExpense::with('user')->latest('date')->latest('time')->get(),
-            'foodMisc' => FoodMiscExpense::with('user')->latest('date')->latest('time')->get(),
-            'staffAdvances' => StaffAdvance::with(['user', 'staff'])->latest('date')->latest('time')->get(),
+            'hotelWithdrawals' => $hotel ? HotelCashWithdrawal::with('user')->latest('date')->latest('time')->get() : collect(),
+            'foodWithdrawals' => $food ? FoodCashWithdrawal::with('user')->latest('date')->latest('time')->get() : collect(),
+            'hotelMisc' => $hotel ? HotelMiscExpense::with('user')->latest('date')->latest('time')->get() : collect(),
+            'foodMisc' => $food ? FoodMiscExpense::with('user')->latest('date')->latest('time')->get() : collect(),
+            // Staff advances belong to whichever business paid them
+            'staffAdvances' => UnitContext::scope(StaffAdvance::with(['user', 'staff', 'businessUnit']))
+                ->latest('date')->latest('time')->get(),
             'activeStaff' => Employee::where('is_active', true)->orderBy('name')->get(),
         ]);
     }
@@ -84,7 +91,7 @@ class ExpenseController extends Controller
 
     public function destroyHotelWithdrawal(HotelCashWithdrawal $withdrawal)
     {
-        if (! Auth::user()->canManage($withdrawal->user)) {
+        if (ForceMode::locked(! Auth::user()->canManage($withdrawal->user), 'Not allowed to delete this record')) {
             return back()->with('error', 'Not allowed to delete this record.');
         }
         $withdrawal->delete();
@@ -94,7 +101,7 @@ class ExpenseController extends Controller
 
     public function destroyFoodWithdrawal(FoodCashWithdrawal $withdrawal)
     {
-        if (! Auth::user()->canManage($withdrawal->user)) {
+        if (ForceMode::locked(! Auth::user()->canManage($withdrawal->user), 'Not allowed to delete this record')) {
             return back()->with('error', 'Not allowed to delete this record.');
         }
         $withdrawal->delete();
@@ -115,7 +122,7 @@ class ExpenseController extends Controller
 
     public function updateHotelMisc(Request $request, HotelMiscExpense $expense)
     {
-        if (! Auth::user()->canManage($expense->user)) {
+        if (ForceMode::locked(! Auth::user()->canManage($expense->user), 'Not allowed to edit this record')) {
             return back()->with('error', 'Not allowed to edit this record.');
         }
         $data = $request->validate($this->miscRules());
@@ -131,7 +138,7 @@ class ExpenseController extends Controller
 
     public function destroyHotelMisc(HotelMiscExpense $expense)
     {
-        if (! Auth::user()->canManage($expense->user)) {
+        if (ForceMode::locked(! Auth::user()->canManage($expense->user), 'Not allowed to delete this record')) {
             return back()->with('error', 'Not allowed to delete this record.');
         }
         $expense->delete();
@@ -152,7 +159,7 @@ class ExpenseController extends Controller
 
     public function updateFoodMisc(Request $request, FoodMiscExpense $expense)
     {
-        if (! Auth::user()->canManage($expense->user)) {
+        if (ForceMode::locked(! Auth::user()->canManage($expense->user), 'Not allowed to edit this record')) {
             return back()->with('error', 'Not allowed to edit this record.');
         }
         $data = $request->validate($this->miscRules());
@@ -168,7 +175,7 @@ class ExpenseController extends Controller
 
     public function destroyFoodMisc(FoodMiscExpense $expense)
     {
-        if (! Auth::user()->canManage($expense->user)) {
+        if (ForceMode::locked(! Auth::user()->canManage($expense->user), 'Not allowed to delete this record')) {
             return back()->with('error', 'Not allowed to delete this record.');
         }
         $expense->delete();
@@ -182,6 +189,7 @@ class ExpenseController extends Controller
         $data['user_id'] = Auth::id();
         $data['full_name'] = Auth::user()->name;
         $data['amount_in_words'] = NumberToWords::convert($data['amount']);
+        $data['business_unit_id'] = UnitContext::forNewRecord($request->string('business_unit')->toString());
         StaffAdvance::create($data);
 
         return back()->with('success', 'Staff advance recorded.');
@@ -189,11 +197,16 @@ class ExpenseController extends Controller
 
     public function updateStaffAdvance(Request $request, StaffAdvance $advance)
     {
-        if (! Auth::user()->canManage($advance->user)) {
+        if (ForceMode::locked(! Auth::user()->canManage($advance->user), 'Not allowed to edit this record')) {
             return back()->with('error', 'Not allowed to edit this record.');
         }
         $data = $request->validate($this->advanceRules());
         $data['amount_in_words'] = NumberToWords::convert($data['amount']);
+
+        if ($request->filled('business_unit')) {
+            $data['business_unit_id'] = UnitContext::forNewRecord($request->string('business_unit')->toString());
+        }
+
         $advance->update($data);
 
         return back()->with('success', 'Updated.');
@@ -201,7 +214,7 @@ class ExpenseController extends Controller
 
     public function destroyStaffAdvance(StaffAdvance $advance)
     {
-        if (! Auth::user()->canManage($advance->user)) {
+        if (ForceMode::locked(! Auth::user()->canManage($advance->user), 'Not allowed to delete this record')) {
             return back()->with('error', 'Not allowed to delete this record.');
         }
         $advance->delete();

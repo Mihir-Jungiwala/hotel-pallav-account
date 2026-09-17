@@ -2,21 +2,31 @@
 @section('title', 'Expenses')
 @section('content')
 
-<div class="d-flex flex-wrap justify-content-end gap-2 mb-3">
-    <button class="btn btn-p" data-bs-toggle="modal" data-bs-target="#addHotelWithdraw"><i class="bi bi-plus-lg"></i> Hotel Withdrawal</button>
-    <button class="btn btn-outline-p" data-bs-toggle="modal" data-bs-target="#addFoodWithdraw"><i class="bi bi-plus-lg"></i> Food Withdrawal</button>
-    <button class="btn btn-outline-p" data-bs-toggle="modal" data-bs-target="#addHotelMisc"><i class="bi bi-plus-lg"></i> Hotel Misc. Expense</button>
-    <button class="btn btn-outline-p" data-bs-toggle="modal" data-bs-target="#addFoodMisc"><i class="bi bi-plus-lg"></i> Food Misc. Expense</button>
-    <button class="btn btn-outline-p" data-bs-toggle="modal" data-bs-target="#addStaffAdvance"><i class="bi bi-plus-lg"></i> Staff Advance</button>
+@php use App\Support\UnitContext; @endphp
+
+<div class="d-flex justify-content-between align-items-center gap-2 mb-3 flex-wrap">
+    <span class="unit-tag"><i class="bi bi-eye"></i> {{ UnitContext::label() }}</span>
+    <div class="d-flex flex-wrap gap-2">
+        @if(UnitContext::shows('hotel'))
+            <button class="btn btn-p" data-bs-toggle="modal" data-bs-target="#addHotelWithdraw"><i class="bi bi-plus-lg"></i> Hotel Withdrawal</button>
+            <button class="btn btn-outline-p" data-bs-toggle="modal" data-bs-target="#addHotelMisc"><i class="bi bi-plus-lg"></i> Hotel Misc. Expense</button>
+        @endif
+        @if(UnitContext::shows('food'))
+            <button class="btn btn-outline-p" data-bs-toggle="modal" data-bs-target="#addFoodWithdraw"><i class="bi bi-plus-lg"></i> Food Withdrawal</button>
+            <button class="btn btn-outline-p" data-bs-toggle="modal" data-bs-target="#addFoodMisc"><i class="bi bi-plus-lg"></i> Food Misc. Expense</button>
+        @endif
+        <button class="btn btn-outline-p" data-bs-toggle="modal" data-bs-target="#addStaffAdvance"><i class="bi bi-plus-lg"></i> Staff Advance</button>
+    </div>
 </div>
 
+@if(UnitContext::shows('hotel'))
 <div class="card mb-4">
     <div class="card-header">Hotel Cash Withdrawals</div>
     <div class="table-responsive"><table class="table table-hover mb-0">
         <thead><tr><th>Date</th><th>Withdrawer</th><th>Amount</th><th>By</th><th class="text-end">Actions</th></tr></thead>
         <tbody>
         @forelse($hotelWithdrawals as $w)
-            <tr><td>{{ optional($w->date)->format('d-m-Y') }} {{ $w->time }}</td><td>{{ $w->withdrawer }}</td><td>₹{{ number_format($w->amount,2) }}</td><td>{{ $w->full_name }}</td>
+            <tr><td>{{ optional($w->date)->format('d-m-Y') }} {{ substr((string) $w->time, 0, 5) }}</td><td>{{ $w->withdrawer }}</td><td>₹{{ number_format($w->amount,2) }}</td><td>{{ $w->full_name }}</td>
                 <td class="text-end">
                     <a class="btn btn-sm btn-outline-p" href="{{ route('expense.hotel-withdrawal.view',$w) }}" target="_blank"><i class="bi bi-file-pdf"></i></a>
                     <form method="POST" action="{{ route('expense.hotel-withdrawal.destroy',$w) }}" class="d-inline" onsubmit="return confirm('Delete?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
@@ -27,13 +37,16 @@
         </tbody></table></div>
 </div>
 
+@endif
+
+@if(UnitContext::shows('food'))
 <div class="card mb-4">
     <div class="card-header">Food Cash Withdrawals</div>
     <div class="table-responsive"><table class="table table-hover mb-0">
         <thead><tr><th>Date</th><th>Withdrawer</th><th>Amount</th><th>By</th><th class="text-end">Actions</th></tr></thead>
         <tbody>
         @forelse($foodWithdrawals as $w)
-            <tr><td>{{ optional($w->date)->format('d-m-Y') }} {{ $w->time }}</td><td>{{ $w->withdrawer }}</td><td>₹{{ number_format($w->amount,2) }}</td><td>{{ $w->full_name }}</td>
+            <tr><td>{{ optional($w->date)->format('d-m-Y') }} {{ substr((string) $w->time, 0, 5) }}</td><td>{{ $w->withdrawer }}</td><td>₹{{ number_format($w->amount,2) }}</td><td>{{ $w->full_name }}</td>
                 <td class="text-end">
                     <a class="btn btn-sm btn-outline-p" href="{{ route('expense.food-withdrawal.view',$w) }}" target="_blank"><i class="bi bi-file-pdf"></i></a>
                     <form method="POST" action="{{ route('expense.food-withdrawal.destroy',$w) }}" class="d-inline" onsubmit="return confirm('Delete?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
@@ -44,13 +57,16 @@
         </tbody></table></div>
 </div>
 
+@endif
+
+@if(UnitContext::shows('hotel'))
 <div class="card mb-4">
     <div class="card-header">Hotel Miscellaneous Expenses</div>
     <div class="table-responsive"><table class="table table-hover mb-0">
         <thead><tr><th>Date</th><th>Expense</th><th>Amount</th><th>By</th><th class="text-end">Actions</th></tr></thead>
         <tbody>
         @forelse($hotelMisc as $e)
-            <tr><td>{{ optional($e->date)->format('d-m-Y') }} {{ $e->time }}</td><td>{{ $e->expense_name }}</td><td>₹{{ number_format($e->amount,2) }}</td><td>{{ $e->full_name }}</td>
+            <tr><td>{{ optional($e->date)->format('d-m-Y') }} {{ substr((string) $e->time, 0, 5) }}</td><td>{{ $e->expense_name }}</td><td>₹{{ number_format($e->amount,2) }}</td><td>{{ $e->full_name }}</td>
                 <td class="text-end">
                     <a class="btn btn-sm btn-outline-p" href="{{ route('expense.hotel-misc.view',$e) }}" target="_blank"><i class="bi bi-file-pdf"></i></a>
                     <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#editHotelMisc{{ $e->id }}" data-open-record title="Open"><i class="bi bi-pencil-square"></i></button>
@@ -61,7 +77,7 @@
                     <div class="modal-header"><h5 class="modal-title">Edit Hotel Expense</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                     <div class="modal-body"><div class="row g-3">
                         <div class="col-md-6"><label class="form-label">Date</label><input type="date" name="date" class="form-control" value="{{ optional($e->date)->format('Y-m-d') }}" required></div>
-                        <div class="col-md-6"><label class="form-label">Time</label><input type="time" name="time" class="form-control" value="{{ $e->time }}" required></div>
+                        <div class="col-md-6"><label class="form-label">Time</label><input type="time" name="time" class="form-control" value="{{ substr((string) $e->time, 0, 5) }}" required></div>
                         <div class="col-12"><label class="form-label">Expense Name</label><input name="expense_name" class="form-control" value="{{ $e->expense_name }}" required></div>
                         <div class="col-12"><label class="form-label">Amount</label><input type="number" step="0.01" name="amount" class="form-control" value="{{ $e->amount }}" required></div>
                         <div class="col-12"><label class="form-label">Instruction</label><textarea name="instruction" class="form-control">{{ $e->instruction }}</textarea></div>
@@ -75,13 +91,16 @@
         </tbody></table></div>
 </div>
 
+@endif
+
+@if(UnitContext::shows('food'))
 <div class="card mb-4">
     <div class="card-header">Food Miscellaneous Expenses</div>
     <div class="table-responsive"><table class="table table-hover mb-0">
         <thead><tr><th>Date</th><th>Expense</th><th>Amount</th><th>By</th><th class="text-end">Actions</th></tr></thead>
         <tbody>
         @forelse($foodMisc as $e)
-            <tr><td>{{ optional($e->date)->format('d-m-Y') }} {{ $e->time }}</td><td>{{ $e->expense_name }}</td><td>₹{{ number_format($e->amount,2) }}</td><td>{{ $e->full_name }}</td>
+            <tr><td>{{ optional($e->date)->format('d-m-Y') }} {{ substr((string) $e->time, 0, 5) }}</td><td>{{ $e->expense_name }}</td><td>₹{{ number_format($e->amount,2) }}</td><td>{{ $e->full_name }}</td>
                 <td class="text-end">
                     <a class="btn btn-sm btn-outline-p" href="{{ route('expense.food-misc.view',$e) }}" target="_blank"><i class="bi bi-file-pdf"></i></a>
                     <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#editFoodMisc{{ $e->id }}" data-open-record title="Open"><i class="bi bi-pencil-square"></i></button>
@@ -92,7 +111,7 @@
                     <div class="modal-header"><h5 class="modal-title">Edit Food Expense</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                     <div class="modal-body"><div class="row g-3">
                         <div class="col-md-6"><label class="form-label">Date</label><input type="date" name="date" class="form-control" value="{{ optional($e->date)->format('Y-m-d') }}" required></div>
-                        <div class="col-md-6"><label class="form-label">Time</label><input type="time" name="time" class="form-control" value="{{ $e->time }}" required></div>
+                        <div class="col-md-6"><label class="form-label">Time</label><input type="time" name="time" class="form-control" value="{{ substr((string) $e->time, 0, 5) }}" required></div>
                         <div class="col-12"><label class="form-label">Expense Name</label><input name="expense_name" class="form-control" value="{{ $e->expense_name }}" required></div>
                         <div class="col-12"><label class="form-label">Amount</label><input type="number" step="0.01" name="amount" class="form-control" value="{{ $e->amount }}" required></div>
                         <div class="col-12"><label class="form-label">Instruction</label><textarea name="instruction" class="form-control">{{ $e->instruction }}</textarea></div>
@@ -106,13 +125,15 @@
         </tbody></table></div>
 </div>
 
+@endif
+
 <div class="card">
     <div class="card-header">Staff Advance Salaries</div>
     <div class="table-responsive"><table class="table table-hover mb-0">
-        <thead><tr><th>Date</th><th>Staff</th><th>Month</th><th>Amount</th><th>By</th><th class="text-end">Actions</th></tr></thead>
+        <thead><tr><th>Date</th>@if(UnitContext::isBoth())<th>Business</th>@endif<th>Staff</th><th>Month</th><th>Amount</th><th>By</th><th class="text-end">Actions</th></tr></thead>
         <tbody>
         @forelse($staffAdvances as $a)
-            <tr><td>{{ optional($a->date)->format('d-m-Y') }} {{ $a->time }}</td><td>{{ optional($a->staff)->name }}</td><td>{{ $a->year_month }}</td><td>₹{{ number_format($a->amount,2) }}</td><td>{{ $a->full_name }}</td>
+            <tr><td>{{ optional($a->date)->format('d-m-Y') }} {{ substr((string) $a->time, 0, 5) }}</td>@if(UnitContext::isBoth())<td><span class="unit-tag {{ optional($a->businessUnit)->slug === 'food' ? 'food' : '' }}"><i class="bi {{ optional($a->businessUnit)->icon ?? 'bi-building' }}"></i> {{ optional($a->businessUnit)->name ?? '—' }}</span></td>@endif<td>{{ optional($a->staff)->name }}</td><td>{{ $a->year_month }}</td><td>₹{{ number_format($a->amount,2) }}</td><td>{{ $a->full_name }}</td>
                 <td class="text-end">
                     <a class="btn btn-sm btn-outline-p" href="{{ route('expense.staff-advance.view',$a) }}" target="_blank"><i class="bi bi-file-pdf"></i></a>
                     <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#editAdvance{{ $a->id }}" data-open-record title="Open"><i class="bi bi-pencil-square"></i></button>
@@ -123,7 +144,7 @@
                     <div class="modal-header"><h5 class="modal-title">Edit Staff Advance</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                     <div class="modal-body"><div class="row g-3">
                         <div class="col-md-6"><label class="form-label">Date</label><input type="date" name="date" class="form-control" value="{{ optional($a->date)->format('Y-m-d') }}" required></div>
-                        <div class="col-md-6"><label class="form-label">Time</label><input type="time" name="time" class="form-control" value="{{ $a->time }}" required></div>
+                        <div class="col-md-6"><label class="form-label">Time</label><input type="time" name="time" class="form-control" value="{{ substr((string) $a->time, 0, 5) }}" required></div>
                         <div class="col-md-6"><label class="form-label">Staff Member</label>
                             <select name="employee_id" class="form-select" required>
                                 @foreach($activeStaff as $sp)
@@ -191,6 +212,7 @@
                 </select>
             </div>
             <div class="col-md-6"><label class="form-label">Month (YYYY-MM)</label><input name="year_month" class="form-control" value="{{ date('Y-m') }}" required></div>
+            @include('partials._unit-field')
             <div class="col-12"><label class="form-label">Amount</label><input type="number" step="0.01" name="amount" class="form-control" required></div>
             <div class="col-12"><label class="form-label">Instruction</label><textarea name="instruction" class="form-control"></textarea></div>
         </div></div>

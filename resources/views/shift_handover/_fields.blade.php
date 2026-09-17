@@ -1,5 +1,6 @@
 @php $r = $record ?? null; @endphp
 <div class="row g-3">
+    @include('partials._unit-field', ['selected' => optional($r)->businessUnit->slug ?? 'hotel'])
     <div class="col-md-4"><label class="form-label">Date</label><input type="date" name="date" class="form-control" value="{{ old('date', optional($r->date ?? null)->format('Y-m-d') ?: date('Y-m-d')) }}" required></div>
     <div class="col-md-4"><label class="form-label">Time</label><input type="time" name="time" class="form-control" value="{{ old('time', $r->time ?? date('H:i')) }}" required></div>
     <div class="col-md-4"><label class="form-label">Shift</label>

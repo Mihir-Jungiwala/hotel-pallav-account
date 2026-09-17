@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\BillMasterController;
 use App\Http\Controllers\CompanyProfileController;
+use App\Http\Controllers\ContextController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\Payroll\AttendanceController;
@@ -43,6 +44,10 @@ Route::middleware(['auth', 'auth.session', 'account.usable', 'role.permissions']
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Which business is in view, and the SuperAdmin override
+    Route::post('/business-unit', [ContextController::class, 'switchUnit'])->name('unit.switch');
+    Route::post('/force-mode', [ContextController::class, 'toggleForceMode'])->name('force-mode.toggle');
 
     // My profile (every role)
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');

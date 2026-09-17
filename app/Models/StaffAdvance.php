@@ -16,6 +16,11 @@ class StaffAdvance extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function businessUnit(): BelongsTo
+    {
+        return $this->belongsTo(BusinessUnit::class);
+    }
+
     public function staff(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'employee_id');
