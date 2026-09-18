@@ -38,10 +38,12 @@ class LoginTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
-    public function test_an_account_with_an_email_is_sent_a_code_first(): void
+    public function test_an_account_that_asked_for_the_code_is_sent_one_first(): void
     {
         \Illuminate\Support\Facades\Mail::fake();
-        User::factory()->editor()->create(['username' => 'ravi', 'email' => 'ravi@example.com']);
+        User::factory()->editor()->create([
+            'username' => 'ravi', 'email' => 'ravi@example.com', 'two_factor_enabled' => true,
+        ]);
 
         $this->attempt('ravi')->assertRedirect(route('login.verify'));
 

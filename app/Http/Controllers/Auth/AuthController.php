@@ -65,11 +65,13 @@ class AuthController extends Controller
         }
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
-            if ($user) {
-                $this->registerFailure($user);
+            // The wrong password says the same thing whether or not the
+            // username exists. The block is announced, because the next
+            // attempt would announce it anyway and silence only confuses.
+            if ($user && $this->registerFailure($user)) {
+                $this->fail($this->lockedMessage($user->fresh()));
             }
 
-            // The same message whether or not the username exists
             $this->fail('Incorrect username or password.');
         }
 
@@ -87,9 +89,7 @@ class AuthController extends Controller
         }
 
         if (! $this->codes->send($user, OneTimeCode::LOGIN)) {
-            $this->fail($user->fresh()->isLocked()
-                ? $this->lockedMessage($user->fresh())
-                : 'A code could not be sent. Ask your administrator to sign you in.');
+            $this->fail($this->codes->refusal ?? 'A code could not be sent. Ask your administrator to sign you in.');
         }
 
         $request->session()->put(self::PENDING, ['id' => $user->id, 'at' => now()->timestamp]);
@@ -154,16 +154,16 @@ class AuthController extends Controller
         }
 
         if (! $this->codes->canResend($user)) {
-            return back()->with('error', 'Wait '.$this->codes->secondsUntilResend($user).' seconds before asking for another code.');
+            return back()->with('error', $user->isWaitingForCode()
+                ? 'Too many codes were requested. Try again in '.$this->codes->waitLabel($user).'.'
+                : 'Wait '.$this->codes->secondsUntilResend($user).' seconds before asking for another code.');
         }
 
         if (! $this->codes->send($user, OneTimeCode::LOGIN)) {
-            $request->session()->forget(self::PENDING);
-
-            return redirect()->route('login')->with('error', $this->lockedMessage($user->fresh()));
+            return back()->with('error', $this->codes->refusal ?? 'A code could not be sent.');
         }
 
-        return back()->with('success', 'A new code is on its way.');
+        return back()->with('success', 'A new code is on its way. '.$this->codes->sendsLeft($user->fresh()).' left before a wait starts.');
     }
 
     /** Signs the user in and ends any session they had elsewhere. */
@@ -182,6 +182,11 @@ class AuthController extends Controller
             'failed_login_attempts' => 0,
             'locked_until' => null,
             'lock_level' => 0,
+            'blocked_at' => null,
+            'blocked_reason' => null,
+            'otp_sends' => 0,
+            'otp_cooldown_until' => null,
+            'otp_cooldown_level' => 0,
             'last_login_at' => $now,
             'last_login_ip' => $request->ip(),
             'current_session_id' => $device,
@@ -223,27 +228,35 @@ class AuthController extends Controller
         return User::find($pending['id']);
     }
 
-    private function registerFailure(User $user): void
+    /** Counts a wrong password. Returns true when that was the fifth. */
+    private function registerFailure(User $user): bool
     {
-        $attempts = $user->failed_login_attempts + 1;
+        $attempts = (int) $user->failed_login_attempts + 1;
 
         if ($attempts < PasswordPolicy::MAX_ATTEMPTS) {
             $user->forceFill(['failed_login_attempts' => $attempts])->save();
 
-            return;
+            return false;
         }
 
-        $this->codes->lock($user, 'Too many wrong passwords');
+        $this->codes->block($user, 'Five wrong passwords');
+
+        return true;
     }
 
     private function lockedMessage(User $user): string
     {
+        if ($user->isBlocked()) {
+            return 'This account is blocked after '.PasswordPolicy::MAX_ATTEMPTS
+                .' failed attempts. Ask an administrator to unblock it, or use Forgot password to prove the email is yours.';
+        }
+
         $minutes = max(1, (int) ceil(now()->diffInMinutes($user->locked_until, false)));
         $wait = $minutes >= 60
             ? intdiv($minutes, 60).' hours '.($minutes % 60).' minutes'
             : $minutes.' minutes';
 
-        return 'This account is locked after too many failed attempts. Try again in '.$wait.', or ask an administrator to unlock it.';
+        return 'This account is locked until '.$wait.' from now, or until an administrator unlocks it.';
     }
 
     private function maskEmail(?string $email): string
@@ -322,7 +335,7 @@ class AuthController extends Controller
 
         $user = User::whereRaw('LOWER(username) = ?', [Str::lower(trim($request->string('username')->toString()))])->first();
 
-        if ($user && $user->is_active && ! $user->isLocked() && $user->email) {
+        if ($user && $user->is_active && $user->email) {
             if ($this->codes->send($user, OneTimeCode::RESET)) {
                 $request->session()->put('auth.reset', ['id' => $user->id, 'at' => now()->timestamp]);
 
@@ -362,12 +375,6 @@ class AuthController extends Controller
             'password' => PasswordPolicy::rules(),
         ], ['password.regex' => PasswordPolicy::MESSAGE]);
 
-        if ($user->isLocked()) {
-            $request->session()->forget('auth.reset');
-
-            return redirect()->route('login')->with('error', $this->lockedMessage($user));
-        }
-
         [$passed, $why] = $this->codes->check($user, OneTimeCode::RESET, $request->string('code')->toString());
 
         if (! $passed) {
@@ -385,6 +392,11 @@ class AuthController extends Controller
             'failed_login_attempts' => 0,
             'locked_until' => null,
             'lock_level' => 0,
+            // Resetting by email proves the account is theirs, so it unblocks
+            'blocked_at' => null,
+            'blocked_reason' => null,
+            'otp_cooldown_until' => null,
+            'otp_cooldown_level' => 0,
             // Any session held elsewhere is no longer valid
             'current_session_id' => null,
             'session_started_at' => null,

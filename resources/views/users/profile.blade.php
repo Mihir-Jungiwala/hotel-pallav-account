@@ -119,6 +119,36 @@
                     <div><span>From</span><strong>{{ $user->last_login_ip ?: '-' }}</strong></div>
                     <div><span>Password changed</span><strong>{{ optional($user->password_changed_at)->diffForHumans() ?? 'Not recorded' }}</strong></div>
                 </div>
+
+                {{-- Each person turns the emailed code on for themselves --}}
+                <div class="access-row">
+                    <div>
+                        <div class="fw-semibold">Email code at sign-in</div>
+                        <div class="text-muted" style="font-size:12.5px;">
+                            {{ $user->two_factor_enabled
+                                ? 'On. After your password we email you a six digit code.'
+                                : 'Off. Your password alone signs you in.' }}
+                            @unless($user->email) Add an email address above first. @endunless
+                        </div>
+                    </div>
+                    <form method="POST" action="{{ route('profile.two-factor') }}" data-self-service>@csrf
+                        <button class="btn btn-sm {{ $user->two_factor_enabled ? 'btn-outline-secondary' : 'btn-outline-p' }}" @disabled(! $user->email)>
+                            {{ $user->two_factor_enabled ? 'Turn off' : 'Turn on' }}
+                        </button>
+                    </form>
+                </div>
+
+                <div class="access-row">
+                    <div>
+                        <div class="fw-semibold">This device</div>
+                        <div class="text-muted" style="font-size:12.5px;">
+                            One device at a time. Signed in
+                            {{ optional($user->session_started_at)->diffForHumans() ?? 'recently' }};
+                            signing in elsewhere ends this session.
+                        </div>
+                    </div>
+                    <span class="pill pill-live"><span class="dot"></span> Active</span>
+                </div>
                 <div class="fw-semibold mt-3 mb-2" style="font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em;">Recent sessions</div>
                 @forelse($recentLogins as $log)
                     <div class="d-flex justify-content-between py-1" style="font-size:12.5px; border-bottom:1px solid var(--line);">

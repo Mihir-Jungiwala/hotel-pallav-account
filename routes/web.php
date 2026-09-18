@@ -61,6 +61,7 @@ Route::middleware(['auth', 'auth.session', 'single.session', 'account.usable', '
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('/profile/password', [ProfileController::class, 'changePassword'])->name('profile.password');
+    Route::post('/profile/two-factor', [ProfileController::class, 'toggleTwoFactor'])->name('profile.two-factor');
 
     // Master Data: the lists every form offers (SuperAdmin only)
     Route::middleware('superadmin')->prefix('masters')->name('masters.')->group(function () {
@@ -84,6 +85,7 @@ Route::middleware(['auth', 'auth.session', 'single.session', 'account.usable', '
         Route::delete('/{user}', [UserController::class, 'destroy'])->name('destroy');
         Route::post('/{user}/toggle-active', [UserController::class, 'toggleActive'])->name('toggle-active');
         Route::post('/{user}/unlock', [UserController::class, 'unlock'])->name('unlock');
+        Route::post('/{user}/two-factor', [UserController::class, 'toggleTwoFactor'])->name('two-factor');
         Route::put('/{user}/password', [UserController::class, 'resetPassword'])->name('reset-password');
         Route::post('/{user}/transfer-superadmin', [UserController::class, 'transferSuperAdmin'])->name('transfer-superadmin');
     });

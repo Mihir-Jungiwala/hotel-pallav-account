@@ -72,7 +72,9 @@
                     </td>
                     <td><span class="role-pill role-{{ strtolower($u->role) }}"><i class="bi {{ $roleIcons[$u->role] }}"></i>{{ $u->role }}</span></td>
                     <td>
-                        @if($u->isLocked())
+                        @if($u->isBlocked())
+                            <span class="pay-pill pay-failed"><i class="bi bi-slash-circle-fill"></i>Blocked</span>
+                        @elseif($u->isLocked())
                             <span class="pay-pill pay-failed"><i class="bi bi-lock-fill"></i>Locked</span>
                         @elseif($u->is_active)
                             <span class="pay-pill pay-paid"><i class="bi bi-check-circle"></i>Active</span>
@@ -215,17 +217,42 @@
                             </form>
                         </div>
 
-                        @if($u->isLocked())
+                        @if($u->isLocked() || $u->isWaitingForCode())
                         <div class="access-row">
                             <div>
-                                <div class="fw-semibold">Unlock account</div>
-                                <div class="text-muted" style="font-size:12.5px;">Locked until {{ $u->locked_until->format('H:i') }} after repeated failed sign-ins.</div>
+                                <div class="fw-semibold">{{ $u->isBlocked() ? 'Unblock account' : 'Clear the wait' }}</div>
+                                <div class="text-muted" style="font-size:12.5px;">
+                                    @if($u->isBlocked())
+                                        Blocked {{ $u->blocked_at->diffForHumans() }}: {{ $u->blocked_reason ?: 'too many failed attempts' }}.
+                                    @elseif($u->isLocked())
+                                        Locked until {{ $u->locked_until->format('H:i') }}.
+                                    @else
+                                        Asked for too many sign-in codes, so the next one waits until {{ $u->otp_cooldown_until->format('H:i') }}.
+                                    @endif
+                                </div>
                             </div>
                             <form method="POST" action="{{ route('users.unlock', $u) }}">@csrf
-                                <button class="btn btn-sm btn-outline-p">Unlock</button>
+                                <button class="btn btn-sm btn-outline-p">{{ $u->isBlocked() ? 'Unblock' : 'Clear' }}</button>
                             </form>
                         </div>
                         @endif
+
+                        <div class="access-row">
+                            <div>
+                                <div class="fw-semibold">Email code at sign-in</div>
+                                <div class="text-muted" style="font-size:12.5px;">
+                                    {{ $u->two_factor_enabled
+                                        ? 'On. A six digit code is emailed after the password.'
+                                        : 'Off. The password alone signs this account in.' }}
+                                    @unless($u->email) Needs an email address on the account first. @endunless
+                                </div>
+                            </div>
+                            <form method="POST" action="{{ route('users.two-factor', $u) }}">@csrf
+                                <button class="btn btn-sm {{ $u->two_factor_enabled ? 'btn-outline-secondary' : 'btn-outline-p' }}" @disabled(! $u->email)>
+                                    {{ $u->two_factor_enabled ? 'Turn off' : 'Turn on' }}
+                                </button>
+                            </form>
+                        </div>
                     @endif
 
                     @if($canTransfer)

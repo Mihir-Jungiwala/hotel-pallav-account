@@ -29,7 +29,7 @@
             <label class="form-label" for="code">Your code</label>
             <input id="code" name="code" class="form-control otp-input" inputmode="numeric" autocomplete="one-time-code"
                    maxlength="6" pattern="[0-9]{6}" placeholder="000000" required autofocus data-otp>
-            <div class="form-text">{{ $triesLeft }} {{ $triesLeft === 1 ? 'try' : 'tries' }} left before the account locks.</div>
+            <div class="form-text">{{ $triesLeft }} {{ $triesLeft === 1 ? 'try' : 'tries' }} left before the account is blocked.</div>
 
             <button type="submit" class="btn btn-p w-100 py-2 mt-3" data-busy-label="Checking...">Sign in</button>
         </form>

@@ -33,6 +33,18 @@ class User extends Authenticatable
         self::ROLE_VIEWER => 'Read-only access to every screen and report.',
     ];
 
+    /** Defaults a brand new account carries before it reaches the database. */
+    protected $attributes = [
+        'is_active' => true,
+        'two_factor_enabled' => false,
+        'must_change_password' => false,
+        'failed_login_attempts' => 0,
+        'lock_level' => 0,
+        'otp_attempts' => 0,
+        'otp_sends' => 0,
+        'otp_cooldown_level' => 0,
+    ];
+
     protected $fillable = [
         'name',
         'username',
@@ -61,9 +73,16 @@ class User extends Authenticatable
             'locked_until' => 'datetime',
             'password_changed_at' => 'datetime',
             'otp_expires_at' => 'datetime',
+            'blocked_at' => 'datetime',
+            'otp_cooldown_until' => 'datetime',
             'otp_sent_at' => 'datetime',
             'session_started_at' => 'datetime',
             'two_factor_enabled' => 'boolean',
+            'failed_login_attempts' => 'integer',
+            'lock_level' => 'integer',
+            'otp_attempts' => 'integer',
+            'otp_sends' => 'integer',
+            'otp_cooldown_level' => 'integer',
         ];
     }
 
@@ -127,9 +146,26 @@ class User extends Authenticatable
         return $this->isAdmin();
     }
 
+    /**
+     * Blocked after five wrong passwords or codes. There is no timer: an
+     * administrator unblocks it, or the owner resets the password by email.
+     */
+    public function isBlocked(): bool
+    {
+        return $this->blocked_at !== null;
+    }
+
+    /** Blocked, or inside a temporary lock set by an administrator. */
     public function isLocked(): bool
     {
-        return $this->locked_until !== null && $this->locked_until->isFuture();
+        return $this->isBlocked()
+            || ($this->locked_until !== null && $this->locked_until->isFuture());
+    }
+
+    /** True while the account has to wait before another code can be emailed. */
+    public function isWaitingForCode(): bool
+    {
+        return $this->otp_cooldown_until !== null && $this->otp_cooldown_until->isFuture();
     }
 
     public function initials(): string

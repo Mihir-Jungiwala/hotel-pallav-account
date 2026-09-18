@@ -66,6 +66,25 @@ class ProfileController extends Controller
         return back()->with('success', $changes ? 'Profile updated.' : 'No changes to save.');
     }
 
+    /** Each person decides whether their own sign-in asks for an emailed code. */
+    public function toggleTwoFactor(Request $request)
+    {
+        $user = $request->user();
+
+        if (! $user->email && ! $user->two_factor_enabled) {
+            return back()->with('error', 'Add an email address to your profile first, otherwise there is nowhere to send the code.');
+        }
+
+        $on = ! $user->two_factor_enabled;
+        $user->forceFill(['two_factor_enabled' => $on])->save();
+
+        UserAuditLog::record($on ? 'two_factor.enabled' : 'two_factor.disabled', $user);
+
+        return back()->with('success', $on
+            ? 'From now on we will email you a code after your password.'
+            : 'The emailed code is off. Your password alone will sign you in.');
+    }
+
     public function changePassword(Request $request)
     {
         $user = Auth::user();

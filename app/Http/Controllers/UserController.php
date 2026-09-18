@@ -139,14 +139,45 @@ class UserController extends Controller
         return back()->with('success', "@{$user->username} is now ".($user->is_active ? 'active' : 'deactivated').'.');
     }
 
+    /** Turns the emailed sign-in code on or off for someone else. */
+    public function toggleTwoFactor(User $user)
+    {
+        $this->authorizeManage(Auth::user(), $user);
+
+        if (! $user->email && ! $user->two_factor_enabled) {
+            return back()->with('error', "@{$user->username} needs an email address before a code can be sent.");
+        }
+
+        $on = ! $user->two_factor_enabled;
+        $user->forceFill(['two_factor_enabled' => $on])->save();
+
+        UserAuditLog::record($on ? 'two_factor.enabled' : 'two_factor.disabled', $user);
+
+        return back()->with('success', $on
+            ? "@{$user->username} will be asked for an emailed code at sign-in."
+            : "@{$user->username} will sign in with a password only.");
+    }
+
     public function unlock(User $user)
     {
         $this->authorizeManage(Auth::user(), $user);
 
-        $user->forceFill(['failed_login_attempts' => 0, 'locked_until' => null])->save();
+        // Clears the block, any administrator lock, and the wait on emailed codes
+        $user->forceFill([
+            'failed_login_attempts' => 0,
+            'locked_until' => null,
+            'lock_level' => 0,
+            'blocked_at' => null,
+            'blocked_reason' => null,
+            'otp_attempts' => 0,
+            'otp_sends' => 0,
+            'otp_cooldown_until' => null,
+            'otp_cooldown_level' => 0,
+        ])->save();
+
         UserAuditLog::record('user.unlocked', $user);
 
-        return back()->with('success', "@{$user->username} has been unlocked.");
+        return back()->with('success', "@{$user->username} can sign in again.");
     }
 
     public function resetPassword(Request $request, User $user)

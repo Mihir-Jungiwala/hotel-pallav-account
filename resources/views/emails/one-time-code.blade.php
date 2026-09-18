@@ -37,7 +37,7 @@
                 </tr>
                 <tr>
                     <td style="padding:14px 24px; border-top:1px solid #E9E2FA; font-size:11px; color:#7A7392;">
-                        Sent {{ now()->format('d M Y, H:i') }}. Five wrong codes lock the account, and each lock lasts longer than the last.
+                        Sent {{ now()->format('d M Y, H:i') }}. Five wrong codes block the account. Asking for too many codes starts a wait, which gets longer each time.
                     </td>
                 </tr>
             </table>
