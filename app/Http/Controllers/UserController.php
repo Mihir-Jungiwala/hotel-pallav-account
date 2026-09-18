@@ -182,16 +182,27 @@ class UserController extends Controller
             return back()->with('error', 'You are not allowed to delete this account.');
         }
 
-        if ($blocking = $this->hierarchy->blockingRecords($user)) {
-            $summary = collect($blocking)->map(fn ($n, $label) => "$n $label")->implode(', ');
+        // Closing an account never removes what it recorded: the entries keep
+        // their numbers and still show the name, marked as deleted.
+        $kept = $this->hierarchy->blockingRecords($user);
 
-            return back()->with('error', "@{$user->username} has entered records ($summary) that would be lost. Deactivate the account instead.");
-        }
+        UserAuditLog::record('user.deleted', $user, [
+            'role' => $user->role, 'name' => $user->name, 'records_kept' => $kept,
+        ]);
 
-        UserAuditLog::record('user.deleted', $user, ['role' => $user->role, 'name' => $user->name]);
+        $user->forceFill([
+            'is_active' => false,
+            'deleted_by' => $actor->id,
+            'remember_token' => null,
+        ])->save();
+
         $user->delete();
 
-        return back()->with('success', 'Account deleted.');
+        $summary = collect($kept)->map(fn ($n, $label) => "$n $label")->implode(', ');
+
+        return back()->with('success', $summary
+            ? "Account closed. Their entries ($summary) are kept and now show as deleted."
+            : 'Account closed. Any entries they recorded are kept.');
     }
 
     /**

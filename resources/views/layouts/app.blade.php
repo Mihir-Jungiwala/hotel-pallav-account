@@ -1,5 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
+<script>
+    // Applied before anything renders so night mode never flashes white
+    try {
+        const saved = localStorage.getItem('pms-theme');
+        const prefers = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.dataset.theme = saved || (prefers ? 'dark' : 'light');
+    } catch (e) { /* private window, stay on day mode */ }
+</script>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -166,7 +174,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/plugins/monthSelect/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
     <link rel="stylesheet" href="{{ asset('assets/pms.css') }}?v=6">
-    <link rel="stylesheet" href="{{ asset('assets/pms-ui.css') }}?v=2">
+    <link rel="stylesheet" href="{{ asset('assets/pms-ui.css') }}?v=3">
+    <link rel="stylesheet" href="{{ asset('assets/pms-dash.css') }}?v=7">
     @stack('styles')
 </head>
 <body class="@hasSection('subnav') has-subnav @else no-subnav @endif @guest guest-page @endguest"
@@ -203,6 +212,9 @@
 
         <div class="sidebar-section">System</div>
         <a href="{{ route('reports.index') }}" class="{{ request()->routeIs('reports.*') ? 'active' : '' }}" title="Reports"><i class="bi bi-file-earmark-text"></i><span>Reports</span></a>
+        @if(auth()->user()->isSuperAdmin())
+            <a href="{{ route('masters.index') }}" class="{{ request()->routeIs('masters.*') ? 'active' : '' }}" title="Master Data"><i class="bi bi-sliders"></i><span>Master Data</span></a>
+        @endif
         @if(auth()->user()->isAdmin())
             <a href="{{ route('users.index') }}" class="{{ request()->routeIs('users.*') ? 'active' : '' }}" title="User Accounts"><i class="bi bi-people"></i><span>User Accounts</span></a>
         @endif
@@ -233,11 +245,12 @@
         </div>
         @php $me = auth()->user(); $forceOn = \App\Support\ForceMode::enabled(); @endphp
         <div class="d-flex align-items-center gap-2">
+        <button class="theme-btn" id="themeToggle" type="button" title="Switch theme"><i class="bi bi-moon-stars"></i></button>
         @if(\App\Support\ForceMode::availableTo())
             <form method="POST" action="{{ route('force-mode.toggle') }}" data-no-busy="true" data-self-service>
                 @csrf
                 <button class="force-btn {{ $forceOn ? 'on' : '' }}"
-                        title="{{ $forceOn ? 'Force mode is armed — click to turn it off' : 'Arm force mode: validation and record locks off for your account' }}">
+                        title="{{ $forceOn ? 'Force mode is armed - click to turn it off' : 'Arm force mode: validation and record locks off for your account' }}">
                     <i class="bi bi-lightning-charge-fill"></i>
                     <span>Force mode: {{ $forceOn ? 'ON' : 'OFF' }}</span>
                 </button>
@@ -309,7 +322,7 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/plugins/monthSelect/index.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script src="{{ asset('assets/pms.js') }}?v=5"></script>
-<script src="{{ asset('assets/pms-ui.js') }}?v=3"></script>
+<script src="{{ asset('assets/pms-ui.js') }}?v=5"></script>
 @stack('scripts')
 </body>
 </html>

@@ -102,7 +102,7 @@ class UserHierarchyTest extends TestCase
         $this->assertSame('Viewer', $editor->fresh()->role);
 
         $this->delete(route('users.destroy', $viewer))->assertSessionHasNoErrors();
-        $this->assertModelMissing($viewer);
+        $this->assertSoftDeleted($viewer);
     }
 
     public function test_admin_cannot_touch_another_admin(): void
@@ -161,20 +161,39 @@ class UserHierarchyTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_accounts_with_entered_records_are_not_deleted(): void
+    public function test_closing_an_account_keeps_every_entry_it_recorded(): void
     {
         $admin = User::factory()->admin()->create();
         $editor = User::factory()->editor()->create();
 
         \DB::table('hotel_cash_deposits')->insert([
-            'date' => now()->toDateString(), 'time' => '10:00', 'user_id' => $editor->id,
+            'entry_no' => 1, 'date' => now()->toDateString(), 'time' => '10:00', 'user_id' => $editor->id,
             'depositor' => 'Desk', 'amount' => 100, 'created_at' => now(), 'updated_at' => now(),
         ]);
 
-        $this->actingAs($admin)->delete(route('users.destroy', $editor))->assertSessionHas('error');
+        $this->actingAs($admin)->delete(route('users.destroy', $editor))->assertSessionHasNoErrors();
 
-        $this->assertModelExists($editor);
+        $this->assertSoftDeleted($editor);
         $this->assertDatabaseCount('hotel_cash_deposits', 1);
+
+        // The entry can still name who recorded it
+        $deposit = \App\Models\HotelCashDeposit::first();
+        $this->assertSame($editor->id, $deposit->user_id);
+        $this->assertSame($editor->name.' (deleted)', $deposit->user->displayName());
+    }
+
+    public function test_a_closed_account_cannot_sign_in(): void
+    {
+        $editor = User::factory()->editor()->create(['username' => 'gone']);
+
+        $this->actingAs(User::factory()->admin()->create())->delete(route('users.destroy', $editor));
+
+        auth()->logout();
+
+        $this->post(route('login.attempt'), ['username' => 'gone', 'password' => UserFactory::PASSWORD])
+            ->assertSessionHasErrors('username');
+
+        $this->assertGuest();
     }
 
     public function test_reset_password_forces_a_change_and_clears_lock(): void

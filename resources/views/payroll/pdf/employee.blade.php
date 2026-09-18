@@ -36,18 +36,18 @@
 <table class="fields avoid-break">
     <tr>
         <td class="k">Employee ID</td><td class="v">{{ $employee->employee_code }}</td>
-        <td class="k">Joining Date</td><td class="v">{{ optional($employee->joining_date)->format('d M Y') ?: '—' }}</td>
+        <td class="k">Joining Date</td><td class="v">{{ optional($employee->joining_date)->format('d M Y') ?: '-' }}</td>
     </tr>
     <tr>
         <td class="k">Monthly Salary</td><td class="v">₹{{ number_format($employee->salary, 2) }}</td>
         <td class="k">Working Hours</td><td class="v">{{ rtrim(rtrim(number_format($employee->daily_working_hours, 2), '0'), '.') }} hrs / day</td>
     </tr>
     <tr>
-        <td class="k">Contact</td><td class="v">{{ $employee->contact_number ?: '—' }}</td>
+        <td class="k">Contact</td><td class="v">{{ $employee->contact_number ?: '-' }}</td>
         <td class="k">Payment Mode</td><td class="v">{{ $employee->payment_mode }}</td>
     </tr>
     <tr>
-        <td class="k">Address</td><td class="v" colspan="3">{{ $employee->address ?: '—' }}</td>
+        <td class="k">Address</td><td class="v" colspan="3">{{ $employee->address ?: '-' }}</td>
     </tr>
 </table>
 
@@ -60,15 +60,15 @@
 <h2 class="section">Bank Details</h2>
 <table class="fields avoid-break">
     <tr>
-        <td class="k">Bank</td><td class="v">{{ $employee->bank_name ?: '—' }}</td>
-        <td class="k">Account Holder</td><td class="v">{{ $employee->account_holder_name ?: '—' }}</td>
+        <td class="k">Bank</td><td class="v">{{ $employee->bank_name ?: '-' }}</td>
+        <td class="k">Account Holder</td><td class="v">{{ $employee->account_holder_name ?: '-' }}</td>
     </tr>
     <tr>
-        <td class="k">Account No.</td><td class="v">{{ $employee->account_number ?: '—' }}</td>
-        <td class="k">IFSC</td><td class="v">{{ $employee->ifsc_code ?: '—' }}</td>
+        <td class="k">Account No.</td><td class="v">{{ $employee->account_number ?: '-' }}</td>
+        <td class="k">IFSC</td><td class="v">{{ $employee->ifsc_code ?: '-' }}</td>
     </tr>
     <tr>
-        <td class="k">Branch</td><td class="v" colspan="3">{{ $employee->branch_name ?: '—' }}</td>
+        <td class="k">Branch</td><td class="v" colspan="3">{{ $employee->branch_name ?: '-' }}</td>
     </tr>
 </table>
 @endif
@@ -76,8 +76,8 @@
 <h2 class="section">Identification</h2>
 <table class="fields avoid-break">
     <tr>
-        <td class="k">ID Proof Type</td><td class="v">{{ optional($employee->idProofType)->name ?: '—' }}</td>
-        <td class="k">ID Proof No.</td><td class="v">{{ $employee->id_proof_number ?: '—' }}</td>
+        <td class="k">ID Proof Type</td><td class="v">{{ optional($employee->idProofType)->name ?: '-' }}</td>
+        <td class="k">ID Proof No.</td><td class="v">{{ $employee->id_proof_number ?: '-' }}</td>
     </tr>
 </table>
 
@@ -88,7 +88,7 @@
     <tbody>
     @foreach($employee->deductions as $assignment)
         <tr>
-            <td>{{ optional($assignment->deduction)->name ?: '—' }}</td>
+            <td>{{ optional($assignment->deduction)->name ?: '-' }}</td>
             <td>{{ $assignment->deduction_type }}</td>
             <td class="num">{{ number_format($assignment->amount, 2) }}</td>
             <td>{{ $assignment->is_settled ? 'Settled' : 'Recurring' }}</td>

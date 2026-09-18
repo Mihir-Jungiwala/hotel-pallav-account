@@ -13,15 +13,15 @@
 
 <table class="fields avoid-break">
     <tr>
-        <td class="k">Employee</td><td class="v">{{ optional($employee)->name ?: '—' }}</td>
-        <td class="k">Employee ID</td><td class="v">{{ optional($employee)->employee_code ?: '—' }}</td>
+        <td class="k">Employee</td><td class="v">{{ optional($employee)->name ?: '-' }}</td>
+        <td class="k">Employee ID</td><td class="v">{{ optional($employee)->employee_code ?: '-' }}</td>
     </tr>
     <tr>
-        <td class="k">Designation</td><td class="v">{{ optional($employee)->designation ?: '—' }}</td>
-        <td class="k">Department</td><td class="v">{{ optional($employee)->department ?: '—' }}</td>
+        <td class="k">Designation</td><td class="v">{{ optional($employee)->designation ?: '-' }}</td>
+        <td class="k">Department</td><td class="v">{{ optional($employee)->department ?: '-' }}</td>
     </tr>
     <tr>
-        <td class="k">Date of Joining</td><td class="v">{{ optional(optional($employee)->joining_date)->format('d M Y') ?: '—' }}</td>
+        <td class="k">Date of Joining</td><td class="v">{{ optional(optional($employee)->joining_date)->format('d M Y') ?: '-' }}</td>
         <td class="k">Total Service</td><td class="v">{{ $separation->tenureLabel() }}</td>
     </tr>
 </table>
@@ -42,7 +42,7 @@
     <tr>
         <td class="k">Notice Period</td>
         <td class="v">{{ $separation->resignation_date->diffInDays($separation->last_working_date) }} days</td>
-        <td class="k">Recorded By</td><td class="v">{{ optional($separation->creator)->name ?: '—' }}</td>
+        <td class="k">Recorded By</td><td class="v">{{ optional($separation->creator)->name ?: '-' }}</td>
     </tr>
     @if($separation->hasRejoined())
     <tr>

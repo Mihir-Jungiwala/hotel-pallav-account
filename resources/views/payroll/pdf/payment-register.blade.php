@@ -48,9 +48,9 @@
             <td class="num">{{ number_format($row->paid_amount, 2) }}</td>
             <td class="num">{{ number_format($row->balance(), 2) }}</td>
             <td><span class="chip" style="background:{{ $bg }}; color:{{ $fg }}; font-size:7pt;">{{ $row->payment_status }}</span></td>
-            <td>{{ optional($row->paid_at)->format('d M Y') ?: '—' }}</td>
-            <td>{{ $row->payment_reference ?: '—' }}</td>
-            <td class="wrap">{{ \Illuminate\Support\Str::limit($row->payment_remarks, 60) ?: '—' }}</td>
+            <td>{{ optional($row->paid_at)->format('d M Y') ?: '-' }}</td>
+            <td>{{ $row->payment_reference ?: '-' }}</td>
+            <td class="wrap">{{ \Illuminate\Support\Str::limit($row->payment_remarks, 60) ?: '-' }}</td>
         </tr>
     @endforeach
         <tr class="total">

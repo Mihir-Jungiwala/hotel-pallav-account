@@ -115,8 +115,8 @@
             <div class="card-header">Security</div>
             <div class="card-body">
                 <div class="kv-grid one-col">
-                    <div><span>Last sign-in</span><strong>{{ optional($user->last_login_at)->format('d M Y, H:i') ?? '—' }}</strong></div>
-                    <div><span>From</span><strong>{{ $user->last_login_ip ?: '—' }}</strong></div>
+                    <div><span>Last sign-in</span><strong>{{ optional($user->last_login_at)->format('d M Y, H:i') ?? '-' }}</strong></div>
+                    <div><span>From</span><strong>{{ $user->last_login_ip ?: '-' }}</strong></div>
                     <div><span>Password changed</span><strong>{{ optional($user->password_changed_at)->diffForHumans() ?? 'Not recorded' }}</strong></div>
                 </div>
                 <div class="fw-semibold mt-3 mb-2" style="font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em;">Recent sessions</div>

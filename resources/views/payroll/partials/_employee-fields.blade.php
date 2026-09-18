@@ -5,7 +5,7 @@
 
 <div class="form-wizard" data-wizard data-bank-scope>
 
-    {{-- Step 1 — who the employee is --}}
+    {{-- Step 1 - who the employee is --}}
     <div class="form-step" data-step="Identity">
         <div class="alert alert-light border mb-3" style="background:var(--p50);">
             <div class="row small">
@@ -56,7 +56,7 @@
         </div>
     </div>
 
-    {{-- Step 2 — what drives the payroll maths --}}
+    {{-- Step 2 - what drives the payroll maths --}}
     <div class="form-step" data-step="Employment">
         <div class="row g-3">
             <div class="col-md-4">
@@ -84,13 +84,13 @@
         </div>
     </div>
 
-    {{-- Step 3 — how they get paid --}}
+    {{-- Step 3 - how they get paid --}}
     <div class="form-step" data-step="Payment">
         <div class="row g-3">
             <div class="col-md-4">
                 <label class="form-label">Payment Mode *</label>
                 <select name="payment_mode" class="form-select payment-mode" required>
-                    @foreach(['Cash', 'Bank'] as $mode)
+                    @foreach(\App\Support\Masters::valuesOr('salary_payment_mode', ['Cash', 'Bank']) as $mode)
                         <option value="{{ $mode }}" @selected(old('payment_mode', $e->payment_mode ?? 'Cash') === $mode)>{{ $mode }}</option>
                     @endforeach
                 </select>
@@ -120,7 +120,7 @@
         </div>
     </div>
 
-    {{-- Step 4 — supporting records, none of it blocking --}}
+    {{-- Step 4 - supporting records, none of it blocking --}}
     <div class="form-step" data-step="Documents">
         <div class="row g-3">
             <div class="col-12"><div class="fw-bold" style="color:var(--p700);">ID Proof <span class="wz-optional">optional</span></div></div>
@@ -166,7 +166,7 @@
                             </div>
                             <div class="col-md-3">
                                 <select name="deductions[{{ $index }}][deduction_type]" class="form-select">
-                                    @foreach(['One Time', 'Monthly'] as $type)
+                                    @foreach(\App\Support\Masters::valuesOr('advance_deduction_type', ['One Time', 'Monthly']) as $type)
                                         <option value="{{ $type }}" @selected($assignment->deduction_type === $type)>{{ $type }}</option>
                                     @endforeach
                                 </select>

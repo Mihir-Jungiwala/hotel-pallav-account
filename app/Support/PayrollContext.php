@@ -7,7 +7,7 @@ use App\Models\PayrollCompany;
 /**
  * Resolves the "Current Company" the payroll screens are scoped to.
  *
- * The sentinel value "company" means no operating company is selected — the
+ * The sentinel value "company" means no operating company is selected - the
  * only category available then is Profile (Company Setup).
  */
 class PayrollContext

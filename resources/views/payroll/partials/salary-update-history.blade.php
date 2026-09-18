@@ -11,8 +11,8 @@
             @foreach($rows as $row)
                 <tr>
                     <td class="fw-semibold">{{ $row->field_name }}</td>
-                    <td class="text-muted">{{ $row->previous_value ?: '—' }}</td>
-                    <td style="color:var(--p700);font-weight:600;">{{ $row->new_value ?: '—' }}</td>
+                    <td class="text-muted">{{ $row->previous_value ?: '-' }}</td>
+                    <td style="color:var(--p700);font-weight:600;">{{ $row->new_value ?: '-' }}</td>
                 </tr>
             @endforeach
             </tbody>

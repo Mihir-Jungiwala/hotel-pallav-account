@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'account.usable' => \App\Http\Middleware\EnsureAccountIsUsable::class,
             'role.permissions' => \App\Http\Middleware\EnforceRolePermissions::class,
             'admin' => \App\Http\Middleware\RequireAdmin::class,
+            'superadmin' => \App\Http\Middleware\RequireSuperAdmin::class,
         ]);
 
         // Signed-in users are sent to the dashboard, guests to the login page

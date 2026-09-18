@@ -22,7 +22,7 @@
     <div class="col-md-4"><label class="form-label">Advance Amount *</label><input type="number" step="0.01" min="0.01" name="amount" class="form-control advance-amount" value="{{ old('amount', $a->amount ?? '') }}" required></div>
     <div class="col-md-4"><label class="form-label">Deduction Type *</label>
         <select name="deduction_type" class="form-select advance-type" required>
-            @foreach(['One Time', 'Monthly'] as $type)
+            @foreach(\App\Support\Masters::valuesOr('advance_deduction_type', ['One Time', 'Monthly']) as $type)
                 <option value="{{ $type }}" @selected(old('deduction_type', $a->deduction_type ?? 'One Time') === $type)>{{ $type }}</option>
             @endforeach
         </select>

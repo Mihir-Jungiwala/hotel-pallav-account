@@ -2,7 +2,7 @@
 
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <span>Joining Letter Template &mdash; {{ $company->name }}</span>
+        <span>Joining Letter Template - {{ $company->name }}</span>
         <span class="small fw-normal text-muted">One template per company</span>
     </div>
     <div class="card-body">

@@ -4,13 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
 
     public const ROLE_SUPERADMIN = 'SuperAdmin';
     public const ROLE_ADMIN = 'Admin';
@@ -64,7 +65,29 @@ class User extends Authenticatable
 
     public function creator(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->belongsTo(User::class, 'created_by')->withTrashed();
+    }
+
+    public function deletedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deleted_by')->withTrashed();
+    }
+
+    /** A closed account: the entries it recorded stay, the sign-in does not. */
+    public function isDeleted(): bool
+    {
+        return $this->trashed();
+    }
+
+    /** How the name reads on an entry once the account has been closed. */
+    public function displayName(): string
+    {
+        return $this->trashed() ? $this->name.' (deleted)' : $this->name;
+    }
+
+    public function displayUsername(): string
+    {
+        return $this->trashed() ? '@'.$this->username.' (deleted)' : '@'.$this->username;
     }
 
     public function rank(): int

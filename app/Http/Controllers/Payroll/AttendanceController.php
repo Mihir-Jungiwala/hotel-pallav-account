@@ -148,6 +148,6 @@ class AttendanceController extends Controller
             'unlock_session_id' => session()->getId(),
         ])->save();
 
-        return back()->with('success', 'Attendance unlocked. Complete your corrections and run Re-Generate Salary — if you leave before doing so, the month reverts to locked.');
+        return back()->with('success', 'Attendance unlocked. Complete your corrections and run Re-Generate Salary - if you leave before doing so, the month reverts to locked.');
     }
 }

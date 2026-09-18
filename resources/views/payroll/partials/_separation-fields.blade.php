@@ -73,7 +73,7 @@
             <div class="col-md-6">
                 <label class="form-label">Acceptance Document <span class="wz-optional">optional</span></label>
                 <input type="file" name="document" class="form-control" accept="application/pdf,image/*">
-                <div class="form-text">Signed resignation acceptance or relieving letter &mdash; PDF or image.</div>
+                <div class="form-text">Signed resignation acceptance or relieving letter - PDF or image.</div>
 
                 @if($s && $s->document_path)
                     <a class="d-inline-flex align-items-center gap-1 mt-2" style="font-size:12.5px; color:var(--p700); font-weight:600;"

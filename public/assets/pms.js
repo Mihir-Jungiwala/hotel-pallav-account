@@ -1,5 +1,5 @@
 /* ===========================================================================
-   Hotel Pallav — PMS interaction layer
+   Hotel Pallav - PMS interaction layer
    Vanilla, dependency-free. Everything degrades gracefully without JS.
    =========================================================================== */
 
@@ -70,7 +70,7 @@
     }
 
     /* -----------------------------------------------------------------------
-       Submit buttons — commit visibly, never double-fire
+       Submit buttons - commit visibly, never double-fire
        ----------------------------------------------------------------------- */
 
     function wireSubmitStates() {
@@ -99,7 +99,7 @@
     }
 
     /* -----------------------------------------------------------------------
-       Modals — materialize from the element that opened them
+       Modals - materialize from the element that opened them
        ----------------------------------------------------------------------- */
 
     function wireModals() {
@@ -132,7 +132,7 @@
     }
 
     /* -----------------------------------------------------------------------
-       Tab bar — one indicator that slides between tabs
+       Tab bar - one indicator that slides between tabs
        ----------------------------------------------------------------------- */
 
     function wireTabs() {
@@ -306,7 +306,7 @@
     }
 
     /* -----------------------------------------------------------------------
-       Attendance grid — keyboard-first month entry
+       Attendance grid - keyboard-first month entry
        ----------------------------------------------------------------------- */
 
     function wireAttendanceGrid() {
@@ -330,7 +330,7 @@
                 cell.classList.add('filled');
                 cell.classList.remove('invalid-key');
                 cell.setCustomValidity('');
-                cell.title = status.name + ' — ' + status.percentage + '%';
+                cell.title = status.name + ' - ' + status.percentage + '%';
             } else {
                 cell.style.background = '';
                 cell.classList.remove('filled');
@@ -436,7 +436,7 @@
                 // Let the caret move within a partly typed value first
                 if ((event.key === 'ArrowLeft' || event.key === 'ArrowRight') &&
                     cell.selectionStart !== cell.selectionEnd) {
-                    // text is selected — treat as navigation
+                    // text is selected - treat as navigation
                 } else if (event.key === 'ArrowLeft' && cell.selectionStart > 0) {
                     return;
                 } else if (event.key === 'ArrowRight' && cell.selectionStart < cell.value.length) {
@@ -633,7 +633,7 @@
     }
 
     /* -----------------------------------------------------------------------
-       Collapsible panels — primary sidebar + docked secondary panel
+       Collapsible panels - primary sidebar + docked secondary panel
        ----------------------------------------------------------------------- */
 
     function wirePanels() {
@@ -804,7 +804,7 @@
                 if (info) {
                     info.textContent = rows.length === 0
                         ? 'No records'
-                        : `Showing ${start + 1}–${Math.min(end, rows.length)} of ${rows.length}`;
+                        : `Showing ${start + 1}-${Math.min(end, rows.length)} of ${rows.length}`;
                 }
 
                 const controls = pager.querySelector('.pg-controls');

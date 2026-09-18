@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Backend-only. Driven by the Generate Salary / Re-Generate Salary buttons in
- * Attendance Management — this service has no screen of its own.
+ * Attendance Management - this service has no screen of its own.
  *
  *   Net Salary = Attendance Salary + Overtime + Bonus + Incentive
  *                - Deductions - Advances     (floored at zero)

@@ -11,12 +11,12 @@
 <div class="card">
     <div class="table-responsive">
         <table class="table table-hover mb-0">
-            <thead><tr><th>Date</th>@if(UnitContext::isBoth())<th>Business</th>@endif<th>Shift</th><th>Handed By</th><th>Total</th><th class="text-end">Actions</th></tr></thead>
+            <thead><tr><th class="col-no">No.</th><th>Date</th>@if(UnitContext::isBoth())<th>Business</th>@endif<th>Shift</th><th>Handed By</th><th>Total</th><th class="text-end">Actions</th></tr></thead>
             <tbody>
             @forelse($records as $r)
                 <tr>
-                    <td>{{ optional($r->date)->format('d-m-Y') }} {{ substr((string) $r->time, 0, 5) }}</td>
-                    @if(UnitContext::isBoth())<td><span class="unit-tag {{ optional($r->businessUnit)->slug === 'food' ? 'food' : '' }}"><i class="bi {{ optional($r->businessUnit)->icon ?? 'bi-building' }}"></i> {{ optional($r->businessUnit)->name ?? '—' }}</span></td>@endif
+                    <td class="entry-no">#{{ $r->entryNumber() }}</td><td>{{ optional($r->date)->format('d-m-Y') }} {{ substr((string) $r->time, 0, 5) }}</td>
+                    @if(UnitContext::isBoth())<td><span class="unit-tag {{ optional($r->businessUnit)->slug === 'food' ? 'food' : '' }}"><i class="bi {{ optional($r->businessUnit)->icon ?? 'bi-building' }}"></i> {{ optional($r->businessUnit)->name ?? '-' }}</span></td>@endif
                     <td>{{ $r->shift }}</td>
                     <td>{{ $r->full_name }}</td>
                     <td>₹{{ number_format($r->total, 2) }}</td>

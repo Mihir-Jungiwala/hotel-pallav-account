@@ -50,11 +50,11 @@
 <h2 class="section">Appointment Details</h2>
 <table class="fields avoid-break">
     <tr>
-        <td class="k">Designation</td><td class="v">{{ $employee->designation ?: '—' }}</td>
-        <td class="k">Department</td><td class="v">{{ $employee->department ?: '—' }}</td>
+        <td class="k">Designation</td><td class="v">{{ $employee->designation ?: '-' }}</td>
+        <td class="k">Department</td><td class="v">{{ $employee->department ?: '-' }}</td>
     </tr>
     <tr>
-        <td class="k">Joining Date</td><td class="v">{{ optional($employee->joining_date)->format('d M Y') ?: '—' }}</td>
+        <td class="k">Joining Date</td><td class="v">{{ optional($employee->joining_date)->format('d M Y') ?: '-' }}</td>
         <td class="k">Working Hours</td><td class="v">{{ rtrim(rtrim(number_format($employee->daily_working_hours, 2), '0'), '.') }} hrs / day</td>
     </tr>
     <tr>

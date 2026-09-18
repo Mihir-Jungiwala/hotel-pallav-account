@@ -20,11 +20,11 @@
     <div class="card-header">Hotel Cash Deposits</div>
     <div class="table-responsive">
         <table class="table table-hover mb-0">
-            <thead><tr><th>Date</th><th>Depositor</th><th>Amount</th><th>Recorded By</th><th class="text-end">Actions</th></tr></thead>
+            <thead><tr><th class="col-no">No.</th><th>Date</th><th>Depositor</th><th>Amount</th><th>Recorded By</th><th class="text-end">Actions</th></tr></thead>
             <tbody>
             @forelse($hotelDeposits as $d)
                 <tr>
-                    <td>{{ optional($d->date)->format('d-m-Y') }} {{ substr((string) $d->time, 0, 5) }}</td>
+                    <td class="entry-no">#{{ $d->entryNumber() }}</td><td>{{ optional($d->date)->format('d-m-Y') }} {{ substr((string) $d->time, 0, 5) }}</td>
                     <td>{{ $d->depositor }}</td>
                     <td>₹{{ number_format($d->amount, 2) }}</td>
                     <td>{{ $d->full_name }}</td>
@@ -50,11 +50,11 @@
     <div class="card-header">Food Cash Deposits</div>
     <div class="table-responsive">
         <table class="table table-hover mb-0">
-            <thead><tr><th>Date</th><th>Depositor</th><th>Amount</th><th>Recorded By</th><th class="text-end">Actions</th></tr></thead>
+            <thead><tr><th class="col-no">No.</th><th>Date</th><th>Depositor</th><th>Amount</th><th>Recorded By</th><th class="text-end">Actions</th></tr></thead>
             <tbody>
             @forelse($foodDeposits as $d)
                 <tr>
-                    <td>{{ optional($d->date)->format('d-m-Y') }} {{ substr((string) $d->time, 0, 5) }}</td>
+                    <td class="entry-no">#{{ $d->entryNumber() }}</td><td>{{ optional($d->date)->format('d-m-Y') }} {{ substr((string) $d->time, 0, 5) }}</td>
                     <td>{{ $d->depositor }}</td>
                     <td>₹{{ number_format($d->amount, 2) }}</td>
                     <td>{{ $d->full_name }}</td>
@@ -88,7 +88,8 @@
                     <div class="row g-3">
                         <div class="col-md-6"><label class="form-label">Date</label><input type="date" name="date" class="form-control" value="{{ date('Y-m-d') }}" required></div>
                         <div class="col-md-6"><label class="form-label">Time</label><input type="time" name="time" class="form-control" value="{{ date('H:i') }}" required></div>
-                        <div class="col-12"><label class="form-label">Depositor</label><input name="depositor" class="form-control" required></div>
+                        <div class="col-md-6"><label class="form-label">Depositor</label><input name="depositor" class="form-control" required></div>
+                        <div class="col-md-6">@include('partials._option-field', ['key' => 'revenue_source', 'name' => 'revenue_source', 'value' => null, 'label' => 'Source'])</div>
                         <div class="col-12"><label class="form-label">Amount</label><input type="number" step="0.01" name="amount" class="form-control" required></div>
                     </div>
                 </div>

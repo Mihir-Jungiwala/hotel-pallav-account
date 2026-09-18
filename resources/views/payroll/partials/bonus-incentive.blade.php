@@ -30,7 +30,7 @@
 
                 <div class="modal fade" id="editBonus{{ $row->id }}" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
                     <form method="POST" action="{{ route('payroll.bonus-incentive.update', $row) }}">@csrf @method('PUT')
-                        <div class="modal-header"><h5 class="modal-title">{{ $row->type }} &mdash; {{ optional($row->employee)->name }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                        <div class="modal-header"><h5 class="modal-title">{{ $row->type }} - {{ optional($row->employee)->name }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                         <div class="modal-body">@include('payroll.partials._bonus-fields', ['target' => $row])</div>
                         <div class="modal-footer">
                             <a class="btn btn-outline-p me-auto" href="{{ route('payroll.bonus-incentive.view', $row) }}" target="_blank"><i class="bi bi-file-earmark-pdf"></i> Entry PDF</a>

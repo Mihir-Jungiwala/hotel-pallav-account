@@ -28,7 +28,7 @@
             <option value="">Choose who is rejoining&hellip;</option>
             @foreach($rejoinable as $sep)
                 <option value="{{ $sep->id }}">
-                    {{ optional($sep->employee)->name }} ({{ optional($sep->employee)->employee_code }}) &mdash; left {{ $sep->last_working_date->format('M Y') }}
+                    {{ optional($sep->employee)->name }} ({{ optional($sep->employee)->employee_code }}) - left {{ $sep->last_working_date->format('M Y') }}
                 </option>
             @endforeach
         </select>
@@ -49,7 +49,7 @@
 
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <span>Staff Management &mdash; {{ $company->name }}</span>
+        <span>Staff Management - {{ $company->name }}</span>
         <span class="text-muted fw-normal" style="font-size:12.5px;"><span id="staffCount">{{ $employees->count() }}</span> shown</span>
     </div>
     <div class="table-responsive">

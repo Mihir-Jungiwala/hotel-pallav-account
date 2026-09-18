@@ -2,7 +2,7 @@
 
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <span>Experience Letter Template &mdash; {{ $company->name }}</span>
+        <span>Experience Letter Template - {{ $company->name }}</span>
         <span class="text-muted fw-normal" style="font-size:12.5px;">One template per company</span>
     </div>
     <div class="card-body">

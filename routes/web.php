@@ -5,6 +5,7 @@ use App\Http\Controllers\BillMasterController;
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\ContextController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MasterDataController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\Payroll\AttendanceController;
 use App\Http\Controllers\Payroll\AttendanceStatusController;
@@ -39,7 +40,7 @@ Route::middleware('guest')->group(function () {
     Route::post('/reset-password', [AuthController::class, 'reset'])->middleware('throttle:10,1')->name('password.update');
 });
 
-// Authenticated routes — every request re-checks the account and the role ceiling
+// Authenticated routes - every request re-checks the account and the role ceiling
 Route::middleware(['auth', 'auth.session', 'account.usable', 'role.permissions'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
@@ -53,6 +54,19 @@ Route::middleware(['auth', 'auth.session', 'account.usable', 'role.permissions']
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('/profile/password', [ProfileController::class, 'changePassword'])->name('profile.password');
+
+    // Master Data: the lists every form offers (SuperAdmin only)
+    Route::middleware('superadmin')->prefix('masters')->name('masters.')->group(function () {
+        Route::get('/', [MasterDataController::class, 'index'])->name('index');
+        Route::post('/sets', [MasterDataController::class, 'storeSet'])->name('sets.store');
+        Route::put('/sets/{set}', [MasterDataController::class, 'updateSet'])->name('sets.update');
+        Route::delete('/sets/{set}', [MasterDataController::class, 'destroySet'])->name('sets.destroy');
+        Route::post('/sets/{set}/items', [MasterDataController::class, 'storeItem'])->name('items.store');
+        Route::put('/items/{item}', [MasterDataController::class, 'updateItem'])->name('items.update');
+        Route::post('/items/{item}/toggle', [MasterDataController::class, 'toggleItem'])->name('items.toggle');
+        Route::post('/items/{item}/move', [MasterDataController::class, 'moveItem'])->name('items.move');
+        Route::delete('/items/{item}', [MasterDataController::class, 'destroyItem'])->name('items.destroy');
+    });
 
     // User accounts (Admin and SuperAdmin)
     Route::middleware('admin')->prefix('users')->name('users.')->group(function () {
@@ -132,6 +146,7 @@ Route::middleware(['auth', 'auth.session', 'account.usable', 'role.permissions']
 
     // Reports
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/download', [ReportController::class, 'download'])->name('reports.download');
 
     /*
      * Payroll (PMS). Every module below is scoped to the Current Company

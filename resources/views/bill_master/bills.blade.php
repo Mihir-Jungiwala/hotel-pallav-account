@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Bill Master — Bills')
+@section('title', 'Bill Master - Bills')
 @section('content')
 
 <div class="d-flex justify-content-end mb-3">

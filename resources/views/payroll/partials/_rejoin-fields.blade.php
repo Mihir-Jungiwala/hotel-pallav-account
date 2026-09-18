@@ -48,7 +48,7 @@
     <div class="col-md-4">
         <label class="form-label">Payment Mode *</label>
         <select name="payment_mode" class="form-select payment-mode" required>
-            @foreach(['Cash', 'Bank'] as $mode)
+            @foreach(\App\Support\Masters::valuesOr('salary_payment_mode', ['Cash', 'Bank']) as $mode)
                 <option value="{{ $mode }}" @selected($employee->payment_mode === $mode)>{{ $mode }}</option>
             @endforeach
         </select>

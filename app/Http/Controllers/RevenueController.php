@@ -33,6 +33,7 @@ class RevenueController extends Controller
             'date' => ['required', 'date'],
             'time' => ['required'],
             'depositor' => ['required', 'string', 'max:100'],
+            'revenue_source' => ['nullable', 'string', 'max:60'],
             'amount' => ['required', 'numeric', 'min:0'],
         ];
     }
@@ -87,6 +88,7 @@ class RevenueController extends Controller
             'title' => 'Hotel Revenue Receipt',
             'record' => $deposit,
             'rows' => [
+                'Entry No.' => '#'.$deposit->entryNumber(),
                 'Date' => optional($deposit->date)->format('d-m-Y'),
                 'Time' => substr((string) $deposit->time, 0, 5),
                 'Recorded By' => $deposit->full_name,
@@ -105,6 +107,7 @@ class RevenueController extends Controller
             'title' => 'Food Revenue Receipt',
             'record' => $deposit,
             'rows' => [
+                'Entry No.' => '#'.$deposit->entryNumber(),
                 'Date' => optional($deposit->date)->format('d-m-Y'),
                 'Time' => substr((string) $deposit->time, 0, 5),
                 'Recorded By' => $deposit->full_name,

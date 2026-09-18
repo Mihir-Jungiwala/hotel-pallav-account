@@ -9,7 +9,7 @@
     $advanceLines   = $processing->lines->where('category', 'Advance');
     $earningLines   = $processing->lines->whereIn('category', ['Bonus', 'Incentive']);
 
-    // Only show components that actually carry a value — no empty filler rows
+    // Only show components that actually carry a value - no empty filler rows
     $earnings = collect([
         ['Attendance Salary', number_format($processing->total_payable_days, 2).' payable days × ₹'.number_format($processing->daily_salary, 2), $processing->attendance_salary, true],
         ['Overtime', number_format($processing->overtime_hours, 2).' hrs × ₹'.number_format($processing->hourly_rate, 2).'/hr', $processing->overtime_amount, $processing->overtime_amount > 0],
@@ -38,16 +38,16 @@
     </tr>
     <tr>
         <td class="k">Designation</td>
-        <td class="v">{{ $processing->designation ?: '—' }}</td>
+        <td class="v">{{ $processing->designation ?: '-' }}</td>
         <td class="k">Department</td>
-        <td class="v">{{ $processing->department ?: '—' }}</td>
+        <td class="v">{{ $processing->department ?: '-' }}</td>
     </tr>
     <tr>
         <td class="k">Pay Period</td>
         <td class="v">{{ $processing->periodLabel() }}</td>
         <td class="k">Payment Mode</td>
         <td class="v">
-            {{ $processing->payment_mode ?: '—' }}
+            {{ $processing->payment_mode ?: '-' }}
         </td>
     </tr>
 </table>
@@ -180,21 +180,21 @@
     </div>
 @endif
 
-{{-- Payment routing — the detail an employee actually needs to reconcile --}}
+{{-- Payment routing - the detail an employee actually needs to reconcile --}}
 <h2 class="section">Payment Details</h2>
 <table class="fields avoid-break">
     <tr>
         <td class="k">Method</td>
-        <td class="v">{{ $processing->payment_mode ?: '—' }}</td>
+        <td class="v">{{ $processing->payment_mode ?: '-' }}</td>
         <td class="k">Status</td>
         <td class="v">{{ $processing->payment_status }}</td>
     </tr>
     @if($showBank)
     <tr>
         <td class="k">Bank</td>
-        <td class="v">{{ $employee->bank_name ?: '—' }}</td>
+        <td class="v">{{ $employee->bank_name ?: '-' }}</td>
         <td class="k">Branch</td>
-        <td class="v">{{ $employee->branch_name ?: '—' }}</td>
+        <td class="v">{{ $employee->branch_name ?: '-' }}</td>
     </tr>
     <tr>
         <td class="k">Account</td>
@@ -203,7 +203,7 @@
             {{ strlen($acc) > 4 ? str_repeat('•', max(0, strlen($acc) - 4)).substr($acc, -4) : $acc }}
         </td>
         <td class="k">IFSC</td>
-        <td class="v">{{ $employee->ifsc_code ?: '—' }}</td>
+        <td class="v">{{ $employee->ifsc_code ?: '-' }}</td>
     </tr>
     @endif
     <tr>

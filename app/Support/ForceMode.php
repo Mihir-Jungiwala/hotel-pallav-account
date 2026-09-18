@@ -89,7 +89,7 @@ class ForceMode
      * With the rules relaxed, a field the user left out would still hit a
      * NOT NULL column, so stand in a harmless blank of the right shape:
      * today's date, the current time, zero, or an empty string. Foreign keys
-     * and uploads are left alone — a made-up id would point at nothing.
+     * and uploads are left alone - a made-up id would point at nothing.
      */
     public static function fill(array $data, array $rules): array
     {

@@ -21,7 +21,7 @@
     </div>
     <div class="col-md-4"><label class="form-label">Status Type *</label>
         <select name="status_type" class="form-select" required>
-            @foreach(['Paid', 'Unpaid'] as $type)
+            @foreach(\App\Support\Masters::valuesOr('attendance_status_type', ['Paid', 'Unpaid']) as $type)
                 <option value="{{ $type }}" @selected(old('status_type', $s->status_type ?? 'Paid') === $type)>{{ $type }}</option>
             @endforeach
         </select>

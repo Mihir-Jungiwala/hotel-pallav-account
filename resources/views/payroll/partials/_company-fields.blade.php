@@ -2,7 +2,7 @@
 
 <div class="form-wizard" data-wizard>
 
-    {{-- Step 1 — identity and where they are --}}
+    {{-- Step 1 - identity and where they are --}}
     <div class="form-step" data-step="Company">
         <div class="row g-3">
             <div class="col-md-7">
@@ -54,7 +54,7 @@
         </div>
     </div>
 
-    {{-- Step 2 — statutory numbers, all optional until they're registered --}}
+    {{-- Step 2 - statutory numbers, all optional until they're registered --}}
     <div class="form-step" data-step="Legal">
         <div class="form-text mb-3">Statutory registrations. Leave blank any the company doesn't hold yet.</div>
         <div class="row g-3">
@@ -81,7 +81,7 @@
         </div>
     </div>
 
-    {{-- Step 3 — who signs the documents --}}
+    {{-- Step 3 - who signs the documents --}}
     <div class="form-step" data-step="Signatory">
         <div class="form-text mb-3">This person signs salary slips and joining letters generated for this company.</div>
         <div class="row g-3">
@@ -109,7 +109,7 @@
         </div>
     </div>
 
-    {{-- Step 4 — banking, needed only for bank payouts --}}
+    {{-- Step 4 - banking, needed only for bank payouts --}}
     <div class="form-step" data-step="Banking">
         <div class="form-text mb-3">The account salaries are paid from. Optional if you only pay in cash.</div>
         <div class="row g-3">

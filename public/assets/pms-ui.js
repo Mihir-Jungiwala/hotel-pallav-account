@@ -1,10 +1,11 @@
 /* ===========================================================================
-   Hotel Pallav — password tools, role-aware UI, themed date pickers & selects
+   Hotel Pallav - password tools, role-aware UI, themed date pickers & selects
    =========================================================================== */
 (function () {
     'use strict';
 
     const body = document.body;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const canWrite = body.dataset.canWrite !== '0';
     const canDelete = body.dataset.canDelete !== '0';
 
@@ -92,7 +93,7 @@
     }
 
     /* -----------------------------------------------------------------------
-       Role-aware UI — the server enforces the same rules; this just avoids
+       Role-aware UI - the server enforces the same rules; this just avoids
        offering actions that would be refused.
        ----------------------------------------------------------------------- */
 
@@ -323,7 +324,7 @@
     }
 
     /* -----------------------------------------------------------------------
-       Force mode — the browser must stop refusing input too, or the server
+       Force mode - the browser must stop refusing input too, or the server
        never sees what the SuperAdmin is trying to save.
        ----------------------------------------------------------------------- */
 
@@ -352,7 +353,109 @@
         document.addEventListener('show.bs.modal', (event) => relax(event.target));
     }
 
+    /* -----------------------------------------------------------------------
+       Night mode. The choice is remembered per browser; the very first visit
+       follows the operating system.
+       ----------------------------------------------------------------------- */
+
+    function wireTheme() {
+        const root = document.documentElement;
+        const button = document.getElementById('themeToggle');
+
+        const paint = (theme) => {
+            root.dataset.theme = theme;
+            if (button) {
+                button.innerHTML = theme === 'dark' ? '<i class="bi bi-sun"></i>' : '<i class="bi bi-moon-stars"></i>';
+                button.title = theme === 'dark' ? 'Switch to day mode' : 'Switch to night mode';
+                button.setAttribute('aria-label', button.title);
+            }
+            document.dispatchEvent(new CustomEvent('pms:theme', { detail: { theme } }));
+        };
+
+        paint(root.dataset.theme || 'light');
+
+        button?.addEventListener('click', () => {
+            const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+            try { localStorage.setItem('pms-theme', next); } catch (e) { /* private window */ }
+            paint(next);
+        });
+    }
+
+    /* -----------------------------------------------------------------------
+       Dashboard trend chart
+       ----------------------------------------------------------------------- */
+
+    function wireCharts() {
+        const canvas = document.getElementById('trendChart');
+        if (!canvas || typeof window.Chart !== 'function') return;
+
+        const read = (name) => JSON.parse(canvas.dataset[name] || '[]');
+        const css = (token) => getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+
+        const fill = (ctx, from, to) => {
+            const gradient = ctx.createLinearGradient(0, 0, 0, 190);
+            gradient.addColorStop(0, from);
+            gradient.addColorStop(1, to);
+            return gradient;
+        };
+
+        const context = canvas.getContext('2d');
+
+        const chart = new window.Chart(context, {
+            type: 'line',
+            data: {
+                labels: read('labels'),
+                datasets: [
+                    {
+                        label: 'In', data: read('income'), tension: .38, borderWidth: 2.5,
+                        borderColor: '#10B981', backgroundColor: fill(context, 'rgba(16,185,129,.28)', 'rgba(16,185,129,0)'),
+                        fill: true, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: '#10B981',
+                    },
+                    {
+                        label: 'Out', data: read('expense'), tension: .38, borderWidth: 2.5,
+                        borderColor: '#F43F5E', backgroundColor: fill(context, 'rgba(244,63,94,.22)', 'rgba(244,63,94,0)'),
+                        fill: true, pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: '#F43F5E',
+                    },
+                ],
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                animation: reduceMotion ? false : { duration: 700, easing: 'easeOutQuart' },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#1B1235', padding: 10, cornerRadius: 10, displayColors: true,
+                        callbacks: {
+                            label: (item) => ' ' + item.dataset.label + ': Rs ' + Number(item.raw).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+                        },
+                    },
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: css('--muted'), font: { size: 10 } } },
+                    y: {
+                        grid: { color: css('--line') }, border: { display: false },
+                        ticks: {
+                            color: css('--muted'), font: { size: 10 },
+                            callback: (value) => value >= 1000 ? (value / 1000) + 'k' : value,
+                        },
+                    },
+                },
+            },
+        });
+
+        // Repaint the axes when the theme changes
+        document.addEventListener('pms:theme', () => {
+            chart.options.scales.x.ticks.color = css('--muted');
+            chart.options.scales.y.ticks.color = css('--muted');
+            chart.options.scales.y.grid.color = css('--line');
+            chart.update('none');
+        });
+    }
+
     function boot() {
+        wireTheme();
+        wireCharts();
         wirePasswordTools();
         wireUnitSwitch();
         wireForceMode();

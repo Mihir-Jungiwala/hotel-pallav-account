@@ -2,7 +2,7 @@
     $brandName = $company->name;
     $brandMeta = trim(collect([$company->address, $company->city, $company->state])->filter()->implode(', '));
     $docType = 'Period Salary Report';
-    $docSub = $from->format('d M').' – '.$to->format('d M Y');
+    $docSub = $from->format('d M').' - '.$to->format('d M Y');
     $totalNet = $rows->sum('net_salary');
     $totalGross = $rows->sum('attendance_salary') + $rows->sum('overtime_amount') + $rows->sum('bonus_amount') + $rows->sum('incentive_amount');
     $totalDed = $rows->sum('deduction_amount') + $rows->sum('advance_deduction');
@@ -15,7 +15,7 @@
 
 <table class="stats avoid-break">
     <tr>
-        <td><div class="s-label">Period</div><div class="s-value">{{ $from->format('d M') }} – {{ $to->format('d M Y') }}</div></td>
+        <td><div class="s-label">Period</div><div class="s-value">{{ $from->format('d M') }} - {{ $to->format('d M Y') }}</div></td>
         <td><div class="s-label">Scope</div><div class="s-value">{{ $rows->count() === 1 ? $rows->first()->employee_name : $rows->count().' employees' }}</div></td>
         <td><div class="s-label">Gross Earnings</div><div class="s-value">&#8377;{{ number_format($totalGross, 2) }}</div></td>
         <td><div class="s-label">Deductions &amp; Advances</div><div class="s-value">&#8377;{{ number_format($totalDed, 2) }}</div></td>

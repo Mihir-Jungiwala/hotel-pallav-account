@@ -1,0 +1,27 @@
+@php $i = $item ?? null; @endphp
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <label class="form-label">Option *</label>
+        <input name="label" class="form-control" value="{{ old('label', $i->label ?? '') }}" maxlength="60" required autofocus>
+        <div class="form-text">What people see in the dropdown.</div>
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label">Saved value <span class="wz-optional">optional</span></label>
+        <input name="value" class="form-control" value="{{ old('value', $i->value ?? '') }}" maxlength="60"
+               placeholder="Same as the option">
+        <div class="form-text">Leave blank unless older records store a different spelling.</div>
+    </div>
+
+    <div class="col-12">
+        <label class="check-line">
+            <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $i->is_active ?? true))>
+            <span>Offer this on forms</span>
+        </label>
+        <label class="check-line">
+            <input type="checkbox" name="is_default" value="1" @checked(old('is_default', $i->is_default ?? false))>
+            <span>Pre-select it on new entries</span>
+        </label>
+    </div>
+</div>

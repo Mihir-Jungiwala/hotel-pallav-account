@@ -91,7 +91,7 @@
                             <span class="text-muted" style="font-size:12.5px;">Never</span>
                         @endif
                     </td>
-                    <td class="text-muted text-nowrap" style="font-size:12.5px;">{{ optional($u->creator)->name ?? '—' }}</td>
+                    <td class="text-muted text-nowrap" style="font-size:12.5px;">{{ optional($u->creator)->name ?? '-' }}</td>
                     <td class="text-end">
                         @if($isSelf)
                             <a class="btn btn-sm btn-outline-p" href="{{ route('profile.show') }}"><i class="bi bi-person-circle"></i> My Profile</a>
@@ -195,12 +195,12 @@
                 <div class="tab-pane fade {{ $canManage ? '' : 'show active' }}" id="{{ $tabId }}-access">
                     <div class="kv-grid mb-3">
                         <div><span>Username</span><strong>&#64;{{ $u->username }}</strong></div>
-                        <div><span>Email</span><strong>{{ $u->email ?: '—' }}</strong></div>
-                        <div><span>Phone</span><strong>{{ $u->phone ?: '—' }}</strong></div>
+                        <div><span>Email</span><strong>{{ $u->email ?: '-' }}</strong></div>
+                        <div><span>Phone</span><strong>{{ $u->phone ?: '-' }}</strong></div>
                         <div><span>Role</span><strong>{{ $u->role }}</strong></div>
                         <div><span>Last sign-in</span><strong>{{ optional($u->last_login_at)->format('d M Y, H:i') ?? 'Never' }}</strong></div>
-                        <div><span>From</span><strong>{{ $u->last_login_ip ?: '—' }}</strong></div>
-                        <div><span>Password changed</span><strong>{{ optional($u->password_changed_at)->format('d M Y') ?? '—' }}</strong></div>
+                        <div><span>From</span><strong>{{ $u->last_login_ip ?: '-' }}</strong></div>
+                        <div><span>Password changed</span><strong>{{ optional($u->password_changed_at)->format('d M Y') ?? '-' }}</strong></div>
                         <div><span>Created</span><strong>{{ $u->created_at->format('d M Y') }}{{ $u->creator ? ' by '.$u->creator->name : '' }}</strong></div>
                     </div>
 
@@ -256,7 +256,7 @@
                                 <div class="fw-semibold text-danger">Delete account</div>
                                 <div class="text-muted" style="font-size:12.5px;">
                                     @if($blocking)
-                                        Has {{ collect($blocking)->map(fn ($n, $l) => "$n $l")->implode(', ') }} &mdash; deactivate instead so that history is kept.
+                                        Has {{ collect($blocking)->map(fn ($n, $l) => "$n $l")->implode(', ') }} - deactivate instead so that history is kept.
                                     @else
                                         Permanently removes the account. It owns no records that would be lost.
                                     @endif

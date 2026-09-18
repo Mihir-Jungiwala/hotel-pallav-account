@@ -5,7 +5,7 @@ namespace App\Services\Payroll;
 use App\Models\Employee;
 
 /**
- * Backend-only. No UI of its own — the result is folded into Salary Processing.
+ * Backend-only. No UI of its own - the result is folded into Salary Processing.
  *
  *   Monthly Salary / Total Days in Month = Daily Salary
  *   Daily Salary / Employee Working Hours = Hourly Rate

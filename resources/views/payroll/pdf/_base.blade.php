@@ -61,7 +61,7 @@
     table { width: 100%; border-collapse: collapse; }
     .avoid-break { page-break-inside: avoid; }
 
-    /* Compact two-column field grid — halves the vertical space of a KV list */
+    /* Compact two-column field grid - halves the vertical space of a KV list */
     table.fields td { padding: 4.5px 8px; vertical-align: top; border-bottom: 0.5pt solid #F1ECFD; }
     table.fields td.k {
         width: 20%; color: #6B6486; font-size: 7.5pt;
@@ -86,7 +86,7 @@
     table.grid th.num { text-align: right; }
     table.grid th.center, table.grid td.center { text-align: center; }
 
-    /* Dense grid for wide registers — keeps every column inside the page */
+    /* Dense grid for wide registers - keeps every column inside the page */
     table.tight th { font-size: 6.5pt; padding: 5px 4px; letter-spacing: 0.2pt; white-space: nowrap; }
     table.tight td { font-size: 7.5pt; padding: 4px 4px; white-space: nowrap; }
     table.tight td.wrap { white-space: normal; }

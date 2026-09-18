@@ -100,6 +100,7 @@ class ShiftHandoverController extends Controller
     public function view(ShiftHandover $shiftHandover)
     {
         $rows = [
+            'Entry No.' => '#'.$shiftHandover->entryNumber(),
             'Date' => optional($shiftHandover->date)->format('d-m-Y'),
             'Time' => substr((string) $shiftHandover->time, 0, 5),
             'Shift' => $shiftHandover->shift,

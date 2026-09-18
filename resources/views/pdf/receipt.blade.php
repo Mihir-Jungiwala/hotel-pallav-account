@@ -30,7 +30,7 @@
         <tr>
             @foreach($pair as $label => $value)
                 <td class="k">{{ $label }}</td>
-                <td class="v">{{ $value !== null && $value !== '' ? $value : '—' }}</td>
+                <td class="v">{{ $value !== null && $value !== '' ? $value : '-' }}</td>
             @endforeach
             @if($pair->count() === 1)
                 <td class="k"></td><td class="v"></td>

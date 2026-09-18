@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasEntryNumber;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class EmployeeSeparation extends Model
 {
+    use HasEntryNumber;
+
     protected $guarded = ['id'];
 
     protected $casts = [
@@ -51,7 +54,7 @@ class EmployeeSeparation extends Model
         $from = optional($this->employee)->joining_date;
 
         if (! $from) {
-            return '—';
+            return '-';
         }
 
         return $from->diffForHumans($this->last_working_date, [

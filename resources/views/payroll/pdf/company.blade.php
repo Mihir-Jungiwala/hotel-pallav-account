@@ -16,56 +16,56 @@
         <td class="k">Company Code</td><td class="v">{{ $company->code }}</td>
     </tr>
     <tr>
-        <td class="k">Owner</td><td class="v">{{ $company->owner_name ?: '—' }}</td>
+        <td class="k">Owner</td><td class="v">{{ $company->owner_name ?: '-' }}</td>
         <td class="k">Status</td>
         <td class="v"><span class="chip {{ $company->is_active ? 'ok' : 'warn' }}">{{ $company->is_active ? 'Active' : 'Inactive' }}</span></td>
     </tr>
     <tr>
-        <td class="k">Mobile</td><td class="v">{{ $company->mobile_number ?: '—' }}</td>
-        <td class="k">Email</td><td class="v">{{ $company->email ?: '—' }}</td>
+        <td class="k">Mobile</td><td class="v">{{ $company->mobile_number ?: '-' }}</td>
+        <td class="k">Email</td><td class="v">{{ $company->email ?: '-' }}</td>
     </tr>
     <tr>
         <td class="k">Address</td>
-        <td class="v" colspan="3">{{ trim(collect([$company->address, $company->city, $company->state, $company->pincode])->filter()->implode(', ')) ?: '—' }}</td>
+        <td class="v" colspan="3">{{ trim(collect([$company->address, $company->city, $company->state, $company->pincode])->filter()->implode(', ')) ?: '-' }}</td>
     </tr>
 </table>
 
 <h2 class="section">Legal &amp; Registration</h2>
 <table class="fields avoid-break">
     <tr>
-        <td class="k">PAN</td><td class="v">{{ $company->pan_number ?: '—' }}</td>
-        <td class="k">TAN</td><td class="v">{{ $company->tan_number ?: '—' }}</td>
+        <td class="k">PAN</td><td class="v">{{ $company->pan_number ?: '-' }}</td>
+        <td class="k">TAN</td><td class="v">{{ $company->tan_number ?: '-' }}</td>
     </tr>
     <tr>
-        <td class="k">PF Reg. No.</td><td class="v">{{ $company->pf_registration_number ?: '—' }}</td>
-        <td class="k">ESIC Reg. No.</td><td class="v">{{ $company->esic_registration_number ?: '—' }}</td>
+        <td class="k">PF Reg. No.</td><td class="v">{{ $company->pf_registration_number ?: '-' }}</td>
+        <td class="k">ESIC Reg. No.</td><td class="v">{{ $company->esic_registration_number ?: '-' }}</td>
     </tr>
     <tr>
-        <td class="k">Professional Tax</td><td class="v" colspan="3">{{ $company->professional_tax_registration_number ?: '—' }}</td>
+        <td class="k">Professional Tax</td><td class="v" colspan="3">{{ $company->professional_tax_registration_number ?: '-' }}</td>
     </tr>
 </table>
 
 <h2 class="section">Authorised Signatory</h2>
 <table class="fields avoid-break">
     <tr>
-        <td class="k">Name</td><td class="v">{{ $company->authorized_person_name ?: '—' }}</td>
-        <td class="k">Designation</td><td class="v">{{ $company->authorized_designation ?: '—' }}</td>
+        <td class="k">Name</td><td class="v">{{ $company->authorized_person_name ?: '-' }}</td>
+        <td class="k">Designation</td><td class="v">{{ $company->authorized_designation ?: '-' }}</td>
     </tr>
     <tr>
-        <td class="k">Mobile</td><td class="v">{{ $company->authorized_mobile ?: '—' }}</td>
-        <td class="k">Email</td><td class="v">{{ $company->authorized_email ?: '—' }}</td>
+        <td class="k">Mobile</td><td class="v">{{ $company->authorized_mobile ?: '-' }}</td>
+        <td class="k">Email</td><td class="v">{{ $company->authorized_email ?: '-' }}</td>
     </tr>
 </table>
 
 <h2 class="section">Banking</h2>
 <table class="fields avoid-break">
     <tr>
-        <td class="k">Bank</td><td class="v">{{ $company->bank_name ?: '—' }}</td>
-        <td class="k">Branch</td><td class="v">{{ $company->branch_name ?: '—' }}</td>
+        <td class="k">Bank</td><td class="v">{{ $company->bank_name ?: '-' }}</td>
+        <td class="k">Branch</td><td class="v">{{ $company->branch_name ?: '-' }}</td>
     </tr>
     <tr>
-        <td class="k">Account No.</td><td class="v">{{ $company->account_number ?: '—' }}</td>
-        <td class="k">IFSC</td><td class="v">{{ $company->ifsc_code ?: '—' }}</td>
+        <td class="k">Account No.</td><td class="v">{{ $company->account_number ?: '-' }}</td>
+        <td class="k">IFSC</td><td class="v">{{ $company->ifsc_code ?: '-' }}</td>
     </tr>
 </table>
 

@@ -16,7 +16,7 @@
                 <option value="">All employees</option>
                 @foreach($reportableEmployees as $employee)
                     <option value="{{ $employee->id }}" @selected((string) $selectedEmployee === (string) $employee->id)>
-                        {{ $employee->name }} ({{ $employee->employee_code }}){{ $employee->is_active ? '' : ' — inactive' }}
+                        {{ $employee->name }} ({{ $employee->employee_code }}){{ $employee->is_active ? '' : ' - inactive' }}
                     </option>
                 @endforeach
             </select>
@@ -32,7 +32,7 @@
         </div>
 
         <div class="col-12">
-            <div class="form-text">The range must sit inside one month and cannot go past today &mdash; 01–15 June is valid, 25 June–05 July is not.</div>
+            <div class="form-text">The range must sit inside one month and cannot go past today - 01-15 June is valid, 25 June-05 July is not.</div>
         </div>
     </form>
 </div>
@@ -49,7 +49,7 @@
         @if($rows->isNotEmpty() && $fromDate && $toDate)
             <span class="text-muted fw-normal" style="font-size:12.5px;">
                 {{ \Illuminate\Support\Carbon::parse($fromDate)->format('d M') }}
-                &ndash; {{ \Illuminate\Support\Carbon::parse($toDate)->format('d M Y') }}
+                - {{ \Illuminate\Support\Carbon::parse($toDate)->format('d M Y') }}
             </span>
         @endif
     </div>

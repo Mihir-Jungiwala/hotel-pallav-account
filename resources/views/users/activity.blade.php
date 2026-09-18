@@ -25,21 +25,21 @@
                     </td>
                     <td class="text-nowrap">{{ optional($a->actor)->name ?? 'System' }}</td>
                     <td class="text-nowrap"><span class="badge-p px-2 py-1 rounded">{{ $a->label() }}</span></td>
-                    <td class="text-nowrap">{{ $a->target_username ? '@'.$a->target_username : '—' }}</td>
+                    <td class="text-nowrap">{{ $a->target_username ? '@'.$a->target_username : '-' }}</td>
                     <td style="font-size:12px; max-width:320px;">
                         @if($a->details)
                             @foreach($a->details as $key => $value)
                                 <div>
                                     <span class="text-muted">{{ ucfirst(str_replace('_', ' ', $key)) }}:</span>
                                     @if(is_array($value) && array_key_exists('from', $value))
-                                        <span class="diff-old">{{ $value['from'] ?? '—' }}</span> &rarr; <span class="diff-new">{{ $value['to'] ?? '—' }}</span>
+                                        <span class="diff-old">{{ $value['from'] ?? '-' }}</span> &rarr; <span class="diff-new">{{ $value['to'] ?? '-' }}</span>
                                     @else
                                         {{ is_bool($value) ? ($value ? 'yes' : 'no') : (is_array($value) ? json_encode($value) : $value) }}
                                     @endif
                                 </div>
                             @endforeach
                         @else
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                         @endif
                     </td>
                     <td class="text-muted" style="font-size:12px;">{{ $a->ip_address }}</td>
@@ -65,8 +65,8 @@
                 <tr>
                     <td class="text-nowrap">{{ optional($log->user)->name ?? 'Deleted user' }} <span class="text-muted" style="font-size:11.5px;">{{ $log->user ? '@'.$log->user->username : '' }}</span></td>
                     <td class="text-nowrap">{{ optional($log->login_date)->format('d M Y') }} {{ substr((string) $log->login_time, 0, 5) }}</td>
-                    <td class="text-nowrap">{{ $log->logout_date ? $log->logout_date->format('d M Y').' '.substr((string) $log->logout_time, 0, 5) : '—' }}</td>
-                    <td>{{ $log->minutes_logged_in ? $log->minutes_logged_in.' h' : '—' }}</td>
+                    <td class="text-nowrap">{{ $log->logout_date ? $log->logout_date->format('d M Y').' '.substr((string) $log->logout_time, 0, 5) : '-' }}</td>
+                    <td>{{ $log->minutes_logged_in ? $log->minutes_logged_in.' h' : '-' }}</td>
                 </tr>
             @empty
                 <tr><td colspan="4"><div class="empty-state"><div class="es-title">No sign-ins yet</div></div></td></tr>

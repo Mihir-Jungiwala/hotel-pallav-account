@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasEntryNumber;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ShiftHandover extends Model
 {
+    use HasEntryNumber;
+
     protected $guarded = ['id'];
 
     protected $casts = ['date' => 'date'];
@@ -18,7 +21,7 @@ class ShiftHandover extends Model
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class)->withTrashed();
     }
 
     public function businessUnit(): BelongsTo

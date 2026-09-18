@@ -98,7 +98,7 @@
                             @php
                                 $d = $monthStart->copy()->day($day);
                                 $isSunday = $d->isSunday();
-                                // A new week starts on Monday — mark it to break the month into weeks
+                                // A new week starts on Monday - mark it to break the month into weeks
                                 $weekStart = $d->isMonday() && $day > 1;
                             @endphp
                             <th class="day-head {{ $isSunday ? 'is-sunday' : '' }} {{ $weekStart ? 'week-start' : '' }} {{ $d->isToday() ? 'is-today' : '' }} {{ $d->isFuture() ? 'is-future' : '' }}">
@@ -211,14 +211,14 @@
                     @if(! $incompleteEmployees)
                         <div class="status-line ok">
                             <i class="bi bi-check-circle-fill"></i>
-                            <span>All {{ $employees->count() }} employees complete &mdash; ready to generate salary.</span>
+                            <span>All {{ $employees->count() }} employees complete - ready to generate salary.</span>
                         </div>
                     @elseif($monthOver)
                         {{-- The month is over, so missing days genuinely block salary --}}
                         <div class="status-line warn" title="{{ implode(', ', $incompleteEmployees) }}">
                             <i class="bi bi-exclamation-triangle-fill"></i>
                             <span>
-                                {{ count($incompleteEmployees) }} of {{ $employees->count() }} employees still incomplete &mdash;
+                                {{ count($incompleteEmployees) }} of {{ $employees->count() }} employees still incomplete -
                                 finish these before generating salary.
                             </span>
                         </div>

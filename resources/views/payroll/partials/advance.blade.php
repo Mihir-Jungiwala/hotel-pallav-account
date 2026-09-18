@@ -43,7 +43,7 @@
                 @unless($row->is_carry_forward)
                 <div class="modal fade" id="editAdvance{{ $row->id }}" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
                     <form method="POST" action="{{ route('payroll.advance.update', $row) }}">@csrf @method('PUT')
-                        <div class="modal-header"><h5 class="modal-title">Advance &mdash; {{ optional($row->employee)->name }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                        <div class="modal-header"><h5 class="modal-title">Advance - {{ optional($row->employee)->name }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                         <div class="modal-body">@include('payroll.partials._advance-fields', ['target' => $row])</div>
                         <div class="modal-footer">
                             <a class="btn btn-outline-p me-auto" href="{{ route('payroll.advance.view', $row) }}" target="_blank"><i class="bi bi-file-earmark-pdf"></i> Advance PDF</a>

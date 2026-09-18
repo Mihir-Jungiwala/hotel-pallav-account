@@ -31,7 +31,7 @@ class ContextController extends Controller
         ForceMode::set($on);
 
         return back()->with($on ? 'error' : 'success', $on
-            ? 'Force mode is armed — validation and record locks are off for your account.'
+            ? 'Force mode is armed - validation and record locks are off for your account.'
             : 'Force mode is off. Normal checks are back on.');
     }
 }

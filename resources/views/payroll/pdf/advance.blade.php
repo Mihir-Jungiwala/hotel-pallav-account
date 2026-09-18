@@ -17,16 +17,16 @@
 
 <table class="fields avoid-break">
     <tr>
-        <td class="k">Employee</td><td class="v">{{ optional($employee)->name ?: '—' }}</td>
-        <td class="k">Employee ID</td><td class="v">{{ optional($employee)->employee_code ?: '—' }}</td>
+        <td class="k">Employee</td><td class="v">{{ optional($employee)->name ?: '-' }}</td>
+        <td class="k">Employee ID</td><td class="v">{{ optional($employee)->employee_code ?: '-' }}</td>
     </tr>
     <tr>
-        <td class="k">Designation</td><td class="v">{{ optional($employee)->designation ?: '—' }}</td>
-        <td class="k">Department</td><td class="v">{{ optional($employee)->department ?: '—' }}</td>
+        <td class="k">Designation</td><td class="v">{{ optional($employee)->designation ?: '-' }}</td>
+        <td class="k">Department</td><td class="v">{{ optional($employee)->department ?: '-' }}</td>
     </tr>
     <tr>
         <td class="k">Advance Date</td><td class="v">{{ $advance->advance_date->format('d M Y, H:i') }}</td>
-        <td class="k">Recorded By</td><td class="v">{{ optional($advance->creator)->name ?: '—' }}</td>
+        <td class="k">Recorded By</td><td class="v">{{ optional($advance->creator)->name ?: '-' }}</td>
     </tr>
 </table>
 

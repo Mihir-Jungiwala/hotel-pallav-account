@@ -21,7 +21,7 @@
     </div>
     <div class="col-md-6"><label class="form-label">Type *</label>
         <select name="type" class="form-select" required>
-            @foreach(['Bonus', 'Incentive'] as $type)
+            @foreach(\App\Support\Masters::valuesOr('bonus_type', ['Bonus', 'Incentive']) as $type)
                 <option value="{{ $type }}" @selected(old('type', $b->type ?? 'Bonus') === $type)>{{ $type }}</option>
             @endforeach
         </select>

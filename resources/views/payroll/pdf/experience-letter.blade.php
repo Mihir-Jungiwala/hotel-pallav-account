@@ -45,11 +45,11 @@
         <td class="k">Employee ID</td><td class="v">{{ $employee->employee_code }}</td>
     </tr>
     <tr>
-        <td class="k">Designation</td><td class="v">{{ $employee->designation ?: '—' }}</td>
-        <td class="k">Department</td><td class="v">{{ $employee->department ?: '—' }}</td>
+        <td class="k">Designation</td><td class="v">{{ $employee->designation ?: '-' }}</td>
+        <td class="k">Department</td><td class="v">{{ $employee->department ?: '-' }}</td>
     </tr>
     <tr>
-        <td class="k">Date of Joining</td><td class="v">{{ optional($employee->joining_date)->format('d M Y') ?: '—' }}</td>
+        <td class="k">Date of Joining</td><td class="v">{{ optional($employee->joining_date)->format('d M Y') ?: '-' }}</td>
         <td class="k">Last Working Day</td><td class="v">{{ $separation->last_working_date->format('d M Y') }}</td>
     </tr>
     <tr>

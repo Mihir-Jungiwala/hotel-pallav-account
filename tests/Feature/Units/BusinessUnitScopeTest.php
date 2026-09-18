@@ -48,12 +48,12 @@ class BusinessUnitScopeTest extends TestCase
     {
         HotelCashDeposit::create([
             'date' => now()->toDateString(), 'time' => '10:00', 'user_id' => $this->user->id,
-            'depositor' => 'Front Desk', 'amount' => 500, 'full_name' => $this->user->name,
+            'depositor' => 'Reception Till Alpha', 'amount' => 500, 'full_name' => $this->user->name,
         ]);
 
         FoodCashDeposit::create([
             'date' => now()->toDateString(), 'time' => '11:00', 'user_id' => $this->user->id,
-            'depositor' => 'Restaurant Till', 'amount' => 900, 'full_name' => $this->user->name,
+            'depositor' => 'Kitchen Till Beta', 'amount' => 900, 'full_name' => $this->user->name,
         ]);
     }
 
@@ -79,13 +79,13 @@ class BusinessUnitScopeTest extends TestCase
     {
         $this->deposits();
 
-        $this->get(route('revenue.index'))->assertSee('Front Desk')->assertSee('Restaurant Till');
+        $this->get(route('revenue.index'))->assertSee('Reception Till Alpha')->assertSee('Kitchen Till Beta');
 
         $this->post(route('unit.switch'), ['unit' => 'hotel']);
-        $this->get(route('revenue.index'))->assertSee('Front Desk')->assertDontSee('Restaurant Till');
+        $this->get(route('revenue.index'))->assertSee('Reception Till Alpha')->assertDontSee('Kitchen Till Beta');
 
         $this->post(route('unit.switch'), ['unit' => 'food']);
-        $this->get(route('revenue.index'))->assertSee('Restaurant Till')->assertDontSee('Front Desk');
+        $this->get(route('revenue.index'))->assertSee('Kitchen Till Beta')->assertDontSee('Reception Till Alpha');
     }
 
     public function test_a_new_handover_belongs_to_the_selected_business(): void

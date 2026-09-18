@@ -13,16 +13,16 @@
 
 <table class="fields avoid-break">
     <tr>
-        <td class="k">Employee</td><td class="v">{{ optional($employee)->name ?: '—' }}</td>
-        <td class="k">Employee ID</td><td class="v">{{ optional($employee)->employee_code ?: '—' }}</td>
+        <td class="k">Employee</td><td class="v">{{ optional($employee)->name ?: '-' }}</td>
+        <td class="k">Employee ID</td><td class="v">{{ optional($employee)->employee_code ?: '-' }}</td>
     </tr>
     <tr>
-        <td class="k">Designation</td><td class="v">{{ optional($employee)->designation ?: '—' }}</td>
-        <td class="k">Department</td><td class="v">{{ optional($employee)->department ?: '—' }}</td>
+        <td class="k">Designation</td><td class="v">{{ optional($employee)->designation ?: '-' }}</td>
+        <td class="k">Department</td><td class="v">{{ optional($employee)->department ?: '-' }}</td>
     </tr>
     <tr>
         <td class="k">Date</td><td class="v">{{ $entry->entry_date->format('d M Y, H:i') }}</td>
-        <td class="k">Recorded By</td><td class="v">{{ optional($entry->creator)->name ?: '—' }}</td>
+        <td class="k">Recorded By</td><td class="v">{{ optional($entry->creator)->name ?: '-' }}</td>
     </tr>
 </table>
 
@@ -65,7 +65,7 @@
                     <span class="chip warn">Not yet processed</span>
                 @endif
             </td>
-            <td class="num">{{ $processing ? '₹'.number_format($processing->net_salary, 2) : '—' }}</td>
+            <td class="num">{{ $processing ? '₹'.number_format($processing->net_salary, 2) : '-' }}</td>
         </tr>
     </tbody>
 </table>

@@ -50,6 +50,7 @@ class ExpenseController extends Controller
             'date' => ['required', 'date'],
             'time' => ['required'],
             'expense_name' => ['required', 'string', 'max:100'],
+            'expense_head' => ['nullable', 'string', 'max:60'],
             'amount' => ['required', 'numeric', 'min:0'],
             'instruction' => ['nullable', 'string', 'max:500'],
         ];
@@ -225,6 +226,7 @@ class ExpenseController extends Controller
     private function pdfRows(string $personLabel, string $personValue, $record, array $extra = []): array
     {
         return array_merge([
+            'Entry No.' => '#'.$record->entryNumber(),
             'Date' => optional($record->date)->format('d-m-Y'),
             'Time' => substr((string) $record->time, 0, 5),
             'Recorded By' => $record->full_name,

@@ -7,7 +7,7 @@
 @unless($hasExperienceTemplate)
     <div class="alert alert-warning d-flex align-items-center gap-2">
         <i class="bi bi-info-circle"></i>
-        <span>No experience letter template yet &mdash; set one up in <strong>Experience Letter</strong> to issue letters from here.</span>
+        <span>No experience letter template yet - set one up in <strong>Experience Letter</strong> to issue letters from here.</span>
     </div>
 @endunless
 
@@ -91,7 +91,7 @@
 
                 <div class="modal fade" id="editSeparation{{ $row->id }}" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
                     <form method="POST" action="{{ route('payroll.separation.update', $row) }}" enctype="multipart/form-data">@csrf @method('PUT')
-                        <div class="modal-header"><h5 class="modal-title">Exit &mdash; {{ optional($emp)->name }}</h5>
+                        <div class="modal-header"><h5 class="modal-title">Exit - {{ optional($emp)->name }}</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                         <div class="modal-body">
                             @include('payroll.partials._separation-fields', ['target' => $row, 'activeEmployees' => $activeEmployees])
@@ -106,7 +106,7 @@
                 @if(! $row->hasRejoined())
                 <div class="modal fade" id="rejoin{{ $row->id }}" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
                     <form method="POST" action="{{ route('payroll.separation.rejoin', $row) }}" data-bank-scope>@csrf
-                        <div class="modal-header"><h5 class="modal-title">Rejoin &mdash; {{ optional($emp)->name }}</h5>
+                        <div class="modal-header"><h5 class="modal-title">Rejoin - {{ optional($emp)->name }}</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                         <div class="modal-body">
                             @include('payroll.partials._rejoin-fields', ['employee' => $emp])

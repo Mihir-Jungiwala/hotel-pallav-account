@@ -1,10 +1,10 @@
 /* ===========================================================================
-   Hotel Pallav — PMS interaction layer
+   Hotel Pallav - PMS interaction layer
    A premium motion + interaction system layered on top of Bootstrap.
    =========================================================================== */
 
 :root {
-    /* Motion — springs and expressive easing */
+    /* Motion - springs and expressive easing */
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);        /* expo out, smooth settle */
     --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* slight overshoot */
     --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
@@ -13,7 +13,7 @@
     --dur-base: 220ms;    /* most transitions */
     --dur-large: 380ms;   /* surfaces arriving */
 
-    /* Elevation — layered, purple-tinted, never a flat drop shadow */
+    /* Elevation - layered, purple-tinted, never a flat drop shadow */
     --sh-xs: 0 1px 2px rgba(42, 15, 94, .06);
     --sh-sm: 0 1px 2px rgba(42, 15, 94, .06), 0 2px 6px rgba(42, 15, 94, .05);
     --sh-md: 0 2px 4px rgba(42, 15, 94, .05), 0 6px 16px rgba(42, 15, 94, .08);
@@ -28,7 +28,7 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Typography — size-specific tracking, never one value for every size
+   Typography - size-specific tracking, never one value for every size
    --------------------------------------------------------------------------- */
 
 body {
@@ -75,7 +75,7 @@ kbd {
 .tnum, .stat-value, td:has(> .tnum), .table td.money { font-variant-numeric: tabular-nums; }
 
 /* ---------------------------------------------------------------------------
-   Buttons — respond on press, lift on hover
+   Buttons - respond on press, lift on hover
    --------------------------------------------------------------------------- */
 
 .btn {
@@ -188,7 +188,7 @@ kbd {
 .stat-card .stat-value { letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
 
 /* ---------------------------------------------------------------------------
-   Tables — row hover with a sliding accent, not just a fill
+   Tables - row hover with a sliding accent, not just a fill
    --------------------------------------------------------------------------- */
 
 .table { margin-bottom: 0; }
@@ -219,7 +219,7 @@ kbd {
 .reveal.in { opacity: 1; transform: none; transition: opacity var(--dur-large) var(--ease-out), transform var(--dur-large) var(--ease-out); }
 
 /* ---------------------------------------------------------------------------
-   Animated tab bar — the sliding indicator that reads as "React"
+   Animated tab bar - the sliding indicator that reads as "React"
    --------------------------------------------------------------------------- */
 
 .pms-tabs {
@@ -260,7 +260,7 @@ kbd {
 .pms-tab-indicator.no-anim { transition: none; }
 
 /* ---------------------------------------------------------------------------
-   Payroll workspace — module rail + content
+   Payroll workspace - module rail + content
    --------------------------------------------------------------------------- */
 
 .rail-group { margin-bottom: 4px; }
@@ -336,7 +336,7 @@ kbd {
 .company-switch-btn .cs-caret { color: var(--muted); font-size: 12px; transition: transform var(--dur-base) var(--ease-out); }
 .company-switch.open .cs-caret { transform: rotate(180deg); }
 
-/* The menu spans exactly the trigger's width — never wider than its label */
+/* The menu spans exactly the trigger's width - never wider than its label */
 .company-menu {
     position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 1200;
     width: auto; min-width: 0; padding: 6px;
@@ -454,7 +454,7 @@ kbd {
 .form-control:focus, .form-select:focus { border-color: var(--p500); box-shadow: var(--sh-focus); }
 .form-label { font-weight: 600; color: var(--ink2); font-size: 13px; letter-spacing: -0.004em; margin-bottom: 5px; }
 
-/* Inline validation — validate as they type, not on submit */
+/* Inline validation - validate as they type, not on submit */
 .form-control.is-invalid-live { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, .14); }
 .field-hint { font-size: 12px; margin-top: 5px; display: flex; align-items: center; gap: 5px; }
 .field-hint.error { color: #dc2626; }
@@ -466,7 +466,7 @@ kbd {
 .search-field input { padding-left: 36px; }
 
 /* ---------------------------------------------------------------------------
-   Modals — materialize from the trigger, dim the background
+   Modals - materialize from the trigger, dim the background
    --------------------------------------------------------------------------- */
 
 .modal-content {
@@ -537,7 +537,7 @@ kbd {
 .toast-item .ti-progress { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--p500); border-radius: 0 0 var(--r-md) var(--r-md); }
 
 /* ---------------------------------------------------------------------------
-   Attendance grid — the densest screen in the product
+   Attendance grid - the densest screen in the product
    --------------------------------------------------------------------------- */
 
 .attendance-shell { position: relative; }
@@ -592,7 +592,7 @@ kbd {
 .attendance-grid th.day-head.is-sunday .dh-num,
 .attendance-grid th.day-head.is-sunday .dh-dow { color: #C2410C; }
 
-/* Week blocks — a firm divider every Monday breaks the month into weeks */
+/* Week blocks - a firm divider every Monday breaks the month into weeks */
 .attendance-grid .week-start { border-left: 2px solid var(--p300) !important; }
 .attendance-grid thead th.week-start { border-left: 2px solid var(--p400) !important; }
 
@@ -688,7 +688,7 @@ kbd {
     display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
 }
 
-/* Status line in the action bar — neutral by default, coloured only when it matters */
+/* Status line in the action bar - neutral by default, coloured only when it matters */
 .status-line {
     display: flex; align-items: center; gap: 9px;
     font-size: 12.5px; color: var(--muted); font-weight: 500;
@@ -947,7 +947,7 @@ tr:hover .avatar { transform: scale(1.06); }
 .diff-new { color: var(--p700); font-weight: 700; }
 
 /* ---------------------------------------------------------------------------
-   Reduced motion — a gentler equivalent, not nothing
+   Reduced motion - a gentler equivalent, not nothing
    --------------------------------------------------------------------------- */
 
 @media (prefers-reduced-motion: reduce) {

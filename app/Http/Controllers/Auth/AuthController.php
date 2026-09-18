@@ -142,7 +142,7 @@ class AuthController extends Controller
     }
 
     /* ------------------------------------------------------------------
-     | Forgotten password — requested by username, mailed to the account
+     | Forgotten password - requested by username, mailed to the account
      |------------------------------------------------------------------ */
 
     public function showForgot()

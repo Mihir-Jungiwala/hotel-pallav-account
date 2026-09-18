@@ -40,7 +40,7 @@
                                 <div class="col-md-6"><label class="form-label">Working Hours *</label><input type="number" step="0.5" name="daily_working_hours" class="form-control" value="{{ $row->daily_working_hours }}" required></div>
                                 <div class="col-md-6"><label class="form-label">Salary Payment Type *</label>
                                     <select name="payment_mode" class="form-select payment-mode" required>
-                                        @foreach(['Cash', 'Bank'] as $mode)
+                                        @foreach(\App\Support\Masters::valuesOr('salary_payment_mode', ['Cash', 'Bank']) as $mode)
                                             <option value="{{ $mode }}" @selected($row->payment_mode === $mode)>{{ $mode }}</option>
                                         @endforeach
                                     </select>
@@ -79,7 +79,7 @@
 const historyModal = new bootstrap.Modal(document.getElementById('historyModal'));
 document.querySelectorAll('.view-history').forEach(function(button){
     button.addEventListener('click', async function(){
-        document.getElementById('historyTitle').textContent = 'Update History — ' + button.dataset.name;
+        document.getElementById('historyTitle').textContent = 'Update History - ' + button.dataset.name;
         document.getElementById('historyBody').innerHTML = 'Loading…';
         const owner = button.closest('.modal');
         if (owner) {
