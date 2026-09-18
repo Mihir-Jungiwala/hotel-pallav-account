@@ -174,8 +174,9 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/plugins/monthSelect/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
     <link rel="stylesheet" href="{{ asset('assets/pms.css') }}?v=6">
-    <link rel="stylesheet" href="{{ asset('assets/pms-ui.css') }}?v=3">
+    <link rel="stylesheet" href="{{ asset('assets/pms-ui.css') }}?v=4">
     <link rel="stylesheet" href="{{ asset('assets/pms-dash.css') }}?v=7">
+    <link rel="stylesheet" href="{{ asset('assets/pms-nav.css') }}?v=2">
     @stack('styles')
 </head>
 <body class="@hasSection('subnav') has-subnav @else no-subnav @endif @guest guest-page @endguest"
@@ -192,40 +193,49 @@
     @include('partials._unit-switch')
 
     <nav class="sidebar-nav">
-        <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}" title="Dashboard"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
+        <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}" title="Dashboard" data-label="Dashboard"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
 
         <div class="sidebar-section">Billing</div>
-        <a href="{{ route('bill-master.advances') }}" class="{{ request()->routeIs('bill-master.advances') ? 'active' : '' }}" title="Advances"><i class="bi bi-wallet2"></i><span>Advances</span></a>
-        <a href="{{ route('bill-master.bills') }}" class="{{ request()->routeIs('bill-master.bills') ? 'active' : '' }}" title="Bills"><i class="bi bi-receipt"></i><span>Bills</span></a>
-        <a href="{{ route('bill-master.debit-bills') }}" class="{{ request()->routeIs('bill-master.debit-bills') ? 'active' : '' }}" title="Debit Bills"><i class="bi bi-credit-card-2-front"></i><span>Debit Bills</span></a>
+        <a href="{{ route('bill-master.advances') }}" class="{{ request()->routeIs('bill-master.advances') ? 'active' : '' }}" title="Advances" data-label="Advances"><i class="bi bi-wallet2"></i><span>Advances</span></a>
+        <a href="{{ route('bill-master.bills') }}" class="{{ request()->routeIs('bill-master.bills') ? 'active' : '' }}" title="Bills" data-label="Bills"><i class="bi bi-receipt"></i><span>Bills</span></a>
+        <a href="{{ route('bill-master.debit-bills') }}" class="{{ request()->routeIs('bill-master.debit-bills') ? 'active' : '' }}" title="Debit Bills" data-label="Debit Bills"><i class="bi bi-credit-card-2-front"></i><span>Debit Bills</span></a>
 
         <div class="sidebar-section">Cash Flow</div>
-        <a href="{{ route('revenue.index') }}" class="{{ request()->routeIs('revenue.*') ? 'active' : '' }}" title="Revenue"><i class="bi bi-cash-coin"></i><span>Revenue</span></a>
-        <a href="{{ route('expense.index') }}" class="{{ request()->routeIs('expense.*') ? 'active' : '' }}" title="Expenses"><i class="bi bi-cash-stack"></i><span>Expenses</span></a>
-        <a href="{{ route('shift-handover.index') }}" class="{{ request()->routeIs('shift-handover.*') ? 'active' : '' }}" title="Shift Handover"><i class="bi bi-arrow-left-right"></i><span>Shift Handover</span></a>
+        <a href="{{ route('revenue.index') }}" class="{{ request()->routeIs('revenue.*') ? 'active' : '' }}" title="Revenue" data-label="Revenue"><i class="bi bi-cash-coin"></i><span>Revenue</span></a>
+        <a href="{{ route('expense.index') }}" class="{{ request()->routeIs('expense.*') ? 'active' : '' }}" title="Expenses" data-label="Expenses"><i class="bi bi-cash-stack"></i><span>Expenses</span></a>
+        <a href="{{ route('shift-handover.index') }}" class="{{ request()->routeIs('shift-handover.*') ? 'active' : '' }}" title="Shift Handover" data-label="Shift Handover"><i class="bi bi-arrow-left-right"></i><span>Shift Handover</span></a>
 
         <div class="sidebar-section">Payroll</div>
-        <a href="{{ route('payroll.index') }}" class="{{ request()->routeIs('payroll.*') ? 'active' : '' }}" title="Payroll"><i class="bi bi-people-fill"></i><span>Payroll</span></a>
+        <a href="{{ route('payroll.index') }}" class="{{ request()->routeIs('payroll.*') ? 'active' : '' }}" title="Payroll" data-label="Payroll"><i class="bi bi-people-fill"></i><span>Payroll</span></a>
 
         <div class="sidebar-section">People</div>
-        <a href="{{ route('company.index') }}" class="{{ request()->routeIs('company.*') ? 'active' : '' }}" title="Company Profiles"><i class="bi bi-building"></i><span>Company Profiles</span></a>
+        <a href="{{ route('company.index') }}" class="{{ request()->routeIs('company.*') ? 'active' : '' }}" title="Company Profiles" data-label="Company Profiles"><i class="bi bi-building"></i><span>Company Profiles</span></a>
 
         <div class="sidebar-section">System</div>
-        <a href="{{ route('reports.index') }}" class="{{ request()->routeIs('reports.*') ? 'active' : '' }}" title="Reports"><i class="bi bi-file-earmark-text"></i><span>Reports</span></a>
+        <a href="{{ route('reports.index') }}" class="{{ request()->routeIs('reports.*') ? 'active' : '' }}" title="Reports" data-label="Reports"><i class="bi bi-file-earmark-text"></i><span>Reports</span></a>
         @if(auth()->user()->isSuperAdmin())
-            <a href="{{ route('masters.index') }}" class="{{ request()->routeIs('masters.*') ? 'active' : '' }}" title="Master Data"><i class="bi bi-sliders"></i><span>Master Data</span></a>
+            <a href="{{ route('masters.index') }}" class="{{ request()->routeIs('masters.*') ? 'active' : '' }}" title="Master Data" data-label="Master Data"><i class="bi bi-sliders"></i><span>Master Data</span></a>
         @endif
         @if(auth()->user()->isAdmin())
-            <a href="{{ route('users.index') }}" class="{{ request()->routeIs('users.*') ? 'active' : '' }}" title="User Accounts"><i class="bi bi-people"></i><span>User Accounts</span></a>
+            <a href="{{ route('users.index') }}" class="{{ request()->routeIs('users.*') ? 'active' : '' }}" title="User Accounts" data-label="User Accounts"><i class="bi bi-people"></i><span>User Accounts</span></a>
         @endif
-        <a href="{{ route('profile.show') }}" class="{{ request()->routeIs('profile.*') ? 'active' : '' }}" title="My Profile"><i class="bi bi-person-circle"></i><span>My Profile</span></a>
+        <a href="{{ route('profile.show') }}" class="{{ request()->routeIs('profile.*') ? 'active' : '' }}" title="My Profile" data-label="My Profile"><i class="bi bi-person-circle"></i><span>My Profile</span></a>
     </nav>
+
+    <button type="button" class="nav-collapse" id="sidebarToggle" aria-expanded="true">
+        <i class="bi bi-chevron-double-left"></i>
+        <span>Collapse menu</span>
+    </button>
 </div>
 
 @hasSection('subnav')
 <aside class="subnav" id="subnav">
     @yield('subnav')
 </aside>
+
+<button type="button" class="subnav-peek" id="subnavPeek" title="Show the payroll panel">
+    <i class="bi bi-chevron-double-right"></i> Payroll menu
+</button>
 @endif
 @endauth
 
@@ -233,14 +243,6 @@
     @auth
     <div class="topbar">
         <div class="d-flex align-items-center gap-2">
-            <button class="panel-toggle" id="sidebarToggle" title="Collapse menu" aria-label="Collapse menu">
-                <i class="bi bi-list"></i>
-            </button>
-            @hasSection('subnav')
-                <button class="panel-toggle" id="subnavToggle" title="Hide panel" aria-label="Hide panel">
-                    <i class="bi bi-layout-sidebar-inset"></i>
-                </button>
-            @endif
             <h1>@yield('title', 'Dashboard')</h1>
         </div>
         @php $me = auth()->user(); $forceOn = \App\Support\ForceMode::enabled(); @endphp
@@ -321,8 +323,8 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/plugins/monthSelect/index.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-<script src="{{ asset('assets/pms.js') }}?v=5"></script>
-<script src="{{ asset('assets/pms-ui.js') }}?v=5"></script>
+<script src="{{ asset('assets/pms.js') }}?v=6"></script>
+<script src="{{ asset('assets/pms-ui.js') }}?v=6"></script>
 @stack('scripts')
 </body>
 </html>

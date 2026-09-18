@@ -13,6 +13,7 @@ class Employee extends Model
     protected $casts = [
         'is_active' => 'boolean',
         'joining_date' => 'date',
+        'date_of_birth' => 'date',
         'salary' => 'decimal:2',
         'daily_working_hours' => 'decimal:2',
     ];

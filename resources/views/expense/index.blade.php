@@ -172,12 +172,22 @@
 <div class="modal fade" id="{{ $w[0] }}" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
     <form method="POST" action="{{ route($w[1]) }}">@csrf
         <div class="modal-header"><h5 class="modal-title">{{ $w[2] }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body"><div class="row g-3">
-            <div class="col-md-6"><label class="form-label">Date</label><input type="date" name="date" class="form-control" value="{{ date('Y-m-d') }}" required></div>
-            <div class="col-md-6"><label class="form-label">Time</label><input type="time" name="time" class="form-control" value="{{ date('H:i') }}" required></div>
-            <div class="col-12"><label class="form-label">Withdrawer</label><input name="withdrawer" class="form-control" required></div>
-            <div class="col-12"><label class="form-label">Amount</label><input type="number" step="0.01" name="amount" class="form-control" required></div>
-        </div></div>
+        <div class="modal-body">
+            <div data-wizard>
+                <div class="form-step" data-step="Withdrawal">
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="form-label">Date *</label><input type="date" name="date" class="form-control" value="{{ date('Y-m-d') }}" required></div>
+                        <div class="col-md-6"><label class="form-label">Time *</label><input type="time" name="time" class="form-control" value="{{ date('H:i') }}" required></div>
+                        <div class="col-12"><label class="form-label">Withdrawer *</label><input name="withdrawer" class="form-control" required></div>
+                    </div>
+                </div>
+                <div class="form-step" data-step="Amount">
+                    <div class="row g-3">
+                        <div class="col-12"><label class="form-label">Amount *</label><input type="number" step="0.01" name="amount" class="form-control" required></div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="modal-footer"><button class="btn btn-p">Save</button></div>
     </form>
 </div></div></div>
@@ -187,14 +197,24 @@
 <div class="modal fade" id="{{ $m[0] }}" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
     <form method="POST" action="{{ route($m[1]) }}">@csrf
         <div class="modal-header"><h5 class="modal-title">{{ $m[2] }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body"><div class="row g-3">
-            <div class="col-md-6"><label class="form-label">Date</label><input type="date" name="date" class="form-control" value="{{ date('Y-m-d') }}" required></div>
-            <div class="col-md-6"><label class="form-label">Time</label><input type="time" name="time" class="form-control" value="{{ date('H:i') }}" required></div>
-            <div class="col-md-6"><label class="form-label">Expense Name</label><input name="expense_name" class="form-control" required></div>
-            <div class="col-md-6">@include('partials._option-field', ['key' => 'expense_head', 'name' => 'expense_head', 'value' => null, 'label' => 'Expense Head'])</div>
-            <div class="col-12"><label class="form-label">Amount</label><input type="number" step="0.01" name="amount" class="form-control" required></div>
-            <div class="col-12"><label class="form-label">Instruction</label><textarea name="instruction" class="form-control"></textarea></div>
-        </div></div>
+        <div class="modal-body">
+            <div data-wizard>
+                <div class="form-step" data-step="Expense">
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="form-label">Date *</label><input type="date" name="date" class="form-control" value="{{ date('Y-m-d') }}" required></div>
+                        <div class="col-md-6"><label class="form-label">Time *</label><input type="time" name="time" class="form-control" value="{{ date('H:i') }}" required></div>
+                        <div class="col-md-6"><label class="form-label">Expense name *</label><input name="expense_name" class="form-control" required></div>
+                        <div class="col-md-6">@include('partials._option-field', ['key' => 'expense_head', 'name' => 'expense_head', 'value' => null, 'label' => 'Expense Head'])</div>
+                    </div>
+                </div>
+                <div class="form-step" data-step="Amount">
+                    <div class="row g-3">
+                        <div class="col-12"><label class="form-label">Amount *</label><input type="number" step="0.01" name="amount" class="form-control" required></div>
+                        <div class="col-12"><label class="form-label">Instruction <span class="wz-optional">optional</span></label><textarea name="instruction" class="form-control" rows="2"></textarea></div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="modal-footer"><button class="btn btn-p">Save</button></div>
     </form>
 </div></div></div>
@@ -203,22 +223,33 @@
 <div class="modal fade" id="addStaffAdvance" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
     <form method="POST" action="{{ route('expense.staff-advance.store') }}">@csrf
         <div class="modal-header"><h5 class="modal-title">Staff Advance Salary</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body"><div class="row g-3">
-            <div class="col-md-6"><label class="form-label">Date</label><input type="date" name="date" class="form-control" value="{{ date('Y-m-d') }}" required></div>
-            <div class="col-md-6"><label class="form-label">Time</label><input type="time" name="time" class="form-control" value="{{ date('H:i') }}" required></div>
-            <div class="col-md-6"><label class="form-label">Staff Member</label>
-                <select name="employee_id" class="form-select" required>
-                    <option value="">Select&hellip;</option>
-                    @foreach($activeStaff as $sp)
-                        <option value="{{ $sp->id }}">{{ $sp->name }} ({{ $sp->employee_code }})</option>
-                    @endforeach
-                </select>
+        <div class="modal-body">
+            <div data-wizard>
+                <div class="form-step" data-step="Advance">
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="form-label">Date *</label><input type="date" name="date" class="form-control" value="{{ date('Y-m-d') }}" required></div>
+                        <div class="col-md-6"><label class="form-label">Time *</label><input type="time" name="time" class="form-control" value="{{ date('H:i') }}" required></div>
+                        <div class="col-md-6"><label class="form-label">Employee *</label>
+                            <select name="employee_id" class="form-select" required>
+                                <option value="">Select...</option>
+                                @foreach($activeStaff as $sp)
+                                    <option value="{{ $sp->id }}">{{ $sp->name }} ({{ $sp->employee_code }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-6"><label class="form-label">For month *</label><input name="year_month" class="form-control" value="{{ date('Y-m') }}" required></div>
+                        @include('partials._unit-field')
+                    </div>
+                </div>
+                <div class="form-step" data-step="Amount">
+                    <div class="row g-3">
+                        <div class="col-12"><label class="form-label">Amount *</label><input type="number" step="0.01" name="amount" class="form-control" required></div>
+                        <div class="col-12"><label class="form-label">Instruction <span class="wz-optional">optional</span></label><textarea name="instruction" class="form-control" rows="2"></textarea></div>
+                        <div class="col-12"><div class="master-note"><i class="bi bi-info-circle"></i><span>Recovered from the salary of the month you chose.</span></div></div>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-6"><label class="form-label">Month (YYYY-MM)</label><input name="year_month" class="form-control" value="{{ date('Y-m') }}" required></div>
-            @include('partials._unit-field')
-            <div class="col-12"><label class="form-label">Amount</label><input type="number" step="0.01" name="amount" class="form-control" required></div>
-            <div class="col-12"><label class="form-label">Instruction</label><textarea name="instruction" class="form-control"></textarea></div>
-        </div></div>
+        </div>
         <div class="modal-footer"><button class="btn btn-p">Save</button></div>
     </form>
 </div></div></div>

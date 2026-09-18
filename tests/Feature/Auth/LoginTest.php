@@ -19,7 +19,8 @@ class LoginTest extends TestCase
 
     public function test_user_signs_in_with_username(): void
     {
-        $user = User::factory()->editor()->create(['username' => 'ravi']);
+        // Without an email there is nowhere to send a code, so the password is enough
+        $user = User::factory()->editor()->create(['username' => 'ravi', 'email' => null]);
 
         $this->attempt('ravi')->assertRedirect(route('dashboard'));
 
@@ -30,11 +31,21 @@ class LoginTest extends TestCase
 
     public function test_username_is_case_insensitive(): void
     {
-        $user = User::factory()->create(['username' => 'ravi']);
+        $user = User::factory()->create(['username' => 'ravi', 'email' => null]);
 
         $this->attempt('RaVi');
 
         $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_an_account_with_an_email_is_sent_a_code_first(): void
+    {
+        \Illuminate\Support\Facades\Mail::fake();
+        User::factory()->editor()->create(['username' => 'ravi', 'email' => 'ravi@example.com']);
+
+        $this->attempt('ravi')->assertRedirect(route('login.verify'));
+
+        $this->assertGuest();
     }
 
     public function test_email_address_cannot_be_used_to_sign_in(): void

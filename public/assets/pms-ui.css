@@ -398,3 +398,10 @@ body.sidebar-collapsed .unit-menu { left: 0; width: 240px; right: auto; }
 @media (prefers-reduced-motion: reduce) {
     .force-btn.on i { animation: none !important; }
 }
+
+/* One time code entry: wide tracking so six digits read as six digits */
+.otp-input {
+    font-size: 26px; font-weight: 700; letter-spacing: 12px; text-align: center;
+    padding: 12px 10px 12px 22px; font-variant-numeric: tabular-nums;
+}
+.otp-input::placeholder { letter-spacing: 12px; color: var(--line2); }

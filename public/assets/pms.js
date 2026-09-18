@@ -653,16 +653,20 @@
         const sidebarToggle = document.getElementById('sidebarToggle');
         const subnavToggle = document.getElementById('subnavToggle');
 
+        const subnavPeek = document.getElementById('subnavPeek');
+
         const syncLabels = () => {
             if (sidebarToggle) {
                 const collapsed = body.classList.contains('sidebar-collapsed');
-                sidebarToggle.title = collapsed ? 'Expand menu' : 'Collapse menu';
+                const label = sidebarToggle.querySelector('span');
+                sidebarToggle.title = collapsed ? 'Expand the menu' : 'Collapse the menu';
                 sidebarToggle.setAttribute('aria-label', sidebarToggle.title);
                 sidebarToggle.setAttribute('aria-expanded', String(!collapsed));
+                if (label) label.textContent = collapsed ? 'Expand' : 'Collapse menu';
             }
             if (subnavToggle) {
                 const hidden = body.classList.contains('subnav-hidden');
-                subnavToggle.title = hidden ? 'Show panel' : 'Hide panel';
+                subnavToggle.title = hidden ? 'Show this panel' : 'Hide this panel';
                 subnavToggle.setAttribute('aria-label', subnavToggle.title);
                 subnavToggle.setAttribute('aria-expanded', String(!hidden));
             }
@@ -676,11 +680,21 @@
             });
         }
 
+        const setSubnav = (hidden) => {
+            body.classList.toggle('subnav-hidden', hidden);
+            write('pms.subnavHidden', hidden);
+            syncLabels();
+        };
+
         if (subnavToggle) {
-            subnavToggle.addEventListener('click', () => {
-                body.classList.toggle('subnav-hidden');
-                write('pms.subnavHidden', body.classList.contains('subnav-hidden'));
-                syncLabels();
+            subnavToggle.addEventListener('click', () => setSubnav(!body.classList.contains('subnav-hidden')));
+        }
+
+        // The tab on the panel's own edge brings it back the way it left
+        if (subnavPeek) {
+            subnavPeek.addEventListener('click', () => {
+                setSubnav(false);
+                document.getElementById('subnav')?.querySelector('.rail-item')?.focus({ preventScroll: true });
             });
         }
 
@@ -690,7 +704,10 @@
             const tag = (e.target.tagName || '').toLowerCase();
             if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable) return;
 
-            if (e.key === '[' && subnavToggle) { e.preventDefault(); subnavToggle.click(); }
+            if (e.key === '[') {
+                e.preventDefault();
+                if (body.classList.contains('subnav-hidden')) { subnavPeek?.click(); } else { subnavToggle?.click(); }
+            }
             if (e.key === '\\' && sidebarToggle) { e.preventDefault(); sidebarToggle.click(); }
         });
 

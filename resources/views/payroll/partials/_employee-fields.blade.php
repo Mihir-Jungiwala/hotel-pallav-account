@@ -57,6 +57,45 @@
     </div>
 
     {{-- Step 2 - what drives the payroll maths --}}
+    {{-- Personal details the old staff profile carried --}}
+    <div class="form-step" data-step="Personal">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Email <span class="wz-optional">optional</span></label>
+                <input type="email" name="email" class="form-control" value="{{ old('email', $e->email ?? '') }}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Date of birth <span class="wz-optional">optional</span></label>
+                <input type="date" name="date_of_birth" class="form-control"
+                       value="{{ old('date_of_birth', optional($e->date_of_birth ?? null)->format('Y-m-d')) }}">
+            </div>
+            <div class="col-md-6">
+                @include('partials._option-field', ['key' => 'gender', 'name' => 'gender', 'value' => $e->gender ?? null, 'label' => 'Gender'])
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Nationality <span class="wz-optional">optional</span></label>
+                <input name="nationality" class="form-control" value="{{ old('nationality', $e->nationality ?? '') }}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Country and pincode <span class="wz-optional">optional</span></label>
+                <input name="country_and_pincode" class="form-control" value="{{ old('country_and_pincode', $e->country_and_pincode ?? '') }}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Qualification <span class="wz-optional">optional</span></label>
+                <input name="qualification" class="form-control" value="{{ old('qualification', $e->qualification ?? '') }}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Institution <span class="wz-optional">optional</span></label>
+                <input name="qualification_institution" class="form-control" value="{{ old('qualification_institution', $e->qualification_institution ?? '') }}">
+            </div>
+            <div class="col-12">
+                <label class="form-label">Skills <span class="wz-optional">optional</span></label>
+                <textarea name="skills" class="form-control" rows="2">{{ old('skills', $e->skills ?? '') }}</textarea>
+                <div class="form-text">Prints on the employee record, handy when planning cover.</div>
+            </div>
+        </div>
+    </div>
+
     <div class="form-step" data-step="Employment">
         <div class="row g-3">
             <div class="col-md-4">
@@ -138,9 +177,21 @@
                 <input name="id_proof_number" class="form-control" value="{{ old('id_proof_number', $e->id_proof_number ?? '') }}">
             </div>
             <div class="col-md-4">
-                <label class="form-label">ID Proof Image</label>
+                <label class="form-label">ID Proof Image (front)</label>
                 <input type="file" name="id_proof_image" class="form-control" accept="image/*">
                 @include('payroll.partials._current-file', ['path' => $e->id_proof_image_path ?? null, 'label' => 'Current ID proof'])
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">ID Proof Image (back) <span class="wz-optional">optional</span></label>
+                <input type="file" name="id_proof_back_image" class="form-control" accept="image/*">
+                @include('payroll.partials._current-file', ['path' => $e->id_proof_back_image_path ?? null, 'label' => 'Current back image'])
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Resume <span class="wz-optional">optional</span></label>
+                <input type="file" name="resume" class="form-control" accept="application/pdf,image/*">
+                @include('payroll.partials._current-file', ['path' => $e->resume_path ?? null, 'label' => 'Current resume'])
             </div>
 
             <div class="col-12"><hr>

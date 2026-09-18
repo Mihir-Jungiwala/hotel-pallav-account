@@ -60,6 +60,10 @@ class User extends Authenticatable
             'last_login_at' => 'datetime',
             'locked_until' => 'datetime',
             'password_changed_at' => 'datetime',
+            'otp_expires_at' => 'datetime',
+            'otp_sent_at' => 'datetime',
+            'session_started_at' => 'datetime',
+            'two_factor_enabled' => 'boolean',
         ];
     }
 

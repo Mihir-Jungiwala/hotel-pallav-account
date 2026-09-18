@@ -85,12 +85,21 @@
                 <div class="modal-header"><h5 class="modal-title">{{ ucfirst($type) }} Cash Deposit</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-md-6"><label class="form-label">Date</label><input type="date" name="date" class="form-control" value="{{ date('Y-m-d') }}" required></div>
-                        <div class="col-md-6"><label class="form-label">Time</label><input type="time" name="time" class="form-control" value="{{ date('H:i') }}" required></div>
-                        <div class="col-md-6"><label class="form-label">Depositor</label><input name="depositor" class="form-control" required></div>
-                        <div class="col-md-6">@include('partials._option-field', ['key' => 'revenue_source', 'name' => 'revenue_source', 'value' => null, 'label' => 'Source'])</div>
-                        <div class="col-12"><label class="form-label">Amount</label><input type="number" step="0.01" name="amount" class="form-control" required></div>
+                    <div data-wizard>
+                        <div class="form-step" data-step="Deposit">
+                            <div class="row g-3">
+                                <div class="col-md-6"><label class="form-label">Date *</label><input type="date" name="date" class="form-control" value="{{ date('Y-m-d') }}" required></div>
+                                <div class="col-md-6"><label class="form-label">Time *</label><input type="time" name="time" class="form-control" value="{{ date('H:i') }}" required></div>
+                                <div class="col-md-6"><label class="form-label">Depositor *</label><input name="depositor" class="form-control" required></div>
+                                <div class="col-md-6">@include('partials._option-field', ['key' => 'revenue_source', 'name' => 'revenue_source', 'value' => null, 'label' => 'Source'])</div>
+                            </div>
+                        </div>
+                        <div class="form-step" data-step="Amount">
+                            <div class="row g-3">
+                                <div class="col-12"><label class="form-label">Amount *</label><input type="number" step="0.01" name="amount" class="form-control" required></div>
+                                <div class="col-12"><div class="master-note"><i class="bi bi-info-circle"></i><span>The amount in words is written on the receipt for you.</span></div></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer"><button class="btn btn-p">Save</button></div>

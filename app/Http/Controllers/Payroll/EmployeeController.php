@@ -45,6 +45,16 @@ class EmployeeController extends Controller
             'id_proof_type_id' => ['nullable', 'exists:id_proof_types,id'],
             'id_proof_number' => ['nullable', 'string', 'max:50'],
             'id_proof_image' => ['nullable', 'image', 'max:4096'],
+            'id_proof_back_image' => ['nullable', 'image', 'max:4096'],
+            'resume' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:8192'],
+            'email' => ['nullable', 'email', 'max:254'],
+            'date_of_birth' => ['nullable', 'date'],
+            'gender' => ['nullable', 'string', 'max:20'],
+            'nationality' => ['nullable', 'string', 'max:100'],
+            'country_and_pincode' => ['nullable', 'string', 'max:100'],
+            'qualification' => ['nullable', 'string', 'max:150'],
+            'qualification_institution' => ['nullable', 'string', 'max:150'],
+            'skills' => ['nullable', 'string', 'max:2000'],
             'deductions' => ['nullable', 'array'],
             'deductions.*.deduction_id' => ['nullable', 'exists:deductions,id'],
             'deductions.*.deduction_type' => ['nullable', Rule::in(['One Time', 'Monthly'])],
@@ -75,7 +85,9 @@ class EmployeeController extends Controller
         $data['created_by'] = Auth::id();
         $data['photo_path'] = $request->file('photo')?->store('payroll/employees', 'public');
         $data['id_proof_image_path'] = $request->file('id_proof_image')?->store('payroll/id-proofs', 'public');
-        unset($data['photo'], $data['id_proof_image']);
+        $data['id_proof_back_image_path'] = $request->file('id_proof_back_image')?->store('payroll/id-proofs', 'public');
+        $data['resume_path'] = $request->file('resume')?->store('payroll/resumes', 'public');
+        unset($data['photo'], $data['id_proof_image'], $data['id_proof_back_image'], $data['resume']);
 
         DB::transaction(function () use ($data, $assignments) {
             $employee = Employee::create($data);
@@ -97,7 +109,13 @@ class EmployeeController extends Controller
         if ($request->hasFile('id_proof_image')) {
             $data['id_proof_image_path'] = $request->file('id_proof_image')->store('payroll/id-proofs', 'public');
         }
-        unset($data['photo'], $data['id_proof_image']);
+        if ($request->hasFile('id_proof_back_image')) {
+            $data['id_proof_back_image_path'] = $request->file('id_proof_back_image')->store('payroll/id-proofs', 'public');
+        }
+        if ($request->hasFile('resume')) {
+            $data['resume_path'] = $request->file('resume')->store('payroll/resumes', 'public');
+        }
+        unset($data['photo'], $data['id_proof_image'], $data['id_proof_back_image'], $data['resume']);
 
         DB::transaction(function () use ($employee, $data, $assignments) {
             $employee->update($data);

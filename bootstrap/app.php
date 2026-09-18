@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role.permissions' => \App\Http\Middleware\EnforceRolePermissions::class,
             'admin' => \App\Http\Middleware\RequireAdmin::class,
             'superadmin' => \App\Http\Middleware\RequireSuperAdmin::class,
+            'single.session' => \App\Http\Middleware\EnsureSingleSession::class,
         ]);
 
         // Signed-in users are sent to the dashboard, guests to the login page

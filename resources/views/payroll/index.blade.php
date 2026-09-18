@@ -109,15 +109,20 @@
 @if($company !== null)
 @section('subnav')
     <div class="subnav-head">
-        <div>
+        <div class="panel-title">
             <div class="pms-eyebrow">Payroll</div>
-            <div style="font-weight:700; font-size:13.5px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:150px;">
+            <div style="font-weight:700; font-size:13.5px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px;">
                 {{ $company->name }}
             </div>
         </div>
-        <a class="panel-toggle" href="{{ route('payroll.index', ['current_company' => \App\Support\PayrollContext::SENTINEL]) }}" title="Back to Company Setup">
-            <i class="bi bi-arrow-left-short" style="font-size:18px;"></i>
-        </a>
+        <div class="subnav-actions">
+            <a class="panel-toggle" href="{{ route('payroll.index', ['current_company' => \App\Support\PayrollContext::SENTINEL]) }}" title="Choose another company">
+                <i class="bi bi-arrow-left-right"></i>
+            </a>
+            <button type="button" class="panel-toggle panel-close" id="subnavToggle" title="Hide this panel" aria-expanded="true">
+                <i class="bi bi-chevron-double-left"></i>
+            </button>
+        </div>
     </div>
 
     <nav class="subnav-body" aria-label="Payroll modules">

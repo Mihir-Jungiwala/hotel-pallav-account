@@ -34,14 +34,21 @@ Route::middleware('guest')->group(function () {
     Route::get('/', [AuthController::class, 'showLogin'])->name('login');
     Route::get('/login', [AuthController::class, 'showLogin']);
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:30,1')->name('login.attempt');
+
+    // Second step: the code sent by email
+    Route::get('/login/code', [AuthController::class, 'showVerify'])->name('login.verify');
+    Route::post('/login/code', [AuthController::class, 'verify'])->middleware('throttle:30,1')->name('login.verify.check');
+    Route::post('/login/code/resend', [AuthController::class, 'resend'])->middleware('throttle:6,1')->name('login.verify.resend');
+
+    // Forgotten password, by code rather than by link
     Route::get('/forgot-password', [AuthController::class, 'showForgot'])->name('password.request');
-    Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->middleware('throttle:10,1')->name('password.email');
-    Route::get('/reset-password/{token}', [AuthController::class, 'showReset'])->name('password.reset');
+    Route::post('/forgot-password', [AuthController::class, 'sendResetCode'])->middleware('throttle:10,1')->name('password.email');
+    Route::get('/reset-password', [AuthController::class, 'showResetCode'])->name('password.code');
     Route::post('/reset-password', [AuthController::class, 'reset'])->middleware('throttle:10,1')->name('password.update');
 });
 
 // Authenticated routes - every request re-checks the account and the role ceiling
-Route::middleware(['auth', 'auth.session', 'account.usable', 'role.permissions'])->group(function () {
+Route::middleware(['auth', 'auth.session', 'single.session', 'account.usable', 'role.permissions'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

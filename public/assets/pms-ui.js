@@ -453,8 +453,54 @@
         });
     }
 
+    /* -----------------------------------------------------------------------
+       Sign-in code: digits only, submits itself once six are in, and the
+       resend button counts itself down.
+       ----------------------------------------------------------------------- */
+
+    function wireOtp() {
+        document.querySelectorAll('[data-otp]').forEach((input) => {
+            input.addEventListener('input', () => {
+                const digits = input.value.replace(/\D/g, '').slice(0, 6);
+                if (digits !== input.value) input.value = digits;
+
+                if (digits.length === 6) input.form?.requestSubmit();
+            });
+
+            input.addEventListener('paste', (event) => {
+                const text = (event.clipboardData?.getData('text') || '').replace(/\D/g, '').slice(0, 6);
+                if (!text) return;
+                event.preventDefault();
+                input.value = text;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+        });
+
+        const resend = document.querySelector('[data-resend-at]');
+        if (!resend) return;
+
+        let left = parseInt(resend.dataset.resendAt, 10) || 0;
+        const label = resend.querySelector('[data-resend-label]');
+
+        const tick = () => {
+            if (left <= 0) {
+                resend.disabled = false;
+                if (label) label.textContent = 'Send another code';
+                return;
+            }
+
+            resend.disabled = true;
+            if (label) label.textContent = 'Send another code in ' + left + 's';
+            left -= 1;
+            setTimeout(tick, 1000);
+        };
+
+        tick();
+    }
+
     function boot() {
         wireTheme();
+        wireOtp();
         wireCharts();
         wirePasswordTools();
         wireUnitSwitch();
