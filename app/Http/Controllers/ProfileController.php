@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
 use App\Models\UserAuditLog;
+use App\Services\Auth\OneTimeCode;
 use App\Support\PasswordPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,6 +14,8 @@ use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
+    public function __construct(private OneTimeCode $codes) {}
+
     public function show(Request $request)
     {
         $user = Auth::user();
@@ -67,22 +70,66 @@ class ProfileController extends Controller
     }
 
     /** Each person decides whether their own sign-in asks for an emailed code. */
+    /**
+     * Turning the sign-in code on sends a test code first. It only takes
+     * effect once that code comes back, so nobody can lock themselves out of
+     * an address they cannot read. Turning it off is immediate.
+     */
     public function toggleTwoFactor(Request $request)
     {
         $user = $request->user();
 
-        if (! $user->email && ! $user->two_factor_enabled) {
+        if ($user->two_factor_enabled) {
+            $user->forceFill(['two_factor_enabled' => false])->save();
+            UserAuditLog::record('two_factor.disabled', $user);
+
+            return back()->with('success', 'The emailed code is off. Your password alone will sign you in.');
+        }
+
+        if (! $user->email) {
             return back()->with('error', 'Add an email address to your profile first, otherwise there is nowhere to send the code.');
         }
 
-        $on = ! $user->two_factor_enabled;
-        $user->forceFill(['two_factor_enabled' => $on])->save();
+        if (! $this->codes->send($user, OneTimeCode::ENABLE)) {
+            return back()->with('error', $this->codes->refusal ?? 'A code could not be sent right now.');
+        }
 
-        UserAuditLog::record($on ? 'two_factor.enabled' : 'two_factor.disabled', $user);
+        return redirect()->route('profile.two-factor.confirm')
+            ->with('success', 'Enter the code we just emailed you to switch it on.');
+    }
 
-        return back()->with('success', $on
-            ? 'From now on we will email you a code after your password.'
-            : 'The emailed code is off. Your password alone will sign you in.');
+    /** Where the code that switches it on is entered. */
+    public function showTwoFactorConfirm(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user->two_factor_enabled || $user->otp_purpose !== OneTimeCode::ENABLE) {
+            return redirect()->route('profile.show');
+        }
+
+        return view('users.two-factor-confirm', [
+            'user' => $user,
+            'secondsUntilResend' => $this->codes->secondsUntilResend($user),
+        ]);
+    }
+
+    public function confirmTwoFactor(Request $request)
+    {
+        $user = $request->user();
+        $request->validate(['code' => ['required', 'string', 'size:6']]);
+
+        [$passed, $why] = $this->codes->check($user, OneTimeCode::ENABLE, $request->string('code')->toString());
+
+        if (! $passed) {
+            return back()->withErrors(['code' => $why]);
+        }
+
+        // The address is proven, so from the next sign-in the code is asked for
+        $user->forceFill(['two_factor_enabled' => true])->save();
+        UserAuditLog::record('two_factor.enabled', $user);
+
+        return redirect()->route('profile.show')
+            ->with('success', 'The sign-in code is on. From now on we email you a code after your password.');
     }
 
     public function changePassword(Request $request)

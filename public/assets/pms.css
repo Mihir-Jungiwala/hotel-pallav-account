@@ -596,11 +596,18 @@ kbd {
 .attendance-grid .week-start { border-left: 2px solid var(--p300) !important; }
 .attendance-grid thead th.week-start { border-left: 2px solid var(--p400) !important; }
 
-/* Today stands out; future days recede since they can't be filled yet */
-.attendance-grid thead th.day-head.is-today { background: var(--p600) !important; }
-.attendance-grid thead th.day-head.is-today .dh-num,
-.attendance-grid thead th.day-head.is-today .dh-dow { color: #fff !important; }
-.attendance-grid td.day-cell.is-today { box-shadow: inset 2px 0 0 var(--p400), inset -2px 0 0 var(--p400); }
+/* Today is marked, not enlarged: the cell keeps the same size and background
+   as every other day, with a top accent and a chip around the date. Filling
+   the whole cell made the column look taller than the rest. */
+.attendance-grid thead th.day-head.is-today {
+    box-shadow: inset 0 3px 0 var(--p600);
+}
+.attendance-grid thead th.day-head.is-today .dh-num {
+    width: 20px; height: 20px; line-height: 20px; margin: 0 auto;
+    border-radius: 999px; background: var(--p600); color: #fff !important;
+}
+.attendance-grid thead th.day-head.is-today .dh-dow { color: var(--p700) !important; }
+.attendance-grid td.day-cell.is-today { box-shadow: inset 1px 0 0 var(--p300), inset -1px 0 0 var(--p300); }
 .attendance-grid thead th.day-head.is-future .dh-num,
 .attendance-grid thead th.day-head.is-future .dh-dow { opacity: .45; }
 .attendance-grid td.day-cell.is-future { background: repeating-linear-gradient(135deg, transparent 0 5px, #F6F3FD 5px 6px); }

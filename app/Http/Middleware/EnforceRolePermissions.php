@@ -16,7 +16,7 @@ use Symfony\Component\HttpFoundation\Response;
 class EnforceRolePermissions
 {
     /** Writes every signed-in user may make, whatever their role. */
-    private const SELF_SERVICE = ['logout', 'profile.update', 'profile.password', 'unit.switch', 'force-mode.toggle', 'profile.two-factor'];
+    private const SELF_SERVICE = ['logout', 'profile.update', 'profile.password', 'unit.switch', 'force-mode.toggle', 'profile.two-factor', 'profile.two-factor.check'];
 
     public function handle(Request $request, Closure $next): Response
     {

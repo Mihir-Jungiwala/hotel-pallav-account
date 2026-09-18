@@ -243,14 +243,11 @@
                                 <div class="text-muted" style="font-size:12.5px;">
                                     {{ $u->two_factor_enabled
                                         ? 'On. A six digit code is emailed after the password.'
-                                        : 'Off. The password alone signs this account in.' }}
-                                    @unless($u->email) Needs an email address on the account first. @endunless
+                                        : 'Off. Only @'.$u->username.' can switch it on, by entering a code we email them.' }}
                                 </div>
                             </div>
                             <form method="POST" action="{{ route('users.two-factor', $u) }}">@csrf
-                                <button class="btn btn-sm {{ $u->two_factor_enabled ? 'btn-outline-secondary' : 'btn-outline-p' }}" @disabled(! $u->email)>
-                                    {{ $u->two_factor_enabled ? 'Turn off' : 'Turn on' }}
-                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" @disabled(! $u->two_factor_enabled)>Turn off</button>
                             </form>
                         </div>
                     @endif

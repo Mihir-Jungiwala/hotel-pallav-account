@@ -67,15 +67,43 @@ class TwoFactorLoginTest extends TestCase
         Mail::assertNothingSent();
     }
 
-    public function test_a_person_can_turn_the_code_on_and_off_for_themselves(): void
+    public function test_switching_the_code_on_only_takes_effect_once_the_code_is_entered(): void
     {
         $user = User::factory()->editor()->create(['email' => 'ravi@example.com']);
 
-        $this->actingAs($user)->post(route('profile.two-factor'))->assertSessionHasNoErrors();
-        $this->assertTrue($user->fresh()->two_factor_enabled);
+        // Asking for it sends a code and changes nothing yet
+        $this->actingAs($user)->post(route('profile.two-factor'))
+            ->assertRedirect(route('profile.two-factor.confirm'));
 
-        $this->post(route('profile.two-factor'));
         $this->assertFalse($user->fresh()->two_factor_enabled);
+        Mail::assertSent(OneTimeCodeMail::class);
+
+        // A wrong code leaves it off
+        $this->post(route('profile.two-factor.check'), ['code' => '000000'])->assertSessionHasErrors('code');
+        $this->assertFalse($user->fresh()->two_factor_enabled);
+
+        // The right code switches it on
+        $this->post(route('profile.two-factor.check'), ['code' => $this->codeFor($user->fresh())])
+            ->assertRedirect(route('profile.show'));
+
+        $this->assertTrue($user->fresh()->two_factor_enabled);
+    }
+
+    public function test_turning_the_code_off_is_immediate(): void
+    {
+        $user = User::factory()->editor()->create(['email' => 'ravi@example.com', 'two_factor_enabled' => true]);
+
+        $this->actingAs($user)->post(route('profile.two-factor'))->assertSessionHasNoErrors();
+
+        $this->assertFalse($user->fresh()->two_factor_enabled);
+        Mail::assertNothingSent();
+    }
+
+    public function test_the_confirm_screen_is_only_open_while_a_code_is_out(): void
+    {
+        $user = User::factory()->editor()->create(['email' => 'ravi@example.com']);
+
+        $this->actingAs($user)->get(route('profile.two-factor.confirm'))->assertRedirect(route('profile.show'));
     }
 
     public function test_the_code_cannot_be_turned_on_without_an_email(): void
@@ -87,14 +115,19 @@ class TwoFactorLoginTest extends TestCase
         $this->assertFalse($user->fresh()->two_factor_enabled);
     }
 
-    public function test_an_admin_can_turn_it_on_for_someone_else(): void
+    public function test_an_admin_can_switch_it_off_but_not_on(): void
     {
         $admin = User::factory()->admin()->create();
         $editor = User::factory()->editor()->create(['email' => 'ravi@example.com']);
 
-        $this->actingAs($admin)->post(route('users.two-factor', $editor))->assertSessionHasNoErrors();
+        // Only the owner can switch it on, since only they can read the code
+        $this->actingAs($admin)->post(route('users.two-factor', $editor))->assertSessionHas('error');
+        $this->assertFalse($editor->fresh()->two_factor_enabled);
 
-        $this->assertTrue($editor->fresh()->two_factor_enabled);
+        // Switching it off helps someone who has lost their email
+        $editor->forceFill(['two_factor_enabled' => true])->save();
+        $this->post(route('users.two-factor', $editor))->assertSessionHasNoErrors();
+        $this->assertFalse($editor->fresh()->two_factor_enabled);
     }
 
     /* ------------------------------------------------------- the two steps */

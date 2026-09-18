@@ -24,6 +24,9 @@ class OneTimeCode
 
     public const RESET = 'reset';
 
+    /** Proving the email works before the sign-in code is switched on. */
+    public const ENABLE = 'enable';
+
     /** A code is good for ten minutes. */
     public const VALID_MINUTES = 10;
 

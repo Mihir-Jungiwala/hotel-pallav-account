@@ -139,23 +139,24 @@ class UserController extends Controller
         return back()->with('success', "@{$user->username} is now ".($user->is_active ? 'active' : 'deactivated').'.');
     }
 
-    /** Turns the emailed sign-in code on or off for someone else. */
+    /**
+     * An administrator can switch the sign-in code off for someone, which is
+     * what helps a colleague who has lost access to their email. Switching it
+     * on is the owner's own doing, because only they can read the code that
+     * proves the address works.
+     */
     public function toggleTwoFactor(User $user)
     {
         $this->authorizeManage(Auth::user(), $user);
 
-        if (! $user->email && ! $user->two_factor_enabled) {
-            return back()->with('error', "@{$user->username} needs an email address before a code can be sent.");
+        if (! $user->two_factor_enabled) {
+            return back()->with('error', "Only @{$user->username} can switch this on, by entering a code we email them.");
         }
 
-        $on = ! $user->two_factor_enabled;
-        $user->forceFill(['two_factor_enabled' => $on])->save();
+        $user->forceFill(['two_factor_enabled' => false])->save();
+        UserAuditLog::record('two_factor.disabled', $user);
 
-        UserAuditLog::record($on ? 'two_factor.enabled' : 'two_factor.disabled', $user);
-
-        return back()->with('success', $on
-            ? "@{$user->username} will be asked for an emailed code at sign-in."
-            : "@{$user->username} will sign in with a password only.");
+        return back()->with('success', "@{$user->username} will sign in with a password only.");
     }
 
     public function unlock(User $user)

@@ -498,8 +498,34 @@
         tick();
     }
 
+    /* -----------------------------------------------------------------------
+       The rail has no scrollbar, so a soft fade at its foot says there is
+       more menu below, and it disappears once you reach the end.
+       ----------------------------------------------------------------------- */
+
+    function wireRailScroll() {
+        const nav = document.querySelector('.sidebar-nav');
+        if (!nav) return;
+
+        const sync = () => {
+            const scrollable = nav.scrollHeight > nav.clientHeight + 2;
+            const atEnd = nav.scrollTop + nav.clientHeight >= nav.scrollHeight - 4;
+            body.classList.toggle('rail-scrollable', scrollable);
+            body.classList.toggle('rail-at-end', atEnd);
+        };
+
+        nav.addEventListener('scroll', sync, { passive: true });
+        window.addEventListener('resize', sync);
+        new ResizeObserver(sync).observe(nav);
+        sync();
+
+        // Keep the current page in view when the menu is long
+        nav.querySelector('a.active')?.scrollIntoView({ block: 'nearest' });
+    }
+
     function boot() {
         wireTheme();
+        wireRailScroll();
         wireOtp();
         wireCharts();
         wirePasswordTools();

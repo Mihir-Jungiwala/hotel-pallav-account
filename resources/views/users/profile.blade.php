@@ -127,13 +127,13 @@
                         <div class="text-muted" style="font-size:12.5px;">
                             {{ $user->two_factor_enabled
                                 ? 'On. After your password we email you a six digit code.'
-                                : 'Off. Your password alone signs you in.' }}
+                                : 'Off. Your password alone signs you in. Switching it on sends a code to check the address works.' }}
                             @unless($user->email) Add an email address above first. @endunless
                         </div>
                     </div>
                     <form method="POST" action="{{ route('profile.two-factor') }}" data-self-service>@csrf
                         <button class="btn btn-sm {{ $user->two_factor_enabled ? 'btn-outline-secondary' : 'btn-outline-p' }}" @disabled(! $user->email)>
-                            {{ $user->two_factor_enabled ? 'Turn off' : 'Turn on' }}
+                            {{ $user->two_factor_enabled ? 'Turn off' : 'Turn on and send a code' }}
                         </button>
                     </form>
                 </div>

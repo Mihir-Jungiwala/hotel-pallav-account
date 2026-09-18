@@ -62,6 +62,8 @@ Route::middleware(['auth', 'auth.session', 'single.session', 'account.usable', '
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('/profile/password', [ProfileController::class, 'changePassword'])->name('profile.password');
     Route::post('/profile/two-factor', [ProfileController::class, 'toggleTwoFactor'])->name('profile.two-factor');
+    Route::get('/profile/two-factor/confirm', [ProfileController::class, 'showTwoFactorConfirm'])->name('profile.two-factor.confirm');
+    Route::post('/profile/two-factor/confirm', [ProfileController::class, 'confirmTwoFactor'])->middleware('throttle:20,1')->name('profile.two-factor.check');
 
     // Master Data: the lists every form offers (SuperAdmin only)
     Route::middleware('superadmin')->prefix('masters')->name('masters.')->group(function () {

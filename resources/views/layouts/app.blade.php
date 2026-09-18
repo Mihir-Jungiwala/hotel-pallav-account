@@ -173,10 +173,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/plugins/monthSelect/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
-    <link rel="stylesheet" href="{{ asset('assets/pms.css') }}?v=6">
+    <link rel="stylesheet" href="{{ asset('assets/pms.css') }}?v=7">
     <link rel="stylesheet" href="{{ asset('assets/pms-ui.css') }}?v=4">
     <link rel="stylesheet" href="{{ asset('assets/pms-dash.css') }}?v=7">
-    <link rel="stylesheet" href="{{ asset('assets/pms-nav.css') }}?v=2">
+    <link rel="stylesheet" href="{{ asset('assets/pms-nav.css') }}?v=3">
     @stack('styles')
 </head>
 <body class="@hasSection('subnav') has-subnav @else no-subnav @endif @guest guest-page @endguest"
@@ -324,7 +324,7 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/plugins/monthSelect/index.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script src="{{ asset('assets/pms.js') }}?v=6"></script>
-<script src="{{ asset('assets/pms-ui.js') }}?v=6"></script>
+<script src="{{ asset('assets/pms-ui.js') }}?v=7"></script>
 @stack('scripts')
 </body>
 </html>

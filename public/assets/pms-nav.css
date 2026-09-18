@@ -176,3 +176,30 @@ body.sidebar-collapsed .subnav-peek { left: var(--sidebar-w-collapsed); }
     .sidebar, .subnav, .subnav-peek, .sidebar-nav a, .sidebar-nav a::before,
     .nav-collapse i, .panel-close i { transition: none !important; }
 }
+
+/* The rail scrolls on its list, so the bar is hidden there and the glide is
+   smooth. Momentum stays inside the rail rather than pulling the page. */
+.sidebar-nav {
+    scrollbar-width: none; -ms-overflow-style: none;
+    scroll-behavior: smooth; overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 2px;
+}
+.sidebar-nav::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+/* A soft fade tells you there is more of the menu below, instead of a bar */
+.sidebar { position: fixed; }
+.sidebar::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 52px; height: 26px;
+    background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, .18));
+    opacity: 0; pointer-events: none; transition: opacity 200ms var(--nav-ease);
+}
+body.rail-scrollable .sidebar::after { opacity: 1; }
+body.rail-at-end .sidebar::after { opacity: 0; }
+
+.subnav-body { scrollbar-width: none; scroll-behavior: smooth; overscroll-behavior: contain; }
+.subnav-body::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    .sidebar-nav, .subnav-body { scroll-behavior: auto; }
+}
