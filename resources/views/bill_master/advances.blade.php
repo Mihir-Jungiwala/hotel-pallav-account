@@ -21,12 +21,12 @@
                     <td class="text-end">
                         @if($a->isUnused() && ! $a->isRefunded())
                             <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#editAdvance{{ $a->id }}"><i class="bi bi-pencil"></i></button>
-                            <form method="POST" action="{{ route('bill-master.advances.destroy', $a) }}" class="d-inline" onsubmit="return confirm('Delete this advance?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+                            <form method="POST" action="{{ route('bill-master.advances.destroy', $a) }}" class="d-inline" data-confirm-title="Delete this advance?" data-confirm="This cannot be undone.">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
                         @endif
                         @if(! $a->isRefunded())
                             <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#refundAdvance{{ $a->id }}"><i class="bi bi-arrow-return-left"></i> Refund</button>
                         @else
-                            <form method="POST" action="{{ route('bill-master.advances.refund.destroy', $a) }}" class="d-inline" onsubmit="return confirm('Reverse this refund?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-secondary">Undo Refund</button></form>
+                            <form method="POST" action="{{ route('bill-master.advances.refund.destroy', $a) }}" class="d-inline" data-confirm-title="Reverse this refund?" data-confirm="The advance goes back to unrefunded." data-confirm-label="Reverse" data-confirm-tone="warning">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-secondary">Undo Refund</button></form>
                         @endif
                     </td>
                 </tr>

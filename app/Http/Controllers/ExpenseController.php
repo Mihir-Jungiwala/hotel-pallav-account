@@ -2,291 +2,249 @@
 
 namespace App\Http\Controllers;
 
-use App\Support\UnitContext;
-use App\Support\ForceMode;
+use App\Models\Employee;
 use App\Models\FoodCashWithdrawal;
 use App\Models\FoodMiscExpense;
 use App\Models\HotelCashWithdrawal;
 use App\Models\HotelMiscExpense;
-use App\Models\Employee;
 use App\Models\StaffAdvance;
+use App\Support\CashLedger;
+use App\Support\CashPeople;
+use App\Support\ForceMode;
 use App\Support\NumberToWords;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * Cash paid out. One business, two cash books side by side (Hotel and Food),
+ * plus staff advances, which belong to the business as a whole. The page shows
+ * everything together or narrows to one book or one kind of entry; entries
+ * come off a book newest first, and only an Admin or the SuperAdmin can delete.
+ */
 class ExpenseController extends Controller
 {
+    /** Every kind of entry: its table, which book it sits in (none for advances) and what it is. */
+    public const TYPES = [
+        'hotel-withdrawal' => ['model' => HotelCashWithdrawal::class, 'book' => 'hotel', 'kind' => 'withdrawal'],
+        'food-withdrawal' => ['model' => FoodCashWithdrawal::class, 'book' => 'food', 'kind' => 'withdrawal'],
+        'hotel-misc' => ['model' => HotelMiscExpense::class, 'book' => 'hotel', 'kind' => 'misc'],
+        'food-misc' => ['model' => FoodMiscExpense::class, 'book' => 'food', 'kind' => 'misc'],
+        'staff-advance' => ['model' => StaffAdvance::class, 'book' => null, 'kind' => 'advance'],
+    ];
+
+    private const KINDS = ['withdrawal' => 'Cash Withdrawal', 'misc' => 'Misc. Expense', 'advance' => 'Staff Advance'];
+
     public function index()
     {
-        $hotel = UnitContext::shows('hotel');
-        $food = UnitContext::shows('food');
+        $book = CashLedger::book();
+        $kind = array_key_exists(request('kind'), self::KINDS) ? request('kind') : 'all';
+        $user = Auth::user();
 
-        return view('expense.index', [
-            'hotelWithdrawals' => $hotel ? HotelCashWithdrawal::with('user')->latest('date')->latest('time')->get() : collect(),
-            'foodWithdrawals' => $food ? FoodCashWithdrawal::with('user')->latest('date')->latest('time')->get() : collect(),
-            'hotelMisc' => $hotel ? HotelMiscExpense::with('user')->latest('date')->latest('time')->get() : collect(),
-            'foodMisc' => $food ? FoodMiscExpense::with('user')->latest('date')->latest('time')->get() : collect(),
-            // Staff advances belong to whichever business paid them
-            'staffAdvances' => UnitContext::scope(StaffAdvance::with(['user', 'staff', 'businessUnit']))
-                ->latest('date')->latest('time')->get(),
-            'activeStaff' => Employee::where('is_active', true)->orderBy('name')->get(),
+        // Staff advances are the whole business's, so they only appear when no single book is picked
+        $inBook = fn ($t) => $book === 'all' || $t['book'] === $book;
+        $shown = array_filter(self::TYPES, fn ($t) => $inBook($t) && ($kind === 'all' || $t['kind'] === $kind));
+
+        $newest = [];
+        $rows = collect();
+        foreach ($shown as $type => $t) {
+            $newest[$type] = CashLedger::newestId($t['model']);
+            $with = $t['kind'] === 'advance' ? ['user', 'staff'] : ['user'];
+            $t['model']::with($with)->get()->each(fn ($r) => $rows->push($r->setAttribute('type', $type)));
+        }
+
+        $q = CashLedger::query();
+        $rows = CashLedger::search($rows, $q, fn ($r) => [
+            self::TYPES[$r->type]['book'] ? CashLedger::BOOK_NAMES[self::TYPES[$r->type]['book']] : 'staff',
+            self::KINDS[self::TYPES[$r->type]['kind']], optional($r->staff ?? null)->name,
         ]);
+        $records = CashLedger::page($rows, CashLedger::per());
+
+        $entries = [];
+        $forms = [];
+        foreach ($records as $r) {
+            $blocked = CashLedger::blocked($user, $r, $newest[$r->type]);
+            $key = $r->type.':'.$r->id;
+
+            $entries[] = [
+                'key' => $key, 'record' => $r, 'type' => $r->type,
+                'book' => self::TYPES[$r->type]['book'], 'kind' => self::TYPES[$r->type]['kind'],
+                'canEdit' => $user->canManage($r->user),
+                'delete' => ! $blocked ? 'allowed' : ($blocked[0] === 'order' ? 'locked' : 'none'),
+            ];
+            $forms[$key] = $this->formData($r->type, $r);
+        }
+
+        $today = today()->toDateString();
+        $month = [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()];
+        $sum = fn (callable $pick, array $range) => (float) collect(self::TYPES)->filter($pick)
+            ->sum(fn ($t) => $t['model']::whereBetween('date', $range)->sum('amount'));
+
+        $stats = [
+            'today' => $sum($inBook, [$today, $today]),
+            'month' => $sum($inBook, $month),
+            'hotelMonth' => $sum(fn ($t) => $t['book'] === 'hotel', $month),
+            'foodMonth' => $sum(fn ($t) => $t['book'] === 'food', $month),
+        ];
+
+        $blank = [
+            'type' => null, 'kind' => $kind === 'all' ? 'withdrawal' : $kind,
+            'book' => $book === 'all' ? 'hotel' : $book,
+            'values' => ['date' => today()->format('Y-m-d'), 'time' => null, 'year_month' => date('Y-m')],
+        ];
+        $reopen = old('_form') === 'cashbook' ? $this->formFromOldInput() : null;
+        $actions = collect(self::TYPES)->map(fn ($t, $type) => route("expense.$type.store"))->all();
+        $activeStaff = Employee::where('is_active', true)->orderBy('name')->get();
+
+        return view('expense.index', compact('records', 'entries', 'forms', 'blank', 'reopen', 'actions', 'stats', 'book', 'kind', 'q', 'activeStaff'));
     }
 
-    private function withdrawalRules(): array
+    private function formData(string $type, ?Model $r): array
     {
+        $t = self::TYPES[$type];
+        $label = self::KINDS[$t['kind']];
+
+        $values = ['date' => today()->format('Y-m-d'), 'time' => null, 'year_month' => date('Y-m')];
+        if ($r) {
+            $values = ['date' => $r->date?->format('Y-m-d'), 'time' => substr((string) $r->time, 0, 5), 'amount' => $r->amount] + match ($t['kind']) {
+                'withdrawal' => ['withdrawer' => $r->withdrawer],
+                'misc' => ['expense_name' => $r->expense_name, 'expense_head' => $r->expense_head, 'instruction' => $r->instruction],
+                'advance' => ['employee_id' => $r->employee_id, 'year_month' => $r->year_month, 'instruction' => $r->instruction],
+            };
+        }
+
         return [
-            'date' => ['required', 'date'],
-            'time' => ['required'],
-            'withdrawer' => ['required', 'string', 'max:100'],
-            'amount' => ['required', 'numeric', 'min:0'],
+            'id' => $r?->id, 'type' => $type, 'kind' => $t['kind'], 'book' => $t['book'],
+            'title' => $r ? 'Edit '.($t['book'] ? CashLedger::BOOK_NAMES[$t['book']].' ' : '').$label.' #'.$r->entryNumber() : 'New Entry',
+            'subtitle' => $r ? $label.' · recorded by '.($r->user?->displayName() ?? $r->full_name).', '.$r->created_at?->format('d M Y H:i') : null,
+            'action' => $r ? route("expense.$type.update", $r) : route("expense.$type.store"),
+            'values' => $values,
         ];
     }
 
-    private function miscRules(): array
+    /** What was typed when a save was refused, so the pop-up comes back as it was. */
+    private function formFromOldInput(): array
     {
-        return [
-            'date' => ['required', 'date'],
+        $type = array_key_exists(old('_type'), self::TYPES) ? old('_type') : 'hotel-withdrawal';
+        $record = ($id = old('_record_id')) ? self::TYPES[$type]['model']::find($id) : null;
+        $data = $this->formData($type, $record);
+        $fields = ['date', 'time', 'withdrawer', 'expense_name', 'expense_head', 'employee_id', 'year_month', 'amount', 'instruction'];
+        $data['values'] = array_merge($data['values'], array_filter(array_combine($fields, array_map('old', $fields)), fn ($v) => $v !== null));
+
+        return $data;
+    }
+
+    private function rules(string $kind): array
+    {
+        $base = [
+            'date' => ['required', 'date', 'before_or_equal:today'],
             'time' => ['required'],
-            'expense_name' => ['required', 'string', 'max:100'],
-            'expense_head' => ['nullable', 'string', 'max:60'],
-            'amount' => ['required', 'numeric', 'min:0'],
-            'instruction' => ['nullable', 'string', 'max:500'],
+            'amount' => ['required', 'numeric', 'min:0.01', 'max:9999999999.99'],
         ];
+
+        return $base + match ($kind) {
+            'withdrawal' => ['withdrawer' => ['required', 'string', 'max:100']],
+            'misc' => [
+                'expense_name' => ['required', 'string', 'max:100'],
+                'expense_head' => ['nullable', 'string', 'max:60'],
+                'instruction' => ['nullable', 'string', 'max:500'],
+            ],
+            'advance' => [
+                'employee_id' => ['required', 'exists:employees,id'],
+                'year_month' => ['required', 'string', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
+                'instruction' => ['nullable', 'string', 'max:1000'],
+            ],
+        };
     }
 
-    private function advanceRules(): array
+    /** Validated input shaped for the table: the person settled and remembered, the amount in words. */
+    private function payload(Request $request, string $kind): array
     {
-        return [
-            'date' => ['required', 'date'],
-            'time' => ['required'],
-            'employee_id' => ['required', 'exists:employees,id'],
-            'year_month' => ['required', 'string', 'max:7'],
-            'amount' => ['required', 'numeric', 'min:0'],
-            'instruction' => ['nullable', 'string'],
-        ];
+        if ($kind === 'withdrawal') {
+            // "Other" on the form means a name typed in the box beside it
+            $request->merge(['withdrawer' => CashPeople::resolve($request->input('withdrawer'), $request->input('withdrawer_new'))]);
+        }
+
+        $data = $request->validate($this->rules($kind));
+
+        if ($kind === 'withdrawal') {
+            $data['withdrawer'] = CashPeople::remember($data['withdrawer']);
+        }
+        $data['amount_in_words'] = NumberToWords::convert($data['amount']);
+
+        return $data;
     }
 
-    public function storeHotelWithdrawal(Request $request)
+    private function find(string $type, int|string $id): Model
     {
-        $data = $request->validate($this->withdrawalRules());
+        return self::TYPES[$type]['model']::findOrFail($id);
+    }
+
+    public function store(Request $request, string $type)
+    {
+        $t = self::TYPES[$type];
+        $data = $this->payload($request, $t['kind']);
         $data['user_id'] = Auth::id();
         $data['full_name'] = Auth::user()->name;
-        $data['amount_in_words'] = NumberToWords::convert($data['amount']);
-        HotelCashWithdrawal::create($data);
 
-        return back()->with('success', 'Hotel cash withdrawal recorded.');
+        $record = $t['model']::create($data);
+
+        return back()->with('success', $this->name($type).' #'.$record->entryNumber().' recorded.');
     }
 
-    public function storeFoodWithdrawal(Request $request)
+    public function update(Request $request, string $record, string $type)
     {
-        $data = $request->validate($this->withdrawalRules());
-        $data['user_id'] = Auth::id();
-        $data['full_name'] = Auth::user()->name;
-        $data['amount_in_words'] = NumberToWords::convert($data['amount']);
-        FoodCashWithdrawal::create($data);
+        $entry = $this->find($type, $record);
 
-        return back()->with('success', 'Food cash withdrawal recorded.');
-    }
-
-    public function destroyHotelWithdrawal(HotelCashWithdrawal $withdrawal)
-    {
-        if (ForceMode::locked(! Auth::user()->canManage($withdrawal->user), 'Not allowed to delete this record')) {
-            return back()->with('error', 'Not allowed to delete this record.');
+        if (ForceMode::locked(! Auth::user()->canManage($entry->user), 'Not allowed to edit this record')) {
+            return back()->with('error', 'You are not allowed to edit this entry.');
         }
-        $withdrawal->delete();
 
-        return back()->with('success', 'Deleted.');
-    }
-
-    public function destroyFoodWithdrawal(FoodCashWithdrawal $withdrawal)
-    {
-        if (ForceMode::locked(! Auth::user()->canManage($withdrawal->user), 'Not allowed to delete this record')) {
-            return back()->with('error', 'Not allowed to delete this record.');
-        }
-        $withdrawal->delete();
-
-        return back()->with('success', 'Deleted.');
-    }
-
-    public function storeHotelMisc(Request $request)
-    {
-        $data = $request->validate($this->miscRules());
-        $data['user_id'] = Auth::id();
-        $data['full_name'] = Auth::user()->name;
-        $data['amount_in_words'] = NumberToWords::convert($data['amount']);
-        HotelMiscExpense::create($data);
-
-        return back()->with('success', 'Hotel miscellaneous expense recorded.');
-    }
-
-    public function updateHotelMisc(Request $request, HotelMiscExpense $expense)
-    {
-        if (ForceMode::locked(! Auth::user()->canManage($expense->user), 'Not allowed to edit this record')) {
-            return back()->with('error', 'Not allowed to edit this record.');
-        }
-        $data = $request->validate($this->miscRules());
-        $data['amount_in_words'] = NumberToWords::convert($data['amount']);
+        $data = $this->payload($request, self::TYPES[$type]['kind']);
         if (! Auth::user()->isSuperAdmin()) {
             $data['user_id'] = Auth::id();
             $data['full_name'] = Auth::user()->name;
         }
-        $expense->update($data);
+        $entry->update($data);
 
-        return back()->with('success', 'Updated.');
+        return back()->with('success', $this->name($type).' #'.$entry->entryNumber().' updated.');
     }
 
-    public function destroyHotelMisc(HotelMiscExpense $expense)
+    public function destroy(string $record, string $type)
     {
-        if (ForceMode::locked(! Auth::user()->canManage($expense->user), 'Not allowed to delete this record')) {
-            return back()->with('error', 'Not allowed to delete this record.');
-        }
-        $expense->delete();
+        $entry = $this->find($type, $record);
 
-        return back()->with('success', 'Deleted.');
-    }
-
-    public function storeFoodMisc(Request $request)
-    {
-        $data = $request->validate($this->miscRules());
-        $data['user_id'] = Auth::id();
-        $data['full_name'] = Auth::user()->name;
-        $data['amount_in_words'] = NumberToWords::convert($data['amount']);
-        FoodMiscExpense::create($data);
-
-        return back()->with('success', 'Food miscellaneous expense recorded.');
-    }
-
-    public function updateFoodMisc(Request $request, FoodMiscExpense $expense)
-    {
-        if (ForceMode::locked(! Auth::user()->canManage($expense->user), 'Not allowed to edit this record')) {
-            return back()->with('error', 'Not allowed to edit this record.');
-        }
-        $data = $request->validate($this->miscRules());
-        $data['amount_in_words'] = NumberToWords::convert($data['amount']);
-        if (! Auth::user()->isSuperAdmin()) {
-            $data['user_id'] = Auth::id();
-            $data['full_name'] = Auth::user()->name;
-        }
-        $expense->update($data);
-
-        return back()->with('success', 'Updated.');
-    }
-
-    public function destroyFoodMisc(FoodMiscExpense $expense)
-    {
-        if (ForceMode::locked(! Auth::user()->canManage($expense->user), 'Not allowed to delete this record')) {
-            return back()->with('error', 'Not allowed to delete this record.');
-        }
-        $expense->delete();
-
-        return back()->with('success', 'Deleted.');
-    }
-
-    public function storeStaffAdvance(Request $request)
-    {
-        $data = $request->validate($this->advanceRules());
-        $data['user_id'] = Auth::id();
-        $data['full_name'] = Auth::user()->name;
-        $data['amount_in_words'] = NumberToWords::convert($data['amount']);
-        $data['business_unit_id'] = UnitContext::forNewRecord($request->string('business_unit')->toString());
-        StaffAdvance::create($data);
-
-        return back()->with('success', 'Staff advance recorded.');
-    }
-
-    public function updateStaffAdvance(Request $request, StaffAdvance $advance)
-    {
-        if (ForceMode::locked(! Auth::user()->canManage($advance->user), 'Not allowed to edit this record')) {
-            return back()->with('error', 'Not allowed to edit this record.');
-        }
-        $data = $request->validate($this->advanceRules());
-        $data['amount_in_words'] = NumberToWords::convert($data['amount']);
-
-        if ($request->filled('business_unit')) {
-            $data['business_unit_id'] = UnitContext::forNewRecord($request->string('business_unit')->toString());
+        if ($reason = CashLedger::deleteRefusal(Auth::user(), $entry)) {
+            return back()->with('error', $reason);
         }
 
-        $advance->update($data);
+        $entry->delete();
 
-        return back()->with('success', 'Updated.');
+        return back()->with('success', $this->name($type).' #'.$entry->entryNumber().' deleted.');
     }
 
-    public function destroyStaffAdvance(StaffAdvance $advance)
+    /** "Hotel Cash Withdrawal", "Staff Advance": what an entry is called in messages and on its receipt. */
+    private function name(string $type): string
     {
-        if (ForceMode::locked(! Auth::user()->canManage($advance->user), 'Not allowed to delete this record')) {
-            return back()->with('error', 'Not allowed to delete this record.');
-        }
-        $advance->delete();
+        $t = self::TYPES[$type];
 
-        return back()->with('success', 'Deleted.');
+        return ($t['book'] ? CashLedger::BOOK_NAMES[$t['book']].' ' : '').self::KINDS[$t['kind']];
     }
 
-    private function pdfRows(string $personLabel, string $personValue, $record, array $extra = []): array
+    public function view(string $record, string $type)
     {
-        return array_merge([
-            'Entry No.' => '#'.$record->entryNumber(),
-            'Date' => optional($record->date)->format('d-m-Y'),
-            'Time' => substr((string) $record->time, 0, 5),
-            'Recorded By' => $record->full_name,
-            $personLabel => $personValue,
-        ], $extra, [
-            'Amount' => '₹'.number_format($record->amount, 2),
-            'Amount in Words' => $record->amount_in_words,
-        ]);
-    }
+        $r = $this->find($type, $record);
+        $kind = self::TYPES[$type]['kind'];
 
-    public function viewHotelWithdrawal(HotelCashWithdrawal $withdrawal)
-    {
-        $pdf = Pdf::loadView('pdf.receipt', [
-            'title' => 'Hotel Cash Withdrawal',
-            'rows' => $this->pdfRows('Withdrawer', $withdrawal->withdrawer, $withdrawal),
-        ]);
+        $rows = ['Entry No.' => '#'.$r->entryNumber(), 'Date' => optional($r->date)->format('d-m-Y'), 'Time' => substr((string) $r->time, 0, 5), 'Recorded By' => $r->full_name]
+            + match ($kind) {
+                'withdrawal' => ['Withdrawer' => $r->withdrawer],
+                'misc' => ['Expense' => $r->expense_name, 'Expense Head' => $r->expense_head, 'Instruction' => $r->instruction],
+                'advance' => ['Staff Member' => (string) optional($r->staff)->name, 'Month' => $r->year_month, 'Instruction' => $r->instruction],
+            }
+            + ['Amount' => '₹'.number_format($r->amount, 2), 'Amount in Words' => $r->amount_in_words];
 
-        return $pdf->stream('hotel-withdrawal-'.$withdrawal->id.'.pdf');
-    }
-
-    public function viewFoodWithdrawal(FoodCashWithdrawal $withdrawal)
-    {
-        $pdf = Pdf::loadView('pdf.receipt', [
-            'title' => 'Food Cash Withdrawal',
-            'rows' => $this->pdfRows('Withdrawer', $withdrawal->withdrawer, $withdrawal),
-        ]);
-
-        return $pdf->stream('food-withdrawal-'.$withdrawal->id.'.pdf');
-    }
-
-    public function viewHotelMisc(HotelMiscExpense $expense)
-    {
-        $pdf = Pdf::loadView('pdf.receipt', [
-            'title' => 'Hotel Miscellaneous Expense',
-            'rows' => $this->pdfRows('Expense', $expense->expense_name, $expense, ['Instruction' => $expense->instruction]),
-        ]);
-
-        return $pdf->stream('hotel-misc-expense-'.$expense->id.'.pdf');
-    }
-
-    public function viewFoodMisc(FoodMiscExpense $expense)
-    {
-        $pdf = Pdf::loadView('pdf.receipt', [
-            'title' => 'Food Miscellaneous Expense',
-            'rows' => $this->pdfRows('Expense', $expense->expense_name, $expense, ['Instruction' => $expense->instruction]),
-        ]);
-
-        return $pdf->stream('food-misc-expense-'.$expense->id.'.pdf');
-    }
-
-    public function viewStaffAdvance(StaffAdvance $advance)
-    {
-        $pdf = Pdf::loadView('pdf.receipt', [
-            'title' => 'Staff Advance Salary',
-            'rows' => $this->pdfRows('Staff Member', optional($advance->staff)->name, $advance, [
-                'Month' => $advance->year_month,
-                'Instruction' => $advance->instruction,
-            ]),
-        ]);
-
-        return $pdf->stream('staff-advance-'.$advance->id.'.pdf');
+        return Pdf::loadView('pdf.receipt', ['title' => $this->name($type), 'rows' => $rows])->stream($type.'-'.$r->id.'.pdf');
     }
 }

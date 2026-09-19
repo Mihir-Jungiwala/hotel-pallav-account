@@ -20,7 +20,7 @@
                     <td class="text-end">
                         @if(! $b->hasDebitBillRecorded())
                             <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#editBill{{ $b->id }}"><i class="bi bi-pencil"></i></button>
-                            <form method="POST" action="{{ route('bill-master.bills.destroy', $b) }}" class="d-inline" onsubmit="return confirm('Delete this bill?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+                            <form method="POST" action="{{ route('bill-master.bills.destroy', $b) }}" class="d-inline" data-confirm-title="Delete this bill?" data-confirm="This cannot be undone.">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
                         @else
                             <span class="badge-p px-2 py-1 rounded-pill">Debit Bill Recorded</span>
                         @endif

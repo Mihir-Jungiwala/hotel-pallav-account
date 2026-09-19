@@ -16,6 +16,55 @@ class AttendanceController extends Controller
 {
     public function __construct(private SalaryProcessor $processor) {}
 
+    public function index(Request $request)
+    {
+        $company = \App\Support\PayrollContext::currentOrFail();
+
+        $year = (int) ($request->input('year') ?: now()->year);
+        $monthNumber = (int) ($request->input('month') ?: now()->month);
+
+        // Never navigate past the current month
+        $requested = \Illuminate\Support\Carbon::create($year, $monthNumber, 1);
+        if ($requested->greaterThan(now()->startOfMonth())) {
+            $requested = now()->startOfMonth();
+        }
+
+        $month = AttendanceMonth::firstOrCreate([
+            'payroll_company_id' => $company->id,
+            'year' => $requested->year,
+            'month' => $requested->month,
+        ]);
+
+        $month->revertStaleUnlock(session()->getId());
+
+        $employees = \App\Models\Employee::where('payroll_company_id', $company->id)
+            ->where('is_active', true)->orderBy('name')->get();
+
+        $daysInMonth = $month->daysInMonth();
+        $isCurrentMonth = $requested->isSameMonth(now());
+
+        // While a month is still running you can only have filled the days so
+        // far, so progress is measured against elapsed days, not the whole month.
+        $daysExpected = $isCurrentMonth ? min($daysInMonth, now()->day) : $daysInMonth;
+
+        return view('payroll.pages.attendance', [
+            'company' => $company,
+            'month' => $month,
+            'monthStart' => $requested,
+            'employees' => $employees,
+            'entries' => $month->entries()->get()->groupBy('employee_id')->map(fn ($rows) => $rows->keyBy('day')),
+            'statuses' => AttendanceStatus::where('payroll_company_id', $company->id)
+                ->where('is_active', true)->orderBy('name')->get(),
+            'incompleteEmployees' => $this->processor->employeesWithIncompleteAttendance($month),
+            'progress' => [
+                'filled' => $month->entries()->whereNotNull('attendance_status_id')->count(),
+                'expected' => $employees->count() * $daysExpected,
+                'required' => $employees->count() * $daysInMonth,
+                'isCurrentMonth' => $isCurrentMonth,
+            ],
+        ]);
+    }
+
     public function save(Request $request, AttendanceMonth $month)
     {
         \App\Support\PayrollScope::ensure($month);
@@ -90,6 +139,8 @@ class AttendanceController extends Controller
             }
         });
 
+        \App\Support\PayrollLogger::record('updated', 'Attendance', 'Attendance saved for '.$month->month.'/'.$month->year, ['Month' => $month->month.'/'.$month->year, 'Action' => 'Attendance saved'], $month, $month->month.'/'.$month->year, $month->payroll_company_id);
+
         return back()->with('success', 'Attendance saved.');
     }
 
@@ -115,6 +166,8 @@ class AttendanceController extends Controller
 
         $this->processor->generate($month, Auth::id());
 
+        \App\Support\PayrollLogger::record('updated', 'Attendance', 'Salary generated for '.$month->month.'/'.$month->year, ['Month' => $month->month.'/'.$month->year, 'Action' => 'Salary generated and month locked'], $month, $month->month.'/'.$month->year, $month->payroll_company_id);
+
         return back()->with('success', 'Salary generated. Attendance for this month is now locked.');
     }
 
@@ -133,6 +186,8 @@ class AttendanceController extends Controller
         }
 
         $this->processor->generate($month, Auth::id());
+
+        \App\Support\PayrollLogger::record('updated', 'Attendance', 'Salary re-generated for '.$month->month.'/'.$month->year, ['Month' => $month->month.'/'.$month->year, 'Action' => 'Salary re-generated'], $month, $month->month.'/'.$month->year, $month->payroll_company_id);
 
         return back()->with('success', 'Salary re-generated. All related payroll records for this month have been replaced.');
     }
@@ -155,6 +210,8 @@ class AttendanceController extends Controller
             'unlocked_at' => now(),
             'unlock_session_id' => session()->getId(),
         ])->save();
+
+        \App\Support\PayrollLogger::record('updated', 'Attendance', 'Attendance unlocked for '.$month->month.'/'.$month->year, ['Month' => $month->month.'/'.$month->year, 'Action' => 'Attendance unlocked'], $month, $month->month.'/'.$month->year, $month->payroll_company_id);
 
         return back()->with('success', 'Attendance unlocked. Complete your corrections and run Re-Generate Salary - if you leave before doing so, the month reverts to locked.');
     }

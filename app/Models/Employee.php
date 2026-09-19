@@ -23,6 +23,17 @@ class Employee extends Model
         return $this->belongsTo(PayrollCompany::class, 'payroll_company_id');
     }
 
+    /** "+91 98765 43210": the stored country code and number, as they would be dialled. */
+    public function contactDisplay(): string
+    {
+        return \App\Support\PhoneCountries::format($this->contact_country, $this->contact_number);
+    }
+
+    public function emergencyContactDisplay(): string
+    {
+        return \App\Support\PhoneCountries::format($this->emergency_contact_country, $this->emergency_contact_number);
+    }
+
     public function idProofType(): BelongsTo
     {
         return $this->belongsTo(IdProofType::class);

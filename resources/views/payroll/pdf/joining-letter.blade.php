@@ -15,39 +15,31 @@
 
 @section('content')
 
-<table class="avoid-break" style="margin-bottom:10px;">
+{{-- Who it is for and when, in one compact row --}}
+<table class="avoid-break" style="margin-bottom:8px;">
     <tr>
         <td style="vertical-align:top;">
-            <div class="muted" style="font-size:7.5pt; text-transform:uppercase; letter-spacing:0.5pt; font-weight:bold;">To</div>
-            <div style="font-size:10pt; font-weight:bold; margin-top:2px;">{{ $employee->name }}</div>
-            <div class="muted" style="font-size:8.5pt;">
+            <div class="muted" style="font-size:7pt; text-transform:uppercase; letter-spacing:0.5pt; font-weight:bold;">To</div>
+            <div style="font-size:10pt; font-weight:bold; margin-top:1px;">{{ $employee->name }}</div>
+            <div class="muted" style="font-size:8.3pt;">
                 {{ $employee->designation }}@if($employee->department), {{ $employee->department }}@endif
+                @if($employee->address) &middot; {{ $employee->address }}@endif
             </div>
-            @if($employee->address)
-                <div class="muted" style="font-size:8pt;">{{ $employee->address }}</div>
-            @endif
         </td>
-        <td style="vertical-align:top; text-align:right;">
-            <div class="muted" style="font-size:7.5pt; text-transform:uppercase; letter-spacing:0.5pt; font-weight:bold;">Date</div>
-            <div style="font-size:9.5pt; font-weight:bold; margin-top:2px;">{{ now()->format('d M Y') }}</div>
-            <div class="muted" style="font-size:7.5pt; margin-top:5px;">Employee ID</div>
-            <div style="font-size:9pt; font-weight:bold;">{{ $employee->employee_code }}</div>
+        <td style="vertical-align:top; text-align:right; width:30%;">
+            <div class="muted" style="font-size:7pt; text-transform:uppercase; letter-spacing:0.5pt; font-weight:bold;">Date</div>
+            <div style="font-size:9.5pt; font-weight:bold; margin-top:1px;">{{ now()->format('d M Y') }}</div>
+            <div class="muted" style="font-size:7.6pt;">ID {{ $employee->employee_code }}</div>
         </td>
     </tr>
 </table>
 
-@if($letter->subject)
-    <div style="font-weight:bold; font-size:10pt; padding:8px 0; border-top:0.8pt solid #DFD3FD; border-bottom:0.8pt solid #DFD3FD; margin-bottom:10px;">
-        Subject: {!! $render($letter->subject) !!}
-    </div>
-@endif
-
 @if($letter->introduction_content)
-    <div style="font-size:9.5pt; line-height:1.6; margin-bottom:10px;">{!! $render($letter->introduction_content) !!}</div>
+    <div class="prose" style="margin-bottom:6px; text-align:justify;">{!! $render($letter->introduction_content) !!}</div>
 @endif
 
-{{-- Key terms as a compact table, so the reader sees the offer at a glance --}}
-<h2 class="section">Appointment Details</h2>
+{{-- The offer's key terms, at a glance --}}
+<h2 class="section"><span class="dot"></span>Appointment Details</h2>
 <table class="fields avoid-break">
     <tr>
         <td class="k">Designation</td><td class="v">{{ $employee->designation ?: '-' }}</td>
@@ -64,59 +56,50 @@
 </table>
 
 @if($letter->roles_responsibilities)
-    <h2 class="section">Roles &amp; Responsibilities</h2>
-    <div style="font-size:9.5pt; line-height:1.6;">{!! $render($letter->roles_responsibilities) !!}</div>
+    <h2 class="section"><span class="dot"></span>Roles &amp; Responsibilities</h2>
+    <div class="prose" style="text-align:justify;">{!! $render($letter->roles_responsibilities) !!}</div>
 @endif
 
 @if($letter->terms_conditions)
-    <h2 class="section">Terms &amp; Conditions</h2>
-    <div style="font-size:9.5pt; line-height:1.6;">{!! $render($letter->terms_conditions) !!}</div>
+    <h2 class="section"><span class="dot"></span>Terms &amp; Conditions</h2>
+    <div class="prose" style="text-align:justify;">{!! $render($letter->terms_conditions) !!}</div>
 @endif
 
 @if($letter->closing_message)
-    <div style="font-size:9.5pt; line-height:1.6; margin-top:10px;">{!! $render($letter->closing_message) !!}</div>
+    <div class="prose" style="margin-top:8px; text-align:justify;">{!! $render($letter->closing_message) !!}</div>
 @endif
 
-<div class="sign-area">
-    @if($letter->authorized_closing_text)
-        <div style="font-size:9.5pt; margin-bottom:6px;">{!! $render($letter->authorized_closing_text) !!}</div>
-    @endif
-    @if($signaturePath && file_exists(public_path('storage/'.$signaturePath)))
-        <img src="{{ public_path('storage/'.$signaturePath) }}" style="max-height:42px;">
-    @endif
-    <div class="sign-line" style="display:inline-block; min-width:200px;">
-        <strong>{{ $signatoryName ?: 'Authorised Signatory' }}</strong><br>
-        <span class="muted" style="font-size:8pt;">{{ $signatoryDesignation }}</span><br>
-        <span class="muted" style="font-size:8pt;">{{ $company->name }}</span>
-    </div>
-</div>
+{{-- Company signatory --}}
+@include('payroll.pdf._signatures', [
+    'top' => 14,
+    'cells' => [[
+        'caption' => $letter->authorized_closing_text ? $render($letter->authorized_closing_text) : null,
+        'image' => $signaturePath,
+        'name' => $signatoryName ?: 'Authorised Signatory',
+        'lines' => [$signatoryDesignation, $company->name],
+    ]],
+])
 
+{{-- Employee acceptance, kept whole: it is the part that gets signed and
+     returned, so it must never be split across a page break --}}
 @if($letter->acceptance_heading || $letter->acceptance_content)
-<div style="margin-top:20px; padding-top:12px; border-top:0.8pt dashed #C6B0FB; page-break-inside:avoid;">
-    <h2 class="section" style="margin-top:0;">{{ $letter->acceptance_heading ? strip_tags($letter->renderFor($employee, $letter->acceptance_heading)) : 'Employee Acceptance' }}</h2>
+<div style="margin-top:14px; padding-top:9px; border-top:0.8pt dashed #C9B8F8; page-break-inside:avoid;">
+    <h2 class="section" style="margin-top:0;"><span class="dot"></span>{{ $letter->acceptance_heading ? strip_tags($letter->renderFor($employee, $letter->acceptance_heading)) : 'Employee Acceptance' }}</h2>
 
     @if($letter->acceptance_content)
-        <div style="font-size:9.5pt; line-height:1.6;">{!! $render($letter->acceptance_content) !!}</div>
+        <div class="prose" style="text-align:justify;">{!! $render($letter->acceptance_content) !!}</div>
     @endif
     @if($letter->acceptance_closing_text)
-        <div class="muted" style="font-size:8.5pt; margin-top:6px;">{!! $render($letter->acceptance_closing_text) !!}</div>
+        <div class="muted" style="font-size:8.2pt; margin-top:3px;">{!! $render($letter->acceptance_closing_text) !!}</div>
     @endif
 
-    <table style="margin-top:26px;">
-        <tr>
-            <td style="width:55%;">
-                <div class="sign-line" style="min-width:190px;">
-                    <strong>{{ $employee->name }}</strong><br>
-                    <span class="muted" style="font-size:7.5pt;">Employee signature</span>
-                </div>
-            </td>
-            <td style="width:45%;">
-                <div class="sign-line" style="min-width:150px;">
-                    <span class="muted" style="font-size:7.5pt;">Date</span>
-                </div>
-            </td>
-        </tr>
-    </table>
+    @include('payroll.pdf._signatures', [
+        'top' => 6,
+        'cells' => [
+            ['name' => $employee->name, 'lines' => ['Employee signature']],
+            ['lines' => ['Date']],
+        ],
+    ])
 </div>
 @endif
 

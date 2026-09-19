@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasEntryNumber;
+use App\Models\Concerns\LocksEntryStamp;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class HotelMiscExpense extends Model
 {
-    use HasEntryNumber;
+    use HasEntryNumber, LocksEntryStamp;
 
     protected $guarded = ['id'];
 

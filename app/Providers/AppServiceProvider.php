@@ -23,6 +23,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Every payroll create, change and delete is written to the payroll log
+        foreach (array_keys(\App\Observers\PayrollModelObserver::models()) as $model) {
+            $model::observe(\App\Observers\PayrollModelObserver::class);
+        }
+
         // Links and form actions must stay on HTTPS behind a proxy in production
         if ($this->app->environment('production')) {
             URL::forceScheme('https');

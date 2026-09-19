@@ -99,7 +99,7 @@
                                         </button>
                                     </form>
                                     <form method="POST" action="{{ route('masters.items.destroy', $item) }}" class="d-inline"
-                                          onsubmit="return confirm('Remove {{ $item->label }} from this list? Records that already use it keep it.')">
+                                          data-confirm-title="Remove {{ $item->label }}?" data-confirm="It leaves this list. Records that already use it keep it." data-confirm-label="Remove">
                                         @csrf @method('DELETE')
                                         <button class="btn-icon danger" title="Delete"><i class="bi bi-trash"></i></button>
                                     </form>
@@ -138,7 +138,7 @@
                 <span><i class="bi bi-key"></i> Forms ask for this list by the key <code>{{ $current->key }}</code>.</span>
                 @unless($current->is_system)
                     <form method="POST" action="{{ route('masters.sets.destroy', $current) }}"
-                          onsubmit="return confirm('Remove the whole {{ $current->name }} list?')">
+                          data-confirm-title="Remove the whole {{ $current->name }} list?" data-confirm="Every option in it goes too." data-confirm-label="Remove list">
                         @csrf @method('DELETE')
                         <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Delete list</button>
                     </form>

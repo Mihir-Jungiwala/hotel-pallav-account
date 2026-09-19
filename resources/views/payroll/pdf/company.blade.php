@@ -9,7 +9,7 @@
 
 @section('content')
 
-<h2 class="section">Basic Information</h2>
+<h2 class="section"><span class="dot"></span>Basic Information</h2>
 <table class="fields avoid-break">
     <tr>
         <td class="k">Company Name</td><td class="v">{{ $company->name }}</td>
@@ -30,7 +30,7 @@
     </tr>
 </table>
 
-<h2 class="section">Legal &amp; Registration</h2>
+<h2 class="section"><span class="dot"></span>Legal &amp; Registration</h2>
 <table class="fields avoid-break">
     <tr>
         <td class="k">PAN</td><td class="v">{{ $company->pan_number ?: '-' }}</td>
@@ -45,7 +45,7 @@
     </tr>
 </table>
 
-<h2 class="section">Authorised Signatory</h2>
+<h2 class="section"><span class="dot"></span>Authorised Signatory</h2>
 <table class="fields avoid-break">
     <tr>
         <td class="k">Name</td><td class="v">{{ $company->authorized_person_name ?: '-' }}</td>
@@ -57,7 +57,7 @@
     </tr>
 </table>
 
-<h2 class="section">Banking</h2>
+<h2 class="section"><span class="dot"></span>Banking</h2>
 <table class="fields avoid-break">
     <tr>
         <td class="k">Bank</td><td class="v">{{ $company->bank_name ?: '-' }}</td>
@@ -75,7 +75,7 @@
     $monthlyCost = $company->employees()->where('is_active', true)->sum('salary');
 @endphp
 
-<h2 class="section">Payroll Footprint</h2>
+<h2 class="section"><span class="dot"></span>Payroll Footprint</h2>
 <table class="grid avoid-break">
     <thead><tr><th>Employees</th><th class="num">Active</th><th class="num">Inactive</th><th class="num">Monthly Salary Commitment</th></tr></thead>
     <tbody>

@@ -11,6 +11,20 @@ use Illuminate\Http\Request;
 
 class JoiningLetterController extends Controller
 {
+    public function index()
+    {
+        $company = PayrollContext::currentOrFail();
+
+        return view('payroll.pages.joining-letter', [
+            'company' => $company,
+            'letter' => JoiningLetter::where('payroll_company_id', $company->id)->first(),
+            // Newest joiner first - the letter most likely still to be issued
+            'employees' => Employee::where('payroll_company_id', $company->id)
+                ->where('is_active', true)
+                ->orderByDesc('joining_date')->orderByDesc('id')->get(),
+        ]);
+    }
+
     public function save(Request $request)
     {
         $company = PayrollContext::currentOrFail();
@@ -74,7 +88,7 @@ class JoiningLetterController extends Controller
 
         abort_if($letter === null, 404, 'No joining letter template configured for this company.');
 
-        return Pdf::loadView('payroll.pdf.joining-letter', compact('letter', 'employee', 'company'))
+        return \App\Support\PayrollPdf::make('payroll.pdf.joining-letter', compact('letter', 'employee', 'company'))
             ->stream('joining-letter-'.$employee->employee_code.'.pdf');
     }
 }

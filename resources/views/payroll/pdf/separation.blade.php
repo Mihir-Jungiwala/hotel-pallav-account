@@ -26,7 +26,7 @@
     </tr>
 </table>
 
-<h2 class="section">Exit Details</h2>
+<h2 class="section"><span class="dot"></span>Exit Details</h2>
 <table class="fields avoid-break">
     <tr>
         <td class="k">Exit Type</td><td class="v">{{ $separation->separation_type }}</td>
@@ -52,15 +52,15 @@
     @endif
 </table>
 
-<h2 class="section">Reason</h2>
+<h2 class="section"><span class="dot"></span>Reason</h2>
 <div style="font-size:9.5pt; line-height:1.7;">{{ $separation->reason }}</div>
 
 @if($separation->remarks)
-<h2 class="section">HR Remarks</h2>
+<h2 class="section"><span class="dot"></span>HR Remarks</h2>
 <div style="font-size:9.5pt; line-height:1.7;">{{ $separation->remarks }}</div>
 @endif
 
-<h2 class="section">Acceptance Document</h2>
+<h2 class="section"><span class="dot"></span>Acceptance Document</h2>
 <div style="font-size:9pt;">
     @if($separation->document_path)
         <span class="chip ok">Attached</span>

@@ -11,6 +11,19 @@ use Illuminate\Validation\Rule;
 
 class DeductionController extends Controller
 {
+    public function index()
+    {
+        $company = PayrollContext::currentOrFail();
+
+        return view('payroll.pages.deduction', [
+            'company' => $company,
+            // Newest deduction first, so one just added is where it was expected
+            'deductions' => Deduction::where('payroll_company_id', $company->id)
+                ->withCount('assignments')
+                ->orderByDesc('created_at')->orderByDesc('id')->get(),
+        ]);
+    }
+
     private function rules(int $companyId, ?Deduction $deduction = null): array
     {
         return [

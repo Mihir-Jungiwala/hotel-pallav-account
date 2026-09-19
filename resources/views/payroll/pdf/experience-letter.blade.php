@@ -16,29 +16,29 @@
 
 @section('content')
 
-<div style="text-align:right; font-size:8.5pt; color:#6B6486; margin-bottom:10px;">
-    Date: <strong style="color:#1B1235;">{{ now()->format('d M Y') }}</strong>
+<div style="text-align:right; font-size:8.3pt; color:#6B6486; margin-bottom:6px;">
+    Date: <strong style="color:#23193F;">{{ now()->format('d M Y') }}</strong>
 </div>
 
 @if($letter->subject)
-    <div style="text-align:center; font-weight:bold; font-size:13pt; letter-spacing:.5pt; text-transform:uppercase;
-                padding:9px 0; border-top:1.2pt solid #5B21B6; border-bottom:1.2pt solid #5B21B6; margin-bottom:16px;">
+    <div style="text-align:center; font-weight:bold; font-size:12pt; letter-spacing:.5pt; text-transform:uppercase;
+                padding:7px 0; border-top:1.2pt solid #5B21B6; border-bottom:1.2pt solid #5B21B6; margin-bottom:12px;">
         {!! $render($letter->subject) !!}
     </div>
 @endif
 
-<div style="font-size:10pt; line-height:1.75; margin-bottom:12px;">
+<div class="prose" style="margin-bottom:8px;">
     <strong>TO WHOMSOEVER IT MAY CONCERN</strong>
 </div>
 
 @if($letter->body_content)
-    <div style="font-size:10pt; line-height:1.8; margin-bottom:12px; text-align:justify;">
+    <div class="prose" style="margin-bottom:8px; text-align:justify;">
         {!! $render($letter->body_content) !!}
     </div>
 @endif
 
 {{-- Verified service record, so the certificate stands on its own --}}
-<h2 class="section">Service Record</h2>
+<h2 class="section"><span class="dot"></span>Service Record</h2>
 <table class="fields avoid-break">
     <tr>
         <td class="k">Employee Name</td><td class="v">{{ $employee->name }}</td>
@@ -59,32 +59,28 @@
 </table>
 
 @if($letter->conduct_remarks)
-    <div style="font-size:10pt; line-height:1.8; margin-top:14px; text-align:justify;">
+    <div class="prose" style="margin-top:10px; text-align:justify;">
         {!! $render($letter->conduct_remarks) !!}
     </div>
 @endif
 
 @if($letter->closing_message)
-    <div style="font-size:10pt; line-height:1.8; margin-top:10px; text-align:justify;">
+    <div class="prose" style="margin-top:7px; text-align:justify;">
         {!! $render($letter->closing_message) !!}
     </div>
 @endif
 
-<div class="sign-area">
-    @if($letter->authorized_closing_text)
-        <div style="font-size:9.5pt; margin-bottom:8px;">{!! $render($letter->authorized_closing_text) !!}</div>
-    @endif
-    @if($signaturePath && file_exists(public_path('storage/'.$signaturePath)))
-        <img src="{{ public_path('storage/'.$signaturePath) }}" style="max-height:44px;">
-    @endif
-    <div class="sign-line" style="width:210px; text-align:left; margin-top:30px;">
-        <strong>{{ $signatoryName ?: 'Authorised Signatory' }}</strong><br>
-        <span class="muted" style="font-size:8pt;">{{ $signatoryDesignation }}</span><br>
-        <span class="muted" style="font-size:8pt;">{{ $company->name }}</span>
-    </div>
-</div>
+@include('payroll.pdf._signatures', [
+    'top' => 16,
+    'cells' => [[
+        'caption' => $letter->authorized_closing_text ? $render($letter->authorized_closing_text) : null,
+        'image' => $signaturePath,
+        'name' => $signatoryName ?: 'Authorised Signatory',
+        'lines' => [$signatoryDesignation, $company->name],
+    ]],
+])
 
-<div class="muted" style="font-size:7.5pt; margin-top:18px; text-align:center;">
+<div class="muted" style="font-size:7.2pt; margin-top:12px; text-align:center;">
     This certificate is issued on request and reflects the service record held by {{ $company->name }}.
 </div>
 

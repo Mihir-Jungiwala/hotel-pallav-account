@@ -52,7 +52,7 @@
         ->first();
 @endphp
 
-<h2 class="section">Payroll Status</h2>
+<h2 class="section"><span class="dot"></span>Payroll Status</h2>
 <table class="grid avoid-break">
     <thead><tr><th>Payroll Month</th><th>Processing Status</th><th class="num">Net Salary Paid</th></tr></thead>
     <tbody>
@@ -71,7 +71,7 @@
 </table>
 
 @if($entry->remarks)
-<h2 class="section">Remarks</h2>
+<h2 class="section"><span class="dot"></span>Remarks</h2>
 <div style="font-size:9pt; line-height:1.55;">{{ $entry->remarks }}</div>
 @endif
 

@@ -98,38 +98,23 @@ Route::middleware(['auth', 'auth.session', 'single.session', 'account.usable', '
     Route::put('/company/{company}', [CompanyProfileController::class, 'update'])->name('company.update');
     Route::delete('/company/{company}', [CompanyProfileController::class, 'destroy'])->name('company.destroy');
 
-    // Revenue
+    // Revenue: one set of handlers for both cash books, named revenue.hotel.* and revenue.food.*
     Route::get('/revenue', [RevenueController::class, 'index'])->name('revenue.index');
-    Route::post('/revenue/hotel', [RevenueController::class, 'storeHotel'])->name('revenue.hotel.store');
-    Route::post('/revenue/food', [RevenueController::class, 'storeFood'])->name('revenue.food.store');
-    Route::delete('/revenue/hotel/{deposit}', [RevenueController::class, 'destroyHotel'])->name('revenue.hotel.destroy');
-    Route::delete('/revenue/food/{deposit}', [RevenueController::class, 'destroyFood'])->name('revenue.food.destroy');
-    Route::get('/revenue/hotel/{deposit}/view', [RevenueController::class, 'viewHotel'])->name('revenue.hotel.view');
-    Route::get('/revenue/food/{deposit}/view', [RevenueController::class, 'viewFood'])->name('revenue.food.view');
+    foreach (['hotel', 'food'] as $book) {
+        Route::post("/revenue/$book", [RevenueController::class, 'store'])->defaults('book', $book)->name("revenue.$book.store");
+        Route::put("/revenue/$book/{record}", [RevenueController::class, 'update'])->defaults('book', $book)->whereNumber('record')->name("revenue.$book.update");
+        Route::delete("/revenue/$book/{record}", [RevenueController::class, 'destroy'])->defaults('book', $book)->whereNumber('record')->name("revenue.$book.destroy");
+        Route::get("/revenue/$book/{record}/view", [RevenueController::class, 'view'])->defaults('book', $book)->whereNumber('record')->name("revenue.$book.view");
+    }
 
-    // Expenses
+    // Expenses: hotel and food withdrawals, hotel and food misc. expenses, staff advances
     Route::get('/expense', [ExpenseController::class, 'index'])->name('expense.index');
-    Route::post('/expense/hotel-withdrawal', [ExpenseController::class, 'storeHotelWithdrawal'])->name('expense.hotel-withdrawal.store');
-    Route::delete('/expense/hotel-withdrawal/{withdrawal}', [ExpenseController::class, 'destroyHotelWithdrawal'])->name('expense.hotel-withdrawal.destroy');
-    Route::get('/expense/hotel-withdrawal/{withdrawal}/view', [ExpenseController::class, 'viewHotelWithdrawal'])->name('expense.hotel-withdrawal.view');
-    Route::post('/expense/food-withdrawal', [ExpenseController::class, 'storeFoodWithdrawal'])->name('expense.food-withdrawal.store');
-    Route::delete('/expense/food-withdrawal/{withdrawal}', [ExpenseController::class, 'destroyFoodWithdrawal'])->name('expense.food-withdrawal.destroy');
-    Route::get('/expense/food-withdrawal/{withdrawal}/view', [ExpenseController::class, 'viewFoodWithdrawal'])->name('expense.food-withdrawal.view');
-
-    Route::post('/expense/hotel-misc', [ExpenseController::class, 'storeHotelMisc'])->name('expense.hotel-misc.store');
-    Route::put('/expense/hotel-misc/{expense}', [ExpenseController::class, 'updateHotelMisc'])->name('expense.hotel-misc.update');
-    Route::delete('/expense/hotel-misc/{expense}', [ExpenseController::class, 'destroyHotelMisc'])->name('expense.hotel-misc.destroy');
-    Route::get('/expense/hotel-misc/{expense}/view', [ExpenseController::class, 'viewHotelMisc'])->name('expense.hotel-misc.view');
-
-    Route::post('/expense/food-misc', [ExpenseController::class, 'storeFoodMisc'])->name('expense.food-misc.store');
-    Route::put('/expense/food-misc/{expense}', [ExpenseController::class, 'updateFoodMisc'])->name('expense.food-misc.update');
-    Route::delete('/expense/food-misc/{expense}', [ExpenseController::class, 'destroyFoodMisc'])->name('expense.food-misc.destroy');
-    Route::get('/expense/food-misc/{expense}/view', [ExpenseController::class, 'viewFoodMisc'])->name('expense.food-misc.view');
-
-    Route::post('/expense/staff-advance', [ExpenseController::class, 'storeStaffAdvance'])->name('expense.staff-advance.store');
-    Route::put('/expense/staff-advance/{advance}', [ExpenseController::class, 'updateStaffAdvance'])->name('expense.staff-advance.update');
-    Route::delete('/expense/staff-advance/{advance}', [ExpenseController::class, 'destroyStaffAdvance'])->name('expense.staff-advance.destroy');
-    Route::get('/expense/staff-advance/{advance}/view', [ExpenseController::class, 'viewStaffAdvance'])->name('expense.staff-advance.view');
+    foreach (array_keys(ExpenseController::TYPES) as $type) {
+        Route::post("/expense/$type", [ExpenseController::class, 'store'])->defaults('type', $type)->name("expense.$type.store");
+        Route::put("/expense/$type/{record}", [ExpenseController::class, 'update'])->defaults('type', $type)->whereNumber('record')->name("expense.$type.update");
+        Route::delete("/expense/$type/{record}", [ExpenseController::class, 'destroy'])->defaults('type', $type)->whereNumber('record')->name("expense.$type.destroy");
+        Route::get("/expense/$type/{record}/view", [ExpenseController::class, 'view'])->defaults('type', $type)->whereNumber('record')->name("expense.$type.view");
+    }
 
     // Shift handover
     Route::get('/shift-handover', [ShiftHandoverController::class, 'index'])->name('shift-handover.index');
@@ -160,11 +145,31 @@ Route::middleware(['auth', 'auth.session', 'single.session', 'account.usable', '
     Route::get('/reports/download', [ReportController::class, 'download'])->name('reports.download');
 
     /*
-     * Payroll (PMS). Every module below is scoped to the Current Company
-     * selected on the payroll screen.
+     * Payroll (PMS).
+     *
+     * The module's home is the Company Listing: you choose a company there,
+     * and that company stays active in the session while you move between the
+     * individual payroll pages below. Each feature is its own page, its own
+     * route and its own menu entry - they share only the selected company,
+     * and "payroll.company" refuses any of them until one is chosen.
      */
     Route::prefix('payroll')->name('payroll.')->group(function () {
+        // Company Listing - the landing page, and the only page without a
+        // company already selected.
         Route::get('/', [PayrollController::class, 'index'])->name('index');
+        Route::get('/companies', [PayrollController::class, 'index'])->name('company.index');
+
+        // Payroll Log (SuperAdmin): everything done in payroll, with full detail
+        Route::get('/log', [\App\Http\Controllers\Payroll\PayrollLogController::class, 'index'])->middleware('superadmin')->name('log.index');
+
+        // Payroll Master (SuperAdmin): works on all companies, or on the selected one
+        Route::middleware('superadmin')->prefix('master')->name('master.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Payroll\PayrollMasterController::class, 'index'])->name('index');
+            Route::post('/{list}', [\App\Http\Controllers\Payroll\PayrollMasterController::class, 'store'])->name('store');
+            Route::put('/items/{item}', [\App\Http\Controllers\Payroll\PayrollMasterController::class, 'update'])->name('update');
+            Route::post('/items/{item}/toggle', [\App\Http\Controllers\Payroll\PayrollMasterController::class, 'toggle'])->name('toggle');
+            Route::delete('/items/{item}', [\App\Http\Controllers\Payroll\PayrollMasterController::class, 'destroy'])->name('destroy');
+        });
 
         // Company Setup
         Route::post('/companies', [PayrollCompanyController::class, 'store'])->name('company.store');
@@ -172,6 +177,31 @@ Route::middleware(['auth', 'auth.session', 'single.session', 'account.usable', '
         Route::delete('/companies/{company}', [PayrollCompanyController::class, 'destroy'])->name('company.destroy');
         Route::post('/companies/{company}/toggle-active', [PayrollCompanyController::class, 'toggleActive'])->name('company.toggle-active');
         Route::get('/companies/{company}/view', [PayrollCompanyController::class, 'view'])->name('company.view');
+
+        /*
+         * The individual payroll pages. Each one is reachable on its own URL,
+         * and each one reads only the company currently selected.
+         */
+        Route::middleware('payroll.company')->group(function () {
+            // The company's own dashboard - where opening a company arrives
+            Route::get('/dashboard', [\App\Http\Controllers\Payroll\PayrollDashboardController::class, 'index'])->name('dashboard.index');
+
+            Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+            Route::get('/attendance-statuses', [AttendanceStatusController::class, 'index'])->name('attendance-status.index');
+            Route::get('/deductions', [DeductionController::class, 'index'])->name('deduction.index');
+            Route::get('/joining-letter', [JoiningLetterController::class, 'index'])->name('joining-letter.index');
+            Route::get('/staff', [EmployeeController::class, 'index'])->name('staff.index');
+            Route::get('/advances', [PayrollAdvanceController::class, 'index'])->name('advance.index');
+            Route::get('/bonus-incentives', [BonusIncentiveController::class, 'index'])->name('bonus-incentive.index');
+            Route::get('/salary-update', [SalaryUpdateController::class, 'index'])->name('salary-update.index');
+            Route::get('/salary-update/{employee}', [SalaryUpdateController::class, 'show'])->whereNumber('employee')->name('salary-update.show');
+            Route::get('/salary-payments', [SalaryPaymentController::class, 'index'])->name('salary-payment.index');
+            Route::get('/experience-letter', [ExperienceLetterController::class, 'index'])->name('experience-letter.index');
+            Route::get('/resignations', [SeparationController::class, 'index'])->name('separation.index');
+            Route::get('/salary-slips', [SalarySlipController::class, 'index'])->name('salary-slip.index');
+            Route::get('/reports/period', [SalaryReportController::class, 'index'])->name('period-report.index');
+            Route::get('/reports/monthly', [SalaryReportController::class, 'monthlyIndex'])->name('monthly-report.index');
+        });
 
         // Attendance Status Master
         Route::post('/attendance-statuses', [AttendanceStatusController::class, 'store'])->name('attendance-status.store');
@@ -196,6 +226,8 @@ Route::middleware(['auth', 'auth.session', 'single.session', 'account.usable', '
         Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('employee.update');
         Route::delete('/employees/{employee}', [EmployeeController::class, 'destroy'])->name('employee.destroy');
         Route::post('/employees/{employee}/toggle-active', [EmployeeController::class, 'toggleActive'])->name('employee.toggle-active');
+        Route::post('/employees/{employee}/share', [EmployeeController::class, 'share'])->name('employee.share');
+        Route::post('/employees/{employee}/offer-letter', [EmployeeController::class, 'sendOfferLetter'])->name('employee.offer-letter.send');
         Route::get('/employees/{employee}/view', [EmployeeController::class, 'view'])->name('employee.view');
 
         // Attendance Management (Generate / Re-Generate Salary live here)

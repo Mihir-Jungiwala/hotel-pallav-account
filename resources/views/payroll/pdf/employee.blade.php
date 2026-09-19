@@ -32,7 +32,7 @@
     </tr>
 </table>
 
-<h2 class="section">Employment</h2>
+<h2 class="section"><span class="dot"></span>Employment</h2>
 <table class="fields avoid-break">
     <tr>
         <td class="k">Employee ID</td><td class="v">{{ $employee->employee_code }}</td>
@@ -43,7 +43,7 @@
         <td class="k">Working Hours</td><td class="v">{{ rtrim(rtrim(number_format($employee->daily_working_hours, 2), '0'), '.') }} hrs / day</td>
     </tr>
     <tr>
-        <td class="k">Contact</td><td class="v">{{ $employee->contact_number ?: '-' }}</td>
+        <td class="k">Contact</td><td class="v">{{ $employee->contactDisplay() ?: '-' }}</td>
         <td class="k">Payment Mode</td><td class="v">{{ $employee->payment_mode }}</td>
     </tr>
     <tr>
@@ -52,12 +52,12 @@
 </table>
 
 @if($employee->responsibilities)
-<h2 class="section">Responsibilities</h2>
+<h2 class="section"><span class="dot"></span>Responsibilities</h2>
 <div style="font-size:9pt; line-height:1.55;">{{ $employee->responsibilities }}</div>
 @endif
 
 @if($employee->payment_mode === 'Bank')
-<h2 class="section">Bank Details</h2>
+<h2 class="section"><span class="dot"></span>Bank Details</h2>
 <table class="fields avoid-break">
     <tr>
         <td class="k">Bank</td><td class="v">{{ $employee->bank_name ?: '-' }}</td>
@@ -73,16 +73,16 @@
 </table>
 @endif
 
-<h2 class="section">Identification</h2>
+<h2 class="section"><span class="dot"></span>Identification</h2>
 <table class="fields avoid-break">
     <tr>
-        <td class="k">ID Proof Type</td><td class="v">{{ optional($employee->idProofType)->name ?: '-' }}</td>
+        <td class="k">ID Proof Type</td><td class="v">{{ $employee->id_proof_type ?: (optional($employee->idProofType)->name ?: '-') }}</td>
         <td class="k">ID Proof No.</td><td class="v">{{ $employee->id_proof_number ?: '-' }}</td>
     </tr>
 </table>
 
 @if($employee->deductions->isNotEmpty())
-<h2 class="section">Assigned Deductions</h2>
+<h2 class="section"><span class="dot"></span>Assigned Deductions</h2>
 <table class="grid avoid-break">
     <thead><tr><th>Deduction</th><th>Type</th><th class="num">Amount</th><th>Status</th></tr></thead>
     <tbody>

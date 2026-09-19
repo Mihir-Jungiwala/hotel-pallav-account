@@ -83,10 +83,20 @@
             if (!button || button.classList.contains('is-busy')) return;
 
             const label = button.innerHTML;
+            // Small controls (status switches, icon buttons) keep their exact size and show
+            // only a spinner; "Working..." beside it would spill out of them
+            const compact = form.hasAttribute('data-status-toggle') || button.classList.contains('btn-icon') || button.classList.contains('btn-sm');
+            if (compact) {
+                const box = button.getBoundingClientRect();
+                button.style.width = box.width + 'px';
+                button.style.height = box.height + 'px';
+                button.style.padding = '0';
+            }
             button.classList.add('is-busy');
             button.disabled = true;
-            button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>' +
-                (button.dataset.busyLabel || 'Working…');
+            button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"' +
+                (compact ? ' style="margin:0"' : '') + '></span>' +
+                (compact ? '' : (button.dataset.busyLabel || 'Working…'));
 
             // If the navigation is cancelled (validation redirect, back button), restore
             setTimeout(() => {
@@ -94,6 +104,7 @@
                 button.classList.remove('is-busy');
                 button.disabled = false;
                 button.innerHTML = label;
+                button.style.width = button.style.height = button.style.padding = '';
             }, 12000);
         }, true);
     }
@@ -230,17 +241,28 @@
             if (!table) return;
 
             const counter = input.dataset.filterCount ? document.querySelector(input.dataset.filterCount) : null;
+            const smart = window.PMSSearch || null;
 
             // When a pager owns this table it decides row visibility; the filter
             // only marks which rows are eligible.
             const paginated = table.hasAttribute('data-paginate');
 
+            if (smart) smart.enhanceInput(input, table);
+
             const apply = () => {
-                const term = input.value.trim().toLowerCase();
+                const raw = input.value.trim();
+                // The smart matcher reads everything a row shows (names, amounts
+                // as printed, dates, statuses) and understands "two words",
+                // "quoted phrases", -exclusions, >amounts, dates and typos.
+                // Without it, fall back to a plain contains-check.
+                const query = smart ? smart.compileFor(raw, table) : null;
+                const plain = raw.toLowerCase();
                 let shown = 0;
 
                 table.querySelectorAll('tbody tr[data-row]').forEach((row) => {
-                    const match = !term || row.dataset.row.toLowerCase().includes(term);
+                    const match = query
+                        ? (query.empty || query.test(smart.index(row)))
+                        : (!plain || row.dataset.row.toLowerCase().includes(plain));
 
                     if (match) {
                         delete row.dataset.filteredOut;
@@ -256,17 +278,23 @@
                 if (emptyRow) emptyRow.hidden = shown !== 0;
 
                 const noMatch = table.querySelector('tbody tr[data-no-match]');
-                if (noMatch) noMatch.hidden = !(term && shown === 0);
+                if (noMatch) noMatch.hidden = !(raw && shown === 0);
 
                 if (counter) counter.textContent = shown;
 
                 if (paginated) table.dispatchEvent(new CustomEvent('pms:filtered'));
+                else renumber(table); // keep S.No. contiguous over the matches
+
+                // Highlight what matched, or explain an empty result. After the
+                // pager has decided which rows are on the page.
+                if (smart) smart.decorate(table, input, query, shown);
             };
 
             input.addEventListener('input', apply);
             apply();
         });
     }
+
 
     /* -----------------------------------------------------------------------
        Inline uniqueness validation
@@ -540,19 +568,10 @@
                 wizard.closest('.modal-body')?.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
             }
 
-            // Only the visible step is validated, so hidden steps can't block submit
+            // Only the step on screen is checked, so a later step can never
+            // block moving forward, and the message is drawn in the page.
             function stepValid() {
-                const fields = steps[index].querySelectorAll('input, select, textarea');
-
-                for (const field of fields) {
-                    if (field.disabled || field.closest('[hidden]')) continue;
-                    if (!field.checkValidity()) {
-                        field.reportValidity();
-                        return false;
-                    }
-                }
-
-                return true;
+                return window.PMSForms ? window.PMSForms.validate(steps[index]) : true;
             }
 
             next.addEventListener('click', () => {
@@ -574,21 +593,34 @@
                 if (target < index) { index = target; render(); }
             });
 
-            // If the browser rejects a field on a hidden step, surface that step
+            /*
+             * Submitting from the last step still has to answer for the steps
+             * behind it. A field on another step cannot be shown a message
+             * where it stands, so the wizard moves to that step first and
+             * only then draws it. This runs before the page-wide validation
+             * handler and tells it the form is already accounted for.
+             */
+            form.dataset.pmsWizardHandled = '1';
+
             form.addEventListener('submit', (e) => {
-                if (form.checkValidity()) return;
+                if (!window.PMSForms) return;
 
-                const invalid = form.querySelector(':invalid');
-                if (!invalid) return;
+                // Check every step, not just this one
+                const firstBadStep = steps.findIndex((step) => !window.PMSForms.validate(step, { focus: false }));
 
-                const owner = steps.findIndex((s) => s.contains(invalid));
-                if (owner >= 0 && owner !== index) {
-                    e.preventDefault();
-                    index = owner;
+                if (firstBadStep === -1) return;
+
+                e.preventDefault();
+                e.stopImmediatePropagation();
+
+                if (firstBadStep !== index) {
+                    index = firstBadStep;
                     render();
-                    setTimeout(() => invalid.reportValidity(), 120);
                 }
-            });
+
+                // Redraw with focus now the right step is on screen
+                setTimeout(() => window.PMSForms.validate(steps[index]), reduceMotion ? 0 : 160);
+            }, true);
 
             // Enter should advance rather than submit from an early step
             form.addEventListener('keydown', (e) => {
@@ -606,31 +638,9 @@
        Payment mode → bank fields, deduction rows
        ----------------------------------------------------------------------- */
 
-    function wireConditionalBank() {
-        document.querySelectorAll('[data-bank-scope]').forEach((scope) => {
-            const mode = scope.querySelector('.payment-mode');
-            if (!mode) return;
-
-            const fields = scope.querySelectorAll('.bank-details');
-
-            const sync = () => {
-                const show = mode.value === 'Bank';
-
-                fields.forEach((el) => {
-                    el.hidden = !show;
-
-                    // Bank details are only mandatory when the salary is actually paid to a bank
-                    el.querySelectorAll('[data-require-when-bank]').forEach((field) => {
-                        field.required = show;
-                        if (!show) field.setCustomValidity('');
-                    });
-                });
-            };
-
-            mode.addEventListener('change', sync);
-            sync();
-        });
-    }
+    /* Conditional fields now live in pms-forms.js, behind one data-show-when
+       rule, so every "show this only when that" behaves the same way and a
+       hidden field never keeps a requirement that would block submit. */
 
     /* -----------------------------------------------------------------------
        Collapsible panels - primary sidebar + docked secondary panel
@@ -712,6 +722,89 @@
         });
 
         syncLabels();
+        wireHoverPeek();
+    }
+
+    /* -----------------------------------------------------------------------
+       Open on hover, when shut
+
+       A shut rail or panel slides out over the page while the pointer rests
+       on it, and back when the pointer leaves. It waits a beat before opening
+       so a pointer merely crossing the rail on its way somewhere does not
+       flash it, and a little longer before closing so a small overshoot off
+       the edge does not snap it shut. Touch screens have no hover, so they
+       keep the click behaviour and nothing here runs.
+       ----------------------------------------------------------------------- */
+
+    function wireHoverPeek() {
+        const body = document.body;
+        if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+
+        const OPEN_DELAY = 140;
+        const CLOSE_DELAY = 260;
+
+        /**
+         * Keeps `cls` on <body> while the pointer is over any of `zones`, as
+         * long as `shut()` says the panel is currently closed.
+         */
+        function peek(zones, cls, shut) {
+            zones = zones.filter(Boolean);
+            if (!zones.length) return;
+
+            let openTimer = null;
+            let closeTimer = null;
+
+            const enter = () => {
+                clearTimeout(closeTimer);
+                if (!shut() || body.classList.contains(cls)) return;
+                openTimer = setTimeout(() => body.classList.add(cls), OPEN_DELAY);
+            };
+
+            const leave = (event) => {
+                // Moving between two zones of the same panel is not leaving it
+                if (event.relatedTarget && zones.some((z) => z.contains(event.relatedTarget))) return;
+                clearTimeout(openTimer);
+                closeTimer = setTimeout(() => {
+                    // A menu opened from inside the panel keeps it open
+                    if (zones.some((z) => z.querySelector('.open, .show'))) return;
+                    body.classList.remove(cls);
+                }, CLOSE_DELAY);
+            };
+
+            zones.forEach((zone) => {
+                zone.addEventListener('mouseenter', enter);
+                zone.addEventListener('mouseleave', leave);
+            });
+
+            // Pinning it open with the real control ends the peek. Only touch
+            // the class when it is actually there: writing the attribute, even
+            // to the same value, queues another mutation and would loop.
+            new MutationObserver(() => {
+                if (!shut() && body.classList.contains(cls)) body.classList.remove(cls);
+            }).observe(body, { attributes: true, attributeFilter: ['class'] });
+        }
+
+        const narrow = window.matchMedia('(max-width: 1080px)');
+
+        peek(
+            [document.getElementById('sidebar')],
+            'sidebar-peeking',
+            () => body.classList.contains('sidebar-collapsed') || narrow.matches
+        );
+
+        peek(
+            [document.getElementById('subnav'), document.getElementById('subnavPeek')],
+            'subnav-peeking',
+            () => body.classList.contains('subnav-hidden')
+        );
+
+        // Escape closes whichever is peeking
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            ['sidebar-peeking', 'subnav-peeking'].forEach((c) => {
+                if (body.classList.contains(c)) body.classList.remove(c);
+            });
+        });
     }
 
     /* -----------------------------------------------------------------------
@@ -752,7 +845,7 @@
                 let shown = 0;
 
                 menu.querySelectorAll('.cm-list .cm-item').forEach((item) => {
-                    const match = !term || (item.dataset.name || '').toLowerCase().includes(term);
+                    const match = !term || (window.PMSSearch ? window.PMSSearch.textMatches(term, item.dataset.name || '') : (item.dataset.name || '').toLowerCase().includes(term));
                     item.hidden = !match;
                     if (match) shown++;
                 });
@@ -817,6 +910,13 @@
                 body.querySelectorAll('tr[data-row][data-filtered-out]').forEach((row) => { row.hidden = true; });
                 rows.forEach((row, index) => { row.hidden = index < start || index >= end; });
 
+                // S.No. counts through the whole list rather than restarting on
+                // each page, so page 2 of ten-a-page begins at 11.
+                rows.forEach((row, index) => {
+                    const cell = row.querySelector('.sno');
+                    if (cell) cell.textContent = index + 1;
+                });
+
                 const info = pager.querySelector('.pg-info');
                 if (info) {
                     info.textContent = rows.length === 0
@@ -874,8 +974,286 @@
             }
 
             table.addEventListener('pms:filtered', () => { page = 1; render(); });
+            table.addEventListener('pms:sorted', () => { page = 1; render(); });
             render();
         });
+    }
+
+    /* -----------------------------------------------------------------------
+       Column sorting
+
+       The server already delivers every list newest-first, which is the order
+       the module is meant to be read in. This only re-orders when someone
+       deliberately asks for something else, and that choice then stands until
+       the page is left.
+       ----------------------------------------------------------------------- */
+
+    /** Fills the S.No. column of a table the pager does not own. */
+    function renumber(table) {
+        const rows = [...table.querySelectorAll('tbody tr[data-row]')].filter((r) => !r.dataset.filteredOut);
+        rows.forEach((row, index) => {
+            const cell = row.querySelector('.sno');
+            if (cell) cell.textContent = index + 1;
+        });
+    }
+
+    function sortValue(row, index, kind) {
+        const cell = row.children[index];
+        if (!cell) return kind === 'text' ? '' : 0;
+
+        // An explicit data-sort-value wins: it lets a cell display "12 / 30"
+        // or "2 Mar 2026" and still sort on the number or the timestamp.
+        const explicit = cell.dataset.sortValue;
+        const raw = explicit !== undefined ? explicit : cell.textContent.trim();
+
+        if (kind === 'num') {
+            const n = parseFloat(raw.replace(/[^0-9.-]/g, ''));
+            return Number.isNaN(n) ? -Infinity : n;
+        }
+
+        if (kind === 'date') {
+            if (explicit !== undefined) return Number(explicit) || 0;
+            // Stored dates are d-m-Y; Date.parse reads those the wrong way round
+            const m = raw.match(/(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+            if (m) return Number(m[3] + m[2].padStart(2, '0') + m[1].padStart(2, '0'));
+            const t = Date.parse(raw);
+            return Number.isNaN(t) ? 0 : t;
+        }
+
+        return raw.toLowerCase();
+    }
+
+    function wireSortableTables() {
+        document.querySelectorAll('table[data-sortable]').forEach((table) => {
+            const body = table.querySelector('tbody');
+            const headers = [...table.querySelectorAll('thead th')];
+            if (!body) return;
+
+            // Remember the delivered order so "sort off" can restore it
+            const original = [...body.querySelectorAll('tr[data-row]')];
+
+            let activeIndex = null;
+            let direction = 'desc';
+
+            const paint = () => {
+                headers.forEach((th, i) => {
+                    if (!th.dataset.sort) return;
+                    const on = i === activeIndex;
+                    th.classList.toggle('sorted', on);
+                    th.dataset.dir = on ? direction : '';
+                    th.setAttribute('aria-sort', on ? (direction === 'asc' ? 'ascending' : 'descending') : 'none');
+                });
+            };
+
+            const apply = () => {
+                let rows = original;
+
+                if (activeIndex !== null) {
+                    const kind = headers[activeIndex].dataset.sort || 'text';
+                    const factor = direction === 'asc' ? 1 : -1;
+
+                    rows = [...original].sort((a, b) => {
+                        const av = sortValue(a, activeIndex, kind);
+                        const bv = sortValue(b, activeIndex, kind);
+                        if (av < bv) return -1 * factor;
+                        if (av > bv) return 1 * factor;
+                        // Stable tie-break, so equal values never shuffle about
+                        return original.indexOf(a) - original.indexOf(b);
+                    });
+                }
+
+                // Keep the empty/no-match rows at the bottom where they belong
+                const tail = [...body.children].filter((r) => !r.hasAttribute('data-row'));
+                rows.forEach((row) => body.appendChild(row));
+                tail.forEach((row) => body.appendChild(row));
+
+                paint();
+                // A paginated table renumbers from its pager; one without a
+                // pager has to do it here or S.No. would keep the old order.
+                if (!table.hasAttribute('data-paginate')) renumber(table);
+                table.dispatchEvent(new CustomEvent('pms:sorted'));
+            };
+
+            headers.forEach((th, index) => {
+                if (!th.dataset.sort) return;
+
+                th.classList.add('sortable');
+                th.tabIndex = 0;
+                th.setAttribute('role', 'columnheader');
+                th.setAttribute('aria-sort', 'none');
+                th.insertAdjacentHTML('beforeend', '<i class="bi sort-caret" aria-hidden="true"></i>');
+
+                const activate = () => {
+                    if (activeIndex === index) {
+                        // Third click on the same column returns to the
+                        // delivered newest-first order rather than a third state
+                        if (direction === 'desc') { direction = 'asc'; }
+                        else { activeIndex = null; direction = 'desc'; }
+                    } else {
+                        activeIndex = index;
+                        direction = th.dataset.sort === 'text' ? 'asc' : 'desc';
+                    }
+                    apply();
+                };
+
+                th.addEventListener('click', activate);
+                th.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); activate(); }
+                });
+            });
+        });
+    }
+
+    /* -----------------------------------------------------------------------
+       Confirmations
+
+       Only destructive and irreversible actions ask. The dialog names the
+       record so nobody confirms a delete they did not mean.
+       ----------------------------------------------------------------------- */
+
+    /**
+     * Our own confirmation dialog, in place of window.confirm().
+     *
+     * The browser's is an operating-system box: unthemed, white in night
+     * mode, titled with the site's address, and with buttons that only ever
+     * say OK and Cancel - so "OK" to a delete reads exactly like "OK" to
+     * anything else. This one names the action on its button, colours a
+     * destructive one red, and puts focus on Cancel so a stray Enter never
+     * deletes anything.
+     *
+     * @returns {Promise<boolean>}
+     */
+    function confirmDialog({ title, message, confirmLabel = 'Continue', cancelLabel = 'Cancel', tone = 'primary', icon } = {}) {
+        return new Promise((resolve) => {
+            const previouslyFocused = document.activeElement;
+            const icons = { danger: 'bi-trash3', warning: 'bi-exclamation-triangle', primary: 'bi-question-circle' };
+
+            const overlay = document.createElement('div');
+            overlay.className = 'pms-dialog-backdrop';
+            overlay.innerHTML = `
+                <div class="pms-dialog tone-${tone}" role="alertdialog" aria-modal="true"
+                     aria-labelledby="pmsDialogTitle" aria-describedby="pmsDialogMessage">
+                    <div class="pd-icon"><i class="bi ${icon || icons[tone] || icons.primary}"></i></div>
+                    <div class="pd-body">
+                        <h2 class="pd-title" id="pmsDialogTitle"></h2>
+                        <p class="pd-message" id="pmsDialogMessage"></p>
+                    </div>
+                    <div class="pd-actions">
+                        <button type="button" class="btn btn-ghost pd-cancel"></button>
+                        <button type="button" class="btn pd-confirm"></button>
+                    </div>
+                </div>`;
+
+            // Text is set as text, never as HTML: messages carry record names
+            overlay.querySelector('.pd-title').textContent = title || 'Are you sure?';
+            overlay.querySelector('.pd-message').textContent = message || '';
+            overlay.querySelector('.pd-message').hidden = !message;
+            overlay.querySelector('.pd-cancel').textContent = cancelLabel;
+            const confirmButton = overlay.querySelector('.pd-confirm');
+            confirmButton.textContent = confirmLabel;
+            confirmButton.classList.add(tone === 'danger' ? 'btn-danger-solid' : 'btn-p');
+
+            document.body.appendChild(overlay);
+            document.body.classList.add('pms-dialog-open');
+            requestAnimationFrame(() => overlay.classList.add('in'));
+
+            const close = (answer) => {
+                overlay.classList.remove('in');
+                document.removeEventListener('keydown', onKey, true);
+                setTimeout(() => {
+                    overlay.remove();
+                    if (!document.querySelector('.pms-dialog-backdrop')) document.body.classList.remove('pms-dialog-open');
+                    previouslyFocused?.focus?.({ preventScroll: true });
+                }, reduceMotion ? 0 : 180);
+                resolve(answer);
+            };
+
+            const onKey = (event) => {
+                if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(false); }
+                // Keep Tab inside the dialog
+                if (event.key === 'Tab') {
+                    const focusable = [...overlay.querySelectorAll('button')];
+                    const i = focusable.indexOf(document.activeElement);
+                    event.preventDefault();
+                    focusable[(i + (event.shiftKey ? -1 : 1) + focusable.length) % focusable.length].focus();
+                }
+            };
+
+            overlay.querySelector('.pd-cancel').addEventListener('click', () => close(false));
+            confirmButton.addEventListener('click', () => close(true));
+            overlay.addEventListener('mousedown', (event) => { if (event.target === overlay) close(false); });
+            document.addEventListener('keydown', onKey, true);
+
+            // Cancel is the safe default for anything destructive
+            (tone === 'danger' ? overlay.querySelector('.pd-cancel') : confirmButton).focus();
+        });
+    }
+
+    /** Reads a confirmation's wording off the element that asked for it. */
+    function dialogOptions(el, fallbackIsDelete) {
+        const isDelete = el.dataset.confirmTone
+            ? el.dataset.confirmTone === 'danger'
+            : fallbackIsDelete;
+
+        return {
+            title: el.dataset.confirmTitle || (isDelete ? 'Delete this record?' : 'Are you sure?'),
+            message: el.dataset.confirm || el.dataset.confirmClick || '',
+            confirmLabel: el.dataset.confirmLabel || (isDelete ? 'Delete' : 'Continue'),
+            tone: el.dataset.confirmTone || (isDelete ? 'danger' : 'primary'),
+            icon: el.dataset.confirmIcon,
+        };
+    }
+
+    function wireConfirmations() {
+        window.PMSDialog = { confirm: confirmDialog };
+
+        // Whole forms that ask first - most often a delete
+        document.addEventListener('submit', (event) => {
+            const form = event.target;
+            if (!(form instanceof HTMLFormElement) || !form.hasAttribute('data-confirm')) return;
+            if (form.dataset.confirmed === '1') return;
+
+            // Swallow this submit entirely rather than just cancelling the
+            // navigation: the busy-state handler also listens here, and if it
+            // saw a submit the user then declined it would leave the button
+            // spinning on a form that never went anywhere.
+            event.preventDefault();
+            event.stopImmediatePropagation();
+
+            const submitter = event.submitter;
+            const isDelete = form.querySelector('input[name="_method"]')?.value.toUpperCase() === 'DELETE';
+
+            // Lets a form whose wording depends on live state (how many rows
+            // are selected, which status is chosen) bring it up to date first
+            form.dispatchEvent(new CustomEvent('pms:before-confirm'));
+
+            confirmDialog(dialogOptions(form, isDelete)).then((ok) => {
+                if (!ok) return;
+                form.dataset.confirmed = '1';
+                form.requestSubmit(submitter && form.contains(submitter) ? submitter : undefined);
+                // Reset, so declining the next one on the same form still asks
+                setTimeout(() => { delete form.dataset.confirmed; }, 0);
+            });
+        }, true);
+
+        // Single buttons that ask first - one form with several actions, such
+        // as Save / Generate Salary on the attendance sheet, where only the
+        // irreversible one should ask.
+        document.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-confirm-click]');
+            if (!button || button.dataset.confirmed === '1') return;
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
+
+            confirmDialog(dialogOptions(button, false)).then((ok) => {
+                if (!ok) return;
+                button.dataset.confirmed = '1';
+                if (button.form) button.form.requestSubmit(button);
+                else button.click();
+                setTimeout(() => { delete button.dataset.confirmed; }, 0);
+            });
+        }, true);
     }
 
     /* -----------------------------------------------------------------------
@@ -885,17 +1263,20 @@
     function boot() {
         wirePanels();
         flushFlash();
+        wireConfirmations();  // before the busy state, so a declined confirm never spins a button
         wireSubmitStates();
         wireModals();
         wireTabs();
         wireCompanySwitch();
         wireReveal();
         wireCountUps();
+        wireSortableTables(); // before the pager, so it paginates the sorted order
         wirePagination();   // before filters, so the first filter pass can repaginate
         wireFilters();
+        // Tables without a pager still need their S.No. column filled
+        document.querySelectorAll('table:not([data-paginate])').forEach(renumber);
         wireUniqueChecks();
         wireAttendanceGrid();
-        wireConditionalBank();
         wireWizards();
     }
 

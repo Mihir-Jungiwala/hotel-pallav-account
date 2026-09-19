@@ -168,9 +168,8 @@ class MockDataSeeder extends Seeder
             ShiftHandover::create([
                 'date' => Carbon::today(), 'time' => $i === 0 ? '14:00:00' : '22:00:00',
                 'user_id' => $this->admin->id, 'full_name' => $this->admin->name, 'shift' => $s['shift'],
-                'message_one' => 'All rooms cleaned and inspected.',
-                'message_two' => 'No pending guest complaints.',
-                'special_instruction' => 'VIP guest arriving tomorrow in Room 301.',
+                'notes' => ['All rooms <strong>cleaned and inspected</strong>.', 'No pending guest complaints.'],
+                'instructions' => ['VIP guest arriving tomorrow in Room 301.'],
                 'd500_total' => $s['d500'] * 500, 'd500_count' => $s['d500'],
                 'd200_total' => $s['d200'] * 200, 'd200_count' => $s['d200'],
                 'd100_total' => $s['d100'] * 100, 'd100_count' => $s['d100'],

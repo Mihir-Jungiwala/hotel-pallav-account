@@ -19,7 +19,7 @@
                     <td>{{ $company->gst_number }}</td>
                     <td class="text-end">
                         <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#editCompany{{ $company->id }}" data-open-record title="Open"><i class="bi bi-pencil-square"></i></button>
-                        <form method="POST" action="{{ route('company.destroy', $company) }}" class="d-inline" onsubmit="return confirm('Delete this company profile?')">
+                        <form method="POST" action="{{ route('company.destroy', $company) }}" class="d-inline" data-confirm-title="Delete this company profile?" data-confirm="This cannot be undone.">
                             @csrf @method('DELETE')
                             <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
                         </form>

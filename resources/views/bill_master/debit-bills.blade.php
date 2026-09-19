@@ -17,7 +17,7 @@
                         @if(! $b->hasDebitBillRecorded())
                             <button class="btn btn-sm btn-p" data-bs-toggle="modal" data-bs-target="#settleBill{{ $b->id }}">Settle</button>
                         @else
-                            <form method="POST" action="{{ route('bill-master.debit-bills.destroy', $b) }}" class="d-inline" onsubmit="return confirm('Reverse this settlement?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-secondary">Reverse Settlement</button></form>
+                            <form method="POST" action="{{ route('bill-master.debit-bills.destroy', $b) }}" class="d-inline" data-confirm-title="Reverse this settlement?" data-confirm="The bill goes back to having a balance due." data-confirm-label="Reverse" data-confirm-tone="warning">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-secondary">Reverse Settlement</button></form>
                         @endif
                     </td>
                 </tr>

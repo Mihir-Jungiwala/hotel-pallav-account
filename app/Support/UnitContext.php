@@ -8,9 +8,13 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Session;
 
 /**
- * Which business the screens are showing: Hotel Pallav, Pallav Food, or both
- * at once. Kept in the session so every screen agrees, and only ever set to a
- * unit that really exists.
+ * Hotel Pallav and Pallav Food are one business under two names, run side by
+ * side every day. Outside Payroll nothing is split or filtered by them: every
+ * screen shows the whole business, with Hotel and Food as its two cash books.
+ *
+ * This used to be a switcher kept in the session. It is now fixed on "the
+ * whole business", so the screens, reports and dashboard that still ask
+ * which part is in view always get everything.
  */
 class UnitContext
 {
@@ -20,7 +24,7 @@ class UnitContext
 
     private static ?Collection $units = null;
 
-    /** Every selectable unit, ordered the way the switcher shows them. */
+    /** The two names the business trades under, in display order. */
     public static function units(): Collection
     {
         return self::$units ??= BusinessUnit::where('is_active', true)
@@ -32,41 +36,32 @@ class UnitContext
         return $slug === null ? null : self::units()->firstWhere('slug', $slug);
     }
 
-    /** 'hotel', 'food' or 'both'. */
+    /** Always 'both': the whole business is always in view. */
     public static function currentKey(): string
     {
-        $stored = Session::get(self::KEY, self::BOTH);
-
-        return self::find($stored) ? $stored : self::BOTH;
+        return self::BOTH;
     }
 
-    /** The selected unit, or null while both are shown together. */
+    /** Never one name on its own. */
     public static function current(): ?BusinessUnit
     {
-        return self::find(Session::get(self::KEY));
+        return null;
     }
 
     public static function isBoth(): bool
     {
-        return self::current() === null;
+        return true;
     }
 
     public static function label(): string
     {
-        return self::current()?->name ?? 'Hotel Pallav + Pallav Food';
+        return 'Hotel Pallav';
     }
 
+    /** Kept so old links do not break; there is nothing left to switch. */
     public static function remember(?string $slug): void
     {
-        if ($slug === self::BOTH || $slug === null) {
-            Session::forget(self::KEY);
-
-            return;
-        }
-
-        if (self::find($slug)) {
-            Session::put(self::KEY, $slug);
-        }
+        Session::forget(self::KEY);
     }
 
     /** True when a unit's own section belongs on screen. */

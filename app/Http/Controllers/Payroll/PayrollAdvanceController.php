@@ -15,14 +15,46 @@ use Illuminate\Validation\Rule;
 
 class PayrollAdvanceController extends Controller
 {
+    public function index()
+    {
+        $company = PayrollContext::currentOrFail();
+
+        $advances = PayrollAdvance::with('employee')
+            ->where('payroll_company_id', $company->id)
+            // Latest advance first; the ID keeps same-day rows in a stable order
+            ->orderByDesc('advance_date')->orderByDesc('id')->get();
+
+        return view('payroll.pages.advance', [
+            'company' => $company,
+            'advances' => $advances,
+            'activeEmployees' => \App\Models\Employee::where('payroll_company_id', $company->id)
+                ->where('is_active', true)->orderBy('name')->get(),
+            'summary' => [
+                'issued' => (float) $advances->sum('amount'),
+                'recovered' => (float) $advances->sum('recovered_amount'),
+                'outstanding' => (float) $advances->sum(fn ($a) => $a->outstanding()),
+                'open' => $advances->where('is_settled', false)->count(),
+            ],
+        ]);
+    }
+
     private function rules(): array
     {
         return [
-            'employee_id' => ['required', 'exists:employees,id'],
+            'employee_id' => ['required', \App\Support\PayrollScope::belongsToCompany('employees')],
             'advance_date' => ['required', 'date', 'before_or_equal:now'],
             'amount' => ['required', 'numeric', 'gt:0'],
             'deduction_type' => ['required', Rule::in(['One Time', 'Monthly'])],
-            'deduction_amount' => ['nullable', 'numeric', 'min:0'],
+            // A monthly recovery is meaningless without an instalment: it would
+            // never clear. One Time ignores it and takes the whole amount.
+            'deduction_amount' => [
+                'nullable', 'numeric', 'min:0', 'required_if:deduction_type,Monthly',
+                function ($attribute, $value, $fail) {
+                    if (request('deduction_type') === 'Monthly' && (float) $value <= 0) {
+                        $fail('A monthly recovery needs an instalment greater than zero.');
+                    }
+                },
+            ],
             'remarks' => ['nullable', 'string'],
         ];
     }
@@ -120,7 +152,7 @@ class PayrollAdvanceController extends Controller
 
         $advance->load('employee', 'company', 'creator');
 
-        return Pdf::loadView('payroll.pdf.advance', compact('advance'))
+        return \App\Support\PayrollPdf::make('payroll.pdf.advance', compact('advance'))
             ->stream('advance-'.$advance->id.'.pdf');
     }
 }

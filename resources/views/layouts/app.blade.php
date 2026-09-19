@@ -25,7 +25,7 @@
             --white:#fff; --cream:#FBF9FF; --gold:#C9A227;
             --sidebar-w: 244px;
             --sidebar-w-collapsed: 68px;
-            --subnav-w: 226px;
+            --subnav-w: 276px;
         }
         *{box-sizing:border-box;}
         body{
@@ -174,9 +174,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/plugins/monthSelect/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
     <link rel="stylesheet" href="{{ asset('assets/pms.css') }}?v=8">
-    <link rel="stylesheet" href="{{ asset('assets/pms-ui.css') }}?v=4">
+    <link rel="stylesheet" href="{{ asset('assets/pms-ui.css') }}?v=5">
     <link rel="stylesheet" href="{{ asset('assets/pms-dash.css') }}?v=8">
-    <link rel="stylesheet" href="{{ asset('assets/pms-nav.css') }}?v=3">
+    <link rel="stylesheet" href="{{ asset('assets/pms-nav.css') }}?v=4">
+    <link rel="stylesheet" href="{{ asset('assets/pms-payroll.css') }}?v=28">
     @stack('styles')
 </head>
 <body class="@hasSection('subnav') has-subnav @else no-subnav @endif @guest guest-page @endguest"
@@ -186,11 +187,9 @@
 @auth
 <div class="sidebar" id="sidebar">
     <div class="logo">
-        <span class="logo-mark">{{ \App\Support\UnitContext::current()?->code ?? 'HP' }}</span>
-        <span class="logo-text">{{ \App\Support\UnitContext::current()?->name ?? 'Pallav Group' }}<span>Management Suite</span></span>
+        <span class="logo-mark">HP</span>
+        <span class="logo-text">Hotel Pallav<span>Management Suite</span></span>
     </div>
-
-    @include('partials._unit-switch')
 
     <nav class="sidebar-nav">
         <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}" title="Dashboard" data-label="Dashboard"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
@@ -203,7 +202,7 @@
         <div class="sidebar-section">Cash Flow</div>
         <a href="{{ route('revenue.index') }}" class="{{ request()->routeIs('revenue.*') ? 'active' : '' }}" title="Revenue" data-label="Revenue"><i class="bi bi-cash-coin"></i><span>Revenue</span></a>
         <a href="{{ route('expense.index') }}" class="{{ request()->routeIs('expense.*') ? 'active' : '' }}" title="Expenses" data-label="Expenses"><i class="bi bi-cash-stack"></i><span>Expenses</span></a>
-        <a href="{{ route('shift-handover.index') }}" class="{{ request()->routeIs('shift-handover.*') ? 'active' : '' }}" title="Shift Handover" data-label="Shift Handover"><i class="bi bi-arrow-left-right"></i><span>Shift Handover</span></a>
+        <a href="{{ route('shift-handover.index') }}" class="{{ request()->routeIs('shift-handover.*') ? 'active' : '' }}" title="Handover" data-label="Handover"><i class="bi bi-arrow-left-right"></i><span>Handover</span></a>
 
         <div class="sidebar-section">Payroll</div>
         {{-- The main Payroll link always opens Company Listing, the module's
@@ -327,8 +326,13 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/plugins/monthSelect/index.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-<script src="{{ asset('assets/pms.js') }}?v=6"></script>
+{{-- The search engine loads first: pms.js wires every search box to it --}}
+<script src="{{ asset('assets/pms-search.js') }}?v=2"></script>
+<script src="{{ asset('assets/pms.js') }}?v=11"></script>
 <script src="{{ asset('assets/pms-ui.js') }}?v=7"></script>
+{{-- Last: it replaces the browser's own validation, so every form must exist
+     and every other enhancement must have run before it takes over. --}}
+<script src="{{ asset('assets/pms-forms.js') }}?v=5"></script>
 @stack('scripts')
 </body>
 </html>

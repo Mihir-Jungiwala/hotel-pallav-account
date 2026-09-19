@@ -1,18 +1,19 @@
-{{-- Prev / jump-to-month / next, capped at the current month. Same controls as Attendance. --}}
+{{-- Previous / jump-to-month / next, capped at the current month. The same
+     control on every month-based page, so moving through time feels identical
+     wherever you are. $route is the page it navigates within. --}}
 @php
     $previous = $monthStart->copy()->subMonthNoOverflow();
     $next = $monthStart->copy()->addMonthNoOverflow();
     $canGoNext = ! $next->greaterThan(now()->startOfMonth());
-    $link = fn ($d) => route('payroll.index', ['category' => $category, 'year' => $d->year, 'month' => $d->month]);
+    $link = fn ($d) => route($route, ['year' => $d->year, 'month' => $d->month]);
 @endphp
 
 <div class="d-flex flex-wrap gap-2 align-items-center">
-    <a class="btn btn-sm btn-outline-p" href="{{ $link($previous) }}">
+    <a class="btn btn-sm btn-outline-p" href="{{ $link($previous) }}" aria-label="Previous month">
         <i class="bi bi-chevron-left"></i> {{ $previous->format('M Y') }}
     </a>
 
-    <form method="GET" action="{{ route('payroll.index') }}" class="month-jump" data-no-busy="true">
-        <input type="hidden" name="category" value="{{ $category }}">
+    <form method="GET" action="{{ route($route) }}" class="month-jump" data-no-busy="true">
         <input type="hidden" name="year" value="{{ $monthStart->year }}">
         <input type="hidden" name="month" value="{{ $monthStart->month }}">
         <input type="month" class="form-control form-control-sm" aria-label="Jump to month"
@@ -21,11 +22,12 @@
     </form>
 
     @if($canGoNext)
-        <a class="btn btn-sm btn-outline-p" href="{{ $link($next) }}">
+        <a class="btn btn-sm btn-outline-p" href="{{ $link($next) }}" aria-label="Next month">
             {{ $next->format('M Y') }} <i class="bi bi-chevron-right"></i>
         </a>
     @else
-        <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="You can't go past the current month">
+        <button type="button" class="btn btn-sm btn-outline-secondary" disabled
+                title="The current month is as far forward as you can go">
             {{ $next->format('M Y') }} <i class="bi bi-chevron-right"></i>
         </button>
     @endif

@@ -16,11 +16,27 @@ use Illuminate\Validation\Rule;
 
 class SeparationController extends Controller
 {
+    public function index()
+    {
+        $company = PayrollContext::currentOrFail();
+
+        return view('payroll.pages.separation', [
+            'company' => $company,
+            // Most recent leaver first
+            'separations' => EmployeeSeparation::with('employee')
+                ->where('payroll_company_id', $company->id)
+                ->orderByDesc('last_working_date')->orderByDesc('id')->get(),
+            'activeEmployees' => \App\Models\Employee::where('payroll_company_id', $company->id)
+                ->where('is_active', true)->orderBy('name')->get(),
+            'hasExperienceTemplate' => \App\Models\ExperienceLetter::where('payroll_company_id', $company->id)->exists(),
+        ]);
+    }
+
     private function rules(): array
     {
         return [
-            'employee_id' => ['required', 'exists:employees,id'],
-            'separation_type' => ['required', Rule::in(EmployeeSeparation::TYPES)],
+            'employee_id' => ['required', \App\Support\PayrollScope::belongsToCompany('employees')],
+            'separation_type' => ['required', Rule::in(\App\Support\PayrollMasters::choices('separation_type'))],
             'resignation_date' => ['required', 'date'],
             'last_working_date' => ['required', 'date', 'after_or_equal:resignation_date'],
             'reason' => ['required', 'string'],
@@ -113,15 +129,33 @@ class SeparationController extends Controller
     {
         \App\Support\PayrollScope::ensure($separation);
 
+        // Same treatment as on the staff form: a number is a country code and
+        // national digits, however it was typed
+        if ($request->filled('contact_number')) {
+            [$dial, $national] = \App\Support\PhoneCountries::normalise(
+                (string) $request->input('contact_number'),
+                $request->input('contact_country'),
+            );
+            $request->merge(['contact_country' => $dial, 'contact_number' => $national]);
+        }
+
         $data = $request->validate([
             'joining_date' => ['required', 'date'],
             'designation' => ['required', 'string', 'max:100'],
             'department' => ['nullable', 'string', 'max:100'],
             'salary' => ['required', 'numeric', 'min:0'],
             'daily_working_hours' => ['required', 'numeric', 'min:0.5', 'max:24'],
-            'contact_number' => ['nullable', 'string', 'max:15'],
+            'contact_country' => ['nullable', 'string', Rule::in(\App\Support\PhoneCountries::dials())],
+            'contact_number' => [
+                'nullable', 'string',
+                function ($attribute, $value, $fail) {
+                    if ($error = \App\Support\PhoneCountries::check(request('contact_country'), $value)) {
+                        $fail($error);
+                    }
+                },
+            ],
             'address' => ['nullable', 'string', 'max:255'],
-            'payment_mode' => ['required', Rule::in(['Cash', 'Bank'])],
+            'payment_mode' => ['required', Rule::in(\App\Support\PayrollMasters::choices('salary_payment_mode'))],
             'bank_name' => ['nullable', 'required_if:payment_mode,Bank', 'string', 'max:150'],
             'account_holder_name' => ['nullable', 'required_if:payment_mode,Bank', 'string', 'max:150'],
             'account_number' => ['nullable', 'required_if:payment_mode,Bank', 'string', 'max:50'],
@@ -146,7 +180,7 @@ class SeparationController extends Controller
 
         $separation->load('employee', 'company', 'creator');
 
-        return Pdf::loadView('payroll.pdf.separation', ['separation' => $separation])
+        return \App\Support\PayrollPdf::make('payroll.pdf.separation', ['separation' => $separation])
             ->stream('separation-'.optional($separation->employee)->employee_code.'.pdf');
     }
 
@@ -167,7 +201,7 @@ class SeparationController extends Controller
             return back()->with('error', 'An experience letter can only be issued once the employee is marked Relieved.');
         }
 
-        return Pdf::loadView('payroll.pdf.experience-letter', compact('letter', 'separation', 'company'))
+        return \App\Support\PayrollPdf::make('payroll.pdf.experience-letter', compact('letter', 'separation', 'company'))
             ->stream('experience-letter-'.optional($separation->employee)->employee_code.'.pdf');
     }
 }

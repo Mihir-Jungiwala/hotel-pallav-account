@@ -14,6 +14,38 @@ use Illuminate\Validation\Rule;
 
 class SalaryUpdateController extends Controller
 {
+    public function index()
+    {
+        $company = \App\Support\PayrollContext::currentOrFail();
+
+        return view('payroll.pages.salary-update', [
+            'company' => $company,
+            // Most recently revised first, so the latest change leads the page
+            'employees' => Employee::withCount('updateHistories')
+                ->with(['updateHistories' => fn ($q) => $q->latest('effective_date')->latest('id')->limit(1)])
+                ->where('payroll_company_id', $company->id)
+                ->where('is_active', true)
+                ->orderByDesc('updated_at')->orderByDesc('id')->get(),
+        ]);
+    }
+
+    /** One person: their current terms, the revision form, and every change on record. */
+    public function show(Employee $employee)
+    {
+        \App\Support\PayrollScope::ensure($employee);
+
+        $employee->loadCount('updateHistories');
+
+        return view('payroll.pages.salary-update-show', [
+            'company' => \App\Support\PayrollContext::currentOrFail(),
+            'row' => $employee,
+            'employee' => $employee,
+            'history' => $employee->updateHistories()->with('changedBy')
+                ->orderByDesc('effective_date')->orderByDesc('created_at')->orderByDesc('id')
+                ->get()->groupBy('batch_id'),
+        ]);
+    }
+
     public function update(Request $request, Employee $employee)
     {
         \App\Support\PayrollScope::ensure($employee);
@@ -24,7 +56,7 @@ class SalaryUpdateController extends Controller
             'designation' => ['nullable', 'string', 'max:100'],
             'department' => ['nullable', 'string', 'max:100'],
             'daily_working_hours' => ['required', 'numeric', 'min:0.5', 'max:24'],
-            'payment_mode' => ['required', Rule::in(['Cash', 'Bank'])],
+            'payment_mode' => ['required', Rule::in(\App\Support\PayrollMasters::choices('salary_payment_mode'))],
             'bank_name' => ['nullable', 'string', 'max:150'],
             'account_holder_name' => ['nullable', 'string', 'max:150'],
             'account_number' => ['nullable', 'string', 'max:50'],

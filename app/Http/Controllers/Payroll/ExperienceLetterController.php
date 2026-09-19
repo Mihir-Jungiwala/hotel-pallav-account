@@ -9,6 +9,22 @@ use Illuminate\Http\Request;
 
 class ExperienceLetterController extends Controller
 {
+    public function index()
+    {
+        $company = PayrollContext::currentOrFail();
+
+        return view('payroll.pages.experience-letter', [
+            'company' => $company,
+            'letter' => ExperienceLetter::where('payroll_company_id', $company->id)->first(),
+            // Everyone who has actually left, most recent departure first
+            'separations' => \App\Models\EmployeeSeparation::with('employee')
+                ->where('payroll_company_id', $company->id)
+                ->whereNull('rejoined_at')
+                ->where('status', 'Relieved')
+                ->orderByDesc('last_working_date')->orderByDesc('id')->get(),
+        ]);
+    }
+
     public function save(Request $request)
     {
         $company = PayrollContext::currentOrFail();

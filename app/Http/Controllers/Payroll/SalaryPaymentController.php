@@ -18,6 +18,40 @@ class SalaryPaymentController extends Controller
     /** Bulk updates can't set a partial amount, since each employee's salary differs. */
     private const BULK_STATUSES = ['Pending', 'Processing', 'On Hold', 'Paid', 'Failed'];
 
+    public function index(Request $request)
+    {
+        $company = PayrollContext::currentOrFail();
+        $start = SalaryReportController::resolveMonth($company->id, $request);
+
+        $payments = SalaryProcessing::with('paymentUpdater', 'employee')
+            ->where('payroll_company_id', $company->id)
+            ->where('year', $start->year)->where('month', $start->month)
+            // Most recently paid first; anything unpaid has no date, so it
+            // sorts to the top where it still needs attention.
+            ->orderByRaw('paid_at IS NULL DESC')
+            ->orderByDesc('paid_at')
+            ->orderBy('employee_name')
+            ->get();
+
+        $net = (float) $payments->sum('net_salary');
+        $paid = (float) $payments->sum('paid_amount');
+
+        return view('payroll.pages.salary-payment', [
+            'company' => $company,
+            'monthStart' => $start,
+            'payments' => $payments,
+            'paymentSummary' => [
+                'net' => $net,
+                'paid' => $paid,
+                'outstanding' => max(0, $net - $paid),
+                'fullyPaid' => $payments->where('payment_status', 'Paid')->count(),
+                'total' => $payments->count(),
+                'byStatus' => collect(array_keys(SalaryProcessing::PAYMENT_STATUSES))
+                    ->mapWithKeys(fn ($s) => [$s => $payments->where('payment_status', $s)->count()]),
+            ],
+        ]);
+    }
+
     public function update(Request $request, SalaryProcessing $processing)
     {
         \App\Support\PayrollScope::ensure($processing);
@@ -82,8 +116,7 @@ class SalaryPaymentController extends Controller
 
         abort_if($payments->isEmpty(), 404, 'No salary processed for that month.');
 
-        return Pdf::loadView('payroll.pdf.payment-register', compact('company', 'payments', 'start'))
-            ->setPaper('a4', 'landscape')
+        return \App\Support\PayrollPdf::make('payroll.pdf.payment-register', compact('company', 'payments', 'start'), 'landscape')
             ->stream('salary-payments-'.$start->format('Y-m').'.pdf');
     }
 

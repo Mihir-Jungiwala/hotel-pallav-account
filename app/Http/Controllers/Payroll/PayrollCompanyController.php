@@ -112,7 +112,7 @@ class PayrollCompanyController extends Controller
 
     public function view(PayrollCompany $company)
     {
-        return Pdf::loadView('payroll.pdf.company', compact('company'))
+        return \App\Support\PayrollPdf::make('payroll.pdf.company', compact('company'))
             ->stream('company-'.$company->code.'.pdf');
     }
 }

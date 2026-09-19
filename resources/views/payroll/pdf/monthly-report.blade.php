@@ -30,26 +30,26 @@
     </tr>
 </table>
 
-<h2 class="section">Attendance</h2>
+<h2 class="section"><span class="dot"></span>Attendance</h2>
 <table class="att" style="border-collapse:collapse; width:100%; font-size:6pt;">
     <thead>
         <tr>
-            <th style="background:#F3EEFE; color:#5B21B6; text-align:left; padding:4px 5px; width:92px;">Employee</th>
+            <th style="background:#EFE9FE; color:#5B21B6; text-align:left; padding:4px 5px; width:92px;">Employee</th>
             @for($day = 1; $day <= $daysInMonth; $day++)
                 @php $d = $start->copy()->day($day); @endphp
-                <th style="background:{{ $d->isSunday() ? '#FFEDD5' : '#F3EEFE' }}; color:{{ $d->isSunday() ? '#C2410C' : '#5B21B6' }};
-                           text-align:center; padding:3px 0; {{ $d->isMonday() && $day > 1 ? 'border-left:1.4pt solid #A886F7;' : '' }}">
+                <th style="background:{{ $d->isSunday() ? '#FFEDD5' : '#EFE9FE' }}; color:{{ $d->isSunday() ? '#C2410C' : '#5B21B6' }};
+                           text-align:center; padding:3px 0; {{ $d->isMonday() && $day > 1 ? 'border-left:1.4pt solid #8B5CF6;' : '' }}">
                     {{ $day }}<br><span style="font-size:5pt;">{{ substr($d->format('D'), 0, 2) }}</span>
                 </th>
             @endfor
-            <th style="background:#F3EEFE; color:#5B21B6; text-align:right; padding:3px 4px;">Days</th>
+            <th style="background:#EFE9FE; color:#5B21B6; text-align:right; padding:3px 4px;">Days</th>
         </tr>
     </thead>
     <tbody>
     @foreach($rows as $row)
         @php $employeeEntries = $entries[$row->employee_id] ?? collect(); @endphp
         <tr>
-            <td style="padding:1px 5px; border-bottom:0.5pt solid #F1ECFD; white-space:nowrap;">
+            <td style="padding:1px 5px; border-bottom:0.5pt solid #ECE6FB; white-space:nowrap;">
                 <strong>{{ \Illuminate\Support\Str::limit($row->employee_name, 16) }}</strong>
                 <span style="color:#6B6486; font-size:5.5pt;">{{ $row->employee_code }}</span>
             </td>
@@ -59,13 +59,13 @@
                     $key = ($employeeEntries[$day] ?? null)?->shortcut_key;
                     $color = $key && isset($statuses[strtoupper($key)]) ? $statuses[strtoupper($key)]['color'] : null;
                 @endphp
-                <td style="text-align:center; padding:2px 0; border-bottom:0.5pt solid #F1ECFD;
-                           {{ $d->isMonday() && $day > 1 ? 'border-left:1.4pt solid #A886F7;' : '' }}
+                <td style="text-align:center; padding:2px 0; border-bottom:0.5pt solid #ECE6FB;
+                           {{ $d->isMonday() && $day > 1 ? 'border-left:1.4pt solid #8B5CF6;' : '' }}
                            {{ $color ? 'background:'.$color.'; color:#fff; font-weight:bold;' : 'color:#C9C3DC;' }}">
                     {{ $key ?: '·' }}
                 </td>
             @endfor
-            <td style="text-align:right; padding:3px 4px; border-bottom:0.5pt solid #F1ECFD;"><strong>{{ number_format($row->total_payable_days, 2) }}</strong></td>
+            <td style="text-align:right; padding:3px 4px; border-bottom:0.5pt solid #ECE6FB;"><strong>{{ number_format($row->total_payable_days, 2) }}</strong></td>
         </tr>
     @endforeach
     </tbody>
@@ -80,7 +80,7 @@
     @endforeach
 </div>
 
-<h2 class="section">Salary</h2>
+<h2 class="section"><span class="dot"></span>Salary</h2>
 <table class="grid tight">
     <thead>
         <tr>

@@ -284,8 +284,11 @@
             if (select.classList.contains('form-select-sm')) ts.wrapper.classList.add('form-select-sm');
             if (select.disabled) ts.disable();
 
+            // Tom Select rewrites the disabled attribute itself, which fires this again,
+            // so only act when the two disagree or it loops forever
             new MutationObserver(() => {
-                select.disabled ? ts.disable() : ts.enable();
+                if (select.disabled && !ts.isDisabled) ts.disable();
+                else if (!select.disabled && ts.isDisabled) ts.enable();
             }).observe(select, { attributes: true, attributeFilter: ['disabled'] });
 
             select.form?.addEventListener('reset', () => setTimeout(() => ts.sync()));

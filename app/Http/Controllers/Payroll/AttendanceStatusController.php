@@ -11,6 +11,18 @@ use Illuminate\Validation\Rule;
 
 class AttendanceStatusController extends Controller
 {
+    public function index()
+    {
+        $company = PayrollContext::currentOrFail();
+
+        return view('payroll.pages.attendance-status', [
+            'company' => $company,
+            // Newest status first, so one just added is where it was expected
+            'statuses' => AttendanceStatus::where('payroll_company_id', $company->id)
+                ->orderByDesc('created_at')->orderByDesc('id')->get(),
+        ]);
+    }
+
     private function rules(int $companyId, ?AttendanceStatus $status = null): array
     {
         return [

@@ -62,7 +62,7 @@
     </table>
 </div>
 
-<h2 class="section">Recovery Status</h2>
+<h2 class="section"><span class="dot"></span>Recovery Status</h2>
 <table class="grid avoid-break">
     <thead><tr><th>Stage</th><th class="num">Amount</th><th class="num">Share</th><th>Status</th></tr></thead>
     <tbody>
@@ -100,7 +100,7 @@
 @endif
 
 @if($advance->remarks)
-<h2 class="section">Remarks</h2>
+<h2 class="section"><span class="dot"></span>Remarks</h2>
 <div style="font-size:9pt; line-height:1.55;">{{ $advance->remarks }}</div>
 @endif
 

@@ -81,7 +81,7 @@ class UserHierarchy
             'hotel_misc_expenses' => 'Hotel expenses',
             'food_misc_expenses' => 'Food expenses',
             'staff_advances' => 'Staff advances',
-            'shift_handovers' => 'Shift handovers',
+            'shift_handovers' => 'Handovers',
         ];
 
         $found = [];

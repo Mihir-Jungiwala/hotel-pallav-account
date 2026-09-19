@@ -5,41 +5,55 @@ namespace App\Support;
 use App\Models\PayrollCompany;
 
 /**
- * Resolves the "Current Company" the payroll screens are scoped to.
+ * Resolves the "Current Company" every payroll screen is scoped to.
  *
- * The sentinel value "company" means no operating company is selected - the
- * only category available then is Profile (Company Setup).
+ * Payroll is one module per company: you pick a company on the Company
+ * Listing, and from then on every individual payroll page - staff, attendance,
+ * advances, salary, documents, reports - reads and writes only that company's
+ * records. The choice lives in the session so it survives moving between
+ * those pages without being re-asked, and PayrollScope enforces it on every
+ * record the server touches.
  */
 class PayrollContext
 {
+    /** No operating company is selected; only the Company Listing is available. */
     public const SENTINEL = 'company';
 
     private const SESSION_KEY = 'payroll.current_company';
 
     /**
-     * Categories available once a real company is selected, in the
-     * mandatory module order from the specification.
+     * The individual payroll pages, in the module's mandated order. Each one
+     * is a separate route, a separate page and a separate menu entry - they
+     * share only the selected company.
+     *
+     * slug => [route name, menu label, icon, section]
      */
-    public const CATEGORIES = [
-        'attendance-status' => 'Attendance Status Master',
-        'deduction' => 'Deduction Master',
-        'joining-letter' => 'Joining Letter',
-        'experience-letter' => 'Experience Letter',
-        'staff' => 'Staff Management',
-        'separation' => 'Resignations & Exits',
-        'attendance' => 'Attendance Management',
-        'advance' => 'Advance Management',
-        'bonus-incentive' => 'Bonus & Incentive Management',
-        'salary-update' => 'Salary Update Management',
-        'salary-payment' => 'Salary Payments',
-        'salary-slip' => 'Employee Salary Slip',
-        'period-report' => 'Daily/Period-wise Salary Report',
-        'monthly-report' => 'Monthly Salary Report',
+    public const MODULES = [
+        'dashboard' => ['payroll.dashboard.index', 'Dashboard', 'bi-grid-1x2', 'Company'],
+        'attendance' => ['payroll.attendance.index', 'Attendance Management', 'bi-calendar3', 'Operations'],
+        'attendance-status' => ['payroll.attendance-status.index', 'Attendance Status', 'bi-palette2', 'Operations'],
+        'deduction' => ['payroll.deduction.index', 'Deduction Management', 'bi-dash-circle', 'Operations'],
+        'joining-letter' => ['payroll.joining-letter.index', 'Joining Letter', 'bi-file-earmark-text', 'People'],
+        'staff' => ['payroll.staff.index', 'Staff Management', 'bi-people', 'People'],
+        'advance' => ['payroll.advance.index', 'Advance Management', 'bi-wallet2', 'Money'],
+        'bonus-incentive' => ['payroll.bonus-incentive.index', 'Bonus & Incentive', 'bi-gift', 'Money'],
+        'salary-update' => ['payroll.salary-update.index', 'Salary Update', 'bi-clock-history', 'Money'],
+        'salary-payment' => ['payroll.salary-payment.index', 'Salary Payment', 'bi-credit-card-2-back', 'Money'],
+        'experience-letter' => ['payroll.experience-letter.index', 'Experience Letter', 'bi-file-earmark-check', 'People'],
+        'separation' => ['payroll.separation.index', 'Resignation', 'bi-box-arrow-right', 'People'],
+        'salary-slip' => ['payroll.salary-slip.index', 'Salary Slips', 'bi-receipt', 'Reports'],
+        'period-report' => ['payroll.period-report.index', 'Period Report', 'bi-calendar-range', 'Reports'],
+        'monthly-report' => ['payroll.monthly-report.index', 'Monthly Report', 'bi-bar-chart', 'Reports'],
     ];
 
     public static function remember(string $value): void
     {
         session([self::SESSION_KEY => $value]);
+    }
+
+    public static function forget(): void
+    {
+        session()->forget(self::SESSION_KEY);
     }
 
     public static function selectedValue(): string
@@ -57,8 +71,11 @@ class PayrollContext
 
         $company = PayrollCompany::find($value);
 
+        // A company that was deleted or deactivated while it was open must not
+        // keep leaking its records; drop the context and send them back to the
+        // listing rather than silently showing stale data.
         if (! $company || ! $company->is_active) {
-            session()->forget(self::SESSION_KEY);
+            self::forget();
 
             return null;
         }
@@ -78,8 +95,13 @@ class PayrollContext
         return $company;
     }
 
-    public static function defaultCategory(): string
+    /**
+     * Companies this user may open. Payroll access is not split by company
+     * today, so that is every active one - kept as a single place to narrow
+     * later without hunting through the views.
+     */
+    public static function selectable()
     {
-        return self::current() === null ? 'profile' : 'attendance-status';
+        return PayrollCompany::where('is_active', true)->orderBy('name')->get();
     }
 }

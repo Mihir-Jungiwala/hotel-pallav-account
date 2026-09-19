@@ -15,10 +15,32 @@ use Illuminate\Validation\Rule;
 
 class BonusIncentiveController extends Controller
 {
+    public function index()
+    {
+        $company = PayrollContext::currentOrFail();
+
+        $entries = BonusIncentive::with('employee')
+            ->where('payroll_company_id', $company->id)
+            // Latest entry first; the ID keeps same-day rows in a stable order
+            ->orderByDesc('entry_date')->orderByDesc('id')->get();
+
+        return view('payroll.pages.bonus-incentive', [
+            'company' => $company,
+            'entries' => $entries,
+            'activeEmployees' => \App\Models\Employee::where('payroll_company_id', $company->id)
+                ->where('is_active', true)->orderBy('name')->get(),
+            'summary' => [
+                'bonus' => (float) $entries->where('type', 'Bonus')->sum('amount'),
+                'incentive' => (float) $entries->where('type', 'Incentive')->sum('amount'),
+                'people' => $entries->pluck('employee_id')->unique()->count(),
+            ],
+        ]);
+    }
+
     private function rules(): array
     {
         return [
-            'employee_id' => ['required', 'exists:employees,id'],
+            'employee_id' => ['required', \App\Support\PayrollScope::belongsToCompany('employees')],
             'entry_date' => ['required', 'date', 'before_or_equal:now'],
             'type' => ['required', Rule::in(['Bonus', 'Incentive'])],
             'amount' => ['required', 'numeric', 'gt:0'],
@@ -98,7 +120,7 @@ class BonusIncentiveController extends Controller
 
         $entry->load('employee', 'company', 'creator');
 
-        return Pdf::loadView('payroll.pdf.bonus-incentive', compact('entry'))
+        return \App\Support\PayrollPdf::make('payroll.pdf.bonus-incentive', compact('entry'))
             ->stream('bonus-incentive-'.$entry->id.'.pdf');
     }
 }

@@ -60,7 +60,7 @@ class DashboardController extends Controller
             'expenseHeads' => $this->expenseHeads($monthStart, $today, $showHotel, $showFood),
             'attention' => $this->attention(),
             'recent' => $this->recentEntries(),
-            'shiftHandover' => UnitContext::scope(ShiftHandover::with('user'))->latest('date')->latest('time')->first(),
+            'shiftHandover' => ShiftHandover::with('user')->latest('date')->latest('time')->first(),
 
             'staffCount' => Employee::where('is_active', true)->count(),
             'companyCount' => CompanyProfile::count(),
@@ -185,7 +185,9 @@ class DashboardController extends Controller
             $items->push([
                 'icon' => 'bi-wallet2', 'tone' => 'warn',
                 'text' => $unpaid.' salary '.($unpaid === 1 ? 'payment is' : 'payments are').' still open',
-                'link' => route('payroll.index', ['category' => 'salary-payment']),
+                // Payroll works inside one company, so if none is open this
+                // lands on the Company Listing and carries on here afterwards
+                'link' => route('payroll.salary-payment.index'),
                 'action' => 'Open salary payments',
             ]);
         }
@@ -200,13 +202,13 @@ class DashboardController extends Controller
             ]);
         }
 
-        $handover = UnitContext::scope(ShiftHandover::query())->latest('date')->first();
+        $handover = ShiftHandover::query()->latest('date')->first();
         if (! $handover || ! Carbon::parse($handover->date)->isToday()) {
             $items->push([
                 'icon' => 'bi-arrow-left-right', 'tone' => 'warn',
-                'text' => 'No shift handover recorded today',
+                'text' => 'No Handover recorded today',
                 'link' => route('shift-handover.index'),
-                'action' => 'Record handover',
+                'action' => 'Record Handover',
             ]);
         }
 

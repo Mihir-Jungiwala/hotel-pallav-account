@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\RequireAdmin::class,
             'superadmin' => \App\Http\Middleware\RequireSuperAdmin::class,
             'single.session' => \App\Http\Middleware\EnsureSingleSession::class,
+            'payroll.company' => \App\Http\Middleware\RequirePayrollCompany::class,
         ]);
 
         // Signed-in users are sent to the dashboard, guests to the login page
@@ -24,5 +25,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectUsersTo(fn () => route('dashboard'));
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Any unexpected failure on a payroll page is written to the payroll log with
+        // enough detail to debug it. Validation, auth and 404s are not faults and are not reported here.
+        $exceptions->report(function (\Throwable $e) {
+            if (request()->routeIs('payroll.*')) {
+                \App\Support\PayrollLogger::failure($e, 'Payroll page');
+            }
+        });
     })->create();

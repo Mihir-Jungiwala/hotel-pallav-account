@@ -164,6 +164,77 @@ body.sidebar-collapsed .subnav-peek { left: var(--sidebar-w-collapsed); }
 :root[data-theme="dark"] .unit-switch-btn:hover { background: rgba(167, 139, 250, .2); }
 :root[data-theme="dark"] .unit-switch-btn .us-label { color: var(--nav-ink-faint); }
 
+/* ------------------------------------------------ open on hover, when shut
+
+   A shut panel should not need a click to be used. Resting the pointer on
+   the icon rail, or on the payroll tab, slides the full panel out over the
+   page; moving away slides it back. The page itself never moves - the panel
+   floats above it - so nothing under the pointer jumps while you read it.
+
+   The classes are set by pms.js with a short hover delay, so the pointer
+   crossing the rail on its way somewhere else does not flash it open. */
+
+/* The primary rail */
+body.sidebar-peeking .sidebar {
+    width: var(--sidebar-w) !important;
+    padding-left: 12px !important; padding-right: 12px !important;
+    z-index: 1060;
+    box-shadow: 22px 0 56px rgba(27, 18, 53, .30), 1px 0 0 var(--nav-line);
+}
+:root[data-theme="dark"] body.sidebar-peeking .sidebar {
+    box-shadow: 22px 0 56px rgba(0, 0, 0, .62), 1px 0 0 var(--nav-line);
+}
+
+body.sidebar-peeking .sidebar .logo-text,
+body.sidebar-peeking .sidebar-nav a span {
+    opacity: 1 !important; width: auto !important;
+    overflow: visible !important; pointer-events: auto !important;
+    transition: opacity 180ms 90ms var(--nav-ease);
+}
+body.sidebar-peeking .sidebar-section {
+    opacity: 1 !important; width: auto !important; height: auto !important;
+    overflow: visible !important; pointer-events: auto !important;
+    border-top: none !important; color: var(--nav-ink-faint) !important;
+    margin: 16px 8px 7px !important;
+    transition: opacity 180ms 90ms var(--nav-ease);
+}
+body.sidebar-peeking .sidebar-nav a { justify-content: flex-start !important; }
+body.sidebar-peeking .sidebar .logo { justify-content: flex-start !important; padding: 0 6px !important; }
+/* The labels are showing now, so the hover name-tags would only repeat them */
+body.sidebar-peeking .sidebar-nav a::after { display: none !important; }
+body.sidebar-peeking .nav-collapse { justify-content: flex-start; padding-left: 12px; padding-right: 12px; }
+body.sidebar-peeking .nav-collapse span { display: inline !important; }
+body.sidebar-peeking .unit-switch-btn { padding: 8px 10px; justify-content: flex-start; }
+body.sidebar-peeking .unit-switch-btn .us-text,
+body.sidebar-peeking .unit-switch-btn .us-caret { display: revert !important; }
+
+/* The payroll panel */
+body.subnav-hidden.subnav-peeking .subnav {
+    width: var(--subnav-w) !important;
+    opacity: 1 !important;
+    z-index: 1050;
+    border-right-color: var(--line) !important;
+    box-shadow: 22px 0 56px rgba(27, 18, 53, .22);
+}
+:root[data-theme="dark"] body.subnav-hidden.subnav-peeking .subnav {
+    box-shadow: 22px 0 56px rgba(0, 0, 0, .55);
+}
+body.subnav-hidden.subnav-peeking .subnav-peek { opacity: 0; pointer-events: none; }
+.subnav-peek { transition: left var(--nav-dur) var(--nav-ease), opacity 160ms var(--nav-ease),
+                           background-color 160ms var(--nav-ease), padding-right 160ms var(--nav-ease); }
+
+/* An open panel lets its menus reach past its own edge - the company menu is
+   wider than the panel. A shut one still clips, so nothing leaks out of it
+   while it animates closed. */
+body:not(.subnav-hidden) .subnav,
+body.subnav-peeking .subnav { overflow: visible !important; }
+
+@media (prefers-reduced-motion: reduce) {
+    body.sidebar-peeking .sidebar .logo-text,
+    body.sidebar-peeking .sidebar-nav a span,
+    body.sidebar-peeking .sidebar-section { transition: none !important; }
+}
+
 /* --------------------------------------------------------------- narrow */
 
 @media (max-width: 1080px) {

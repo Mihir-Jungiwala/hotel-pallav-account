@@ -405,3 +405,17 @@ body.sidebar-collapsed .unit-menu { left: 0; width: 240px; right: auto; }
     padding: 12px 10px 12px 22px; font-variant-numeric: tabular-nums;
 }
 .otp-input::placeholder { letter-spacing: 12px; color: var(--line2); }
+
+/* Every pop-up: Cancel and dropdowns carry the same border as the other fields */
+.modal-footer .btn-ghost {
+    border: 1px solid var(--line2); background: var(--surface, #fff); color: var(--ink2);
+}
+.modal-footer .btn-ghost:hover { border-color: var(--p300); background: var(--p50); color: var(--p800); }
+.modal .ts-wrapper.single .ts-control,
+.modal .ts-wrapper.form-select .ts-control,
+.modal select.form-select {
+    border: 1px solid var(--line2) !important; border-radius: var(--r-sm) !important; background-color: var(--surface, #fff) !important;
+}
+.modal .ts-wrapper.single .ts-control:hover { border-color: var(--p300) !important; }
+.modal .ts-wrapper.single.focus .ts-control { border-color: var(--p500) !important; }
+:root[data-theme="dark"] .modal-footer .btn-ghost { background: var(--surface-2); color: var(--ink2); }

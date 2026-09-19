@@ -113,7 +113,7 @@
                 <div class="empty-state py-4">
                     <div class="es-icon"><i class="bi bi-check2-circle"></i></div>
                     <div class="es-title">Nothing pending</div>
-                    <div class="es-text">Salary, bills and handovers are all up to date.</div>
+                    <div class="es-text">Salary, bills and Handovers are all up to date.</div>
                 </div>
             @endforelse
         </div>
@@ -239,8 +239,8 @@
     <div class="col-lg-8">
         <div class="card dash-card reveal">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span>Latest shift handover</span>
-                <a class="small-link" href="{{ route('shift-handover.index') }}">All handovers <i class="bi bi-arrow-right-short"></i></a>
+                <span>Latest Handover</span>
+                <a class="small-link" href="{{ route('shift-handover.index') }}">All Handovers <i class="bi bi-arrow-right-short"></i></a>
             </div>
             <div class="card-body">
                 @if($shiftHandover)
@@ -255,8 +255,8 @@
                 @else
                     <div class="empty-state py-3">
                         <div class="es-icon"><i class="bi bi-arrow-left-right"></i></div>
-                        <div class="es-title">No handover recorded</div>
-                        <div class="es-text">The first handover for this business will show here.</div>
+                        <div class="es-title">No Handover recorded</div>
+                        <div class="es-text">The first Handover will show here.</div>
                     </div>
                 @endif
             </div>
@@ -267,7 +267,7 @@
         <div class="card dash-card reveal h-100">
             <div class="card-header">On the books</div>
             <div class="card-body">
-                <a class="mini-row" href="{{ route('payroll.index', ['category' => 'staff']) }}">
+                <a class="mini-row" href="{{ route('payroll.staff.index') }}">
                     <span class="mini-icon"><i class="bi bi-people"></i></span>
                     <span class="mini-body"><strong>{{ $staffCount }}</strong> active employees</span>
                     <i class="bi bi-arrow-right-short"></i>

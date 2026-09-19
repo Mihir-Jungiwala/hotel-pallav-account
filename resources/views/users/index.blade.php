@@ -258,7 +258,7 @@
                                 <div class="fw-semibold"><i class="bi bi-shield-fill-check"></i> Transfer SuperAdmin to {{ $u->name }}</div>
                                 <div class="text-muted" style="font-size:12.5px;">There can only be one SuperAdmin. {{ $u->name }} becomes SuperAdmin and <strong>you become an Admin</strong>. This cannot be undone by you.</div>
                                 <form method="POST" action="{{ route('users.transfer-superadmin', $u) }}" class="row g-2 mt-2"
-                                      onsubmit="return confirm('Transfer SuperAdmin to {{ $u->username }}? You will become an Admin.')">
+                                      data-confirm-title="Transfer SuperAdmin to {{ $u->username }}?" data-confirm="You will become an Admin, and only they can hand it back." data-confirm-label="Transfer" data-confirm-tone="warning">
                                     @csrf
                                     <div class="col-md-5">
                                         <input name="confirm_username" class="form-control form-control-sm" placeholder="Type {{ $u->username }} to confirm" autocomplete="off" required>
@@ -286,7 +286,7 @@
                                     @endif
                                 </div>
                             </div>
-                            <form method="POST" action="{{ route('users.destroy', $u) }}" onsubmit="return confirm('Delete {{ $u->username }} permanently?')">
+                            <form method="POST" action="{{ route('users.destroy', $u) }}" data-confirm-title="Delete {{ $u->username }}?" data-confirm="Their account is closed; entries they recorded are kept.">
                                 @csrf @method('DELETE')
                                 <button class="btn btn-sm btn-outline-danger" @disabled($blocking)>Delete</button>
                             </form>

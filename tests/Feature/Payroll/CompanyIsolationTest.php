@@ -10,6 +10,7 @@ use App\Models\EmployeeSeparation;
 use App\Models\PayrollAdvance;
 use App\Models\PayrollCompany;
 use App\Models\User;
+use App\Support\PayrollContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -53,13 +54,119 @@ class CompanyIsolationTest extends TestCase
 
     public function test_the_top_level_payroll_link_always_opens_company_listing(): void
     {
-        $this->get(route('payroll.index'))->assertSee('Company Setup');
+        $this->get(route('payroll.index'))
+            ->assertOk()
+            ->assertSee('Company Listing')
+            ->assertSee('Company A')
+            ->assertSee('Company B');
     }
 
     public function test_opening_a_company_makes_it_the_active_context(): void
     {
+        // Choosing a company lands on that company's own dashboard
         $this->get(route('payroll.index', ['current_company' => $this->companyB->id]))
-            ->assertSee('Company B');
+            ->assertRedirect(route('payroll.dashboard.index'));
+
+        $this->get(route('payroll.dashboard.index'))->assertOk()->assertSee('Company B');
+        $this->get(route('payroll.staff.index'))->assertOk()->assertSee('Company B');
+    }
+
+    public function test_every_payroll_page_is_refused_until_a_company_is_chosen(): void
+    {
+        $this->get(route('payroll.index', ['current_company' => PayrollContext::SENTINEL]));
+
+        foreach (PayrollContext::MODULES as [$route]) {
+            $this->get(route($route))->assertRedirect(route('payroll.index'));
+        }
+    }
+
+    public function test_the_page_you_asked_for_is_remembered_across_choosing_a_company(): void
+    {
+        $this->get(route('payroll.index', ['current_company' => PayrollContext::SENTINEL]));
+
+        $this->get(route('payroll.advance.index'))->assertRedirect(route('payroll.index'));
+
+        $this->get(route('payroll.index', ['current_company' => $this->companyA->id]))
+            ->assertRedirect(route('payroll.advance.index'));
+    }
+
+    public function test_an_inactive_company_cannot_be_opened(): void
+    {
+        $this->companyB->update(['is_active' => false]);
+
+        $this->get(route('payroll.index', ['current_company' => $this->companyB->id]))
+            ->assertRedirect(route('payroll.index'));
+
+        // …and the context stays on Company A rather than silently changing
+        $this->get(route('payroll.staff.index'))->assertOk()->assertSee('Company A');
+    }
+
+    /*
+     * A bare "exists:employees,id" only proves the row exists somewhere in the
+     * system. These cover the posted-ID way into another company, which
+     * route-model binding never sees.
+     */
+
+    public function test_an_advance_cannot_be_posted_against_another_companys_employee(): void
+    {
+        $foreign = $this->employeeIn($this->companyB);
+
+        $this->post(route('payroll.advance.store'), [
+            'employee_id' => $foreign->id,
+            'advance_date' => now()->format('Y-m-d H:i:s'),
+            'amount' => 1000,
+            'deduction_type' => 'One Time',
+        ])->assertSessionHasErrors('employee_id');
+
+        $this->assertDatabaseCount('payroll_advances', 0);
+    }
+
+    public function test_a_bonus_cannot_be_posted_against_another_companys_employee(): void
+    {
+        $foreign = $this->employeeIn($this->companyB);
+
+        $this->post(route('payroll.bonus-incentive.store'), [
+            'employee_id' => $foreign->id,
+            'entry_date' => now()->format('Y-m-d H:i:s'),
+            'type' => 'Bonus',
+            'amount' => 500,
+        ])->assertSessionHasErrors('employee_id');
+
+        $this->assertDatabaseCount('bonus_incentives', 0);
+    }
+
+    public function test_a_separation_cannot_be_posted_against_another_companys_employee(): void
+    {
+        $foreign = $this->employeeIn($this->companyB);
+
+        $this->post(route('payroll.separation.store'), [
+            'employee_id' => $foreign->id,
+            'separation_type' => 'Resignation',
+            'resignation_date' => now()->toDateString(),
+            'last_working_date' => now()->addDays(30)->toDateString(),
+            'reason' => 'Personal reasons',
+            'status' => 'Pending',
+        ])->assertSessionHasErrors('employee_id');
+
+        $this->assertDatabaseCount('employee_separations', 0);
+    }
+
+    public function test_an_employee_cannot_be_given_another_companys_deduction(): void
+    {
+        $foreignDeduction = Deduction::create([
+            'payroll_company_id' => $this->companyB->id,
+            'name' => 'Food',
+            'amount' => 500,
+        ]);
+
+        $this->post(route('payroll.employee.store'), [
+            'employee_code' => 'E-NEW', 'name' => 'New Person', 'designation' => 'Cook',
+            'joining_date' => now()->toDateString(), 'salary' => 20000,
+            'daily_working_hours' => 8, 'payment_mode' => 'Cash',
+            'deductions' => [
+                ['deduction_id' => $foreignDeduction->id, 'deduction_type' => 'Monthly', 'amount' => 500],
+            ],
+        ])->assertSessionHasErrors('deductions.0.deduction_id');
     }
 
     public function test_an_employee_in_the_other_company_cannot_be_edited(): void
@@ -96,6 +203,7 @@ class CompanyIsolationTest extends TestCase
             'employee_code' => $own->employee_code, 'name' => 'Renamed', 'designation' => 'Manager',
             'joining_date' => now()->toDateString(), 'salary' => 20000,
             'daily_working_hours' => 8, 'payment_mode' => 'Cash',
+            'contact_number' => '9876543210', 'email' => 'renamed@example.com',
         ])->assertSessionHasNoErrors();
 
         $this->assertSame('Renamed', $own->fresh()->name);
