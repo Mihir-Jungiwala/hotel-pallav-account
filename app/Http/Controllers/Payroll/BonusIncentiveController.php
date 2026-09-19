@@ -60,6 +60,8 @@ class BonusIncentiveController extends Controller
 
     public function update(Request $request, BonusIncentive $entry)
     {
+        \App\Support\PayrollScope::ensure($entry);
+
         if (ForceMode::locked(! Auth::user()->isAdmin(), 'Only Admin users can update these records')) {
             return back()->with('error', 'Only Admin users can update these records.');
         }
@@ -75,6 +77,8 @@ class BonusIncentiveController extends Controller
 
     public function destroy(BonusIncentive $entry)
     {
+        \App\Support\PayrollScope::ensure($entry);
+
         if (ForceMode::locked(! Auth::user()->isAdmin(), 'Only Admin users can delete these records')) {
             return back()->with('error', 'Only Admin users can delete these records.');
         }
@@ -90,6 +94,8 @@ class BonusIncentiveController extends Controller
 
     public function view(BonusIncentive $entry)
     {
+        \App\Support\PayrollScope::ensure($entry);
+
         $entry->load('employee', 'company', 'creator');
 
         return Pdf::loadView('payroll.pdf.bonus-incentive', compact('entry'))

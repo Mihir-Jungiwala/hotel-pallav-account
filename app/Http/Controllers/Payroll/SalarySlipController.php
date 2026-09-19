@@ -10,6 +10,8 @@ class SalarySlipController extends Controller
 {
     public function view(SalaryProcessing $processing)
     {
+        \App\Support\PayrollScope::ensure($processing);
+
         $processing->load('lines', 'company', 'employee');
 
         return Pdf::loadView('payroll.pdf.salary-slip', [

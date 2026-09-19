@@ -18,6 +18,8 @@ class AttendanceController extends Controller
 
     public function save(Request $request, AttendanceMonth $month)
     {
+        \App\Support\PayrollScope::ensure($month);
+
         $month->revertStaleUnlock(session()->getId());
 
         if (ForceMode::locked(! $month->isEditable(), 'This attendance month is locked An Admin must')) {
@@ -93,6 +95,8 @@ class AttendanceController extends Controller
 
     public function generateSalary(AttendanceMonth $month)
     {
+        \App\Support\PayrollScope::ensure($month);
+
         $month->revertStaleUnlock(session()->getId());
 
         if (ForceMode::locked(! $month->isComplete(), 'Salary can only be generated once the attendance')) {
@@ -116,6 +120,8 @@ class AttendanceController extends Controller
 
     public function regenerateSalary(AttendanceMonth $month)
     {
+        \App\Support\PayrollScope::ensure($month);
+
         if (ForceMode::locked(! Auth::user()->isAdmin(), 'Only Admin users can re-generate salary')) {
             return back()->with('error', 'Only Admin users can re-generate salary.');
         }
@@ -133,6 +139,8 @@ class AttendanceController extends Controller
 
     public function unlock(AttendanceMonth $month)
     {
+        \App\Support\PayrollScope::ensure($month);
+
         if (ForceMode::locked(! Auth::user()->isAdmin(), 'Only Admin users can unlock attendance')) {
             return back()->with('error', 'Only Admin users can unlock attendance.');
         }

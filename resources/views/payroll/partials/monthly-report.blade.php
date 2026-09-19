@@ -63,7 +63,7 @@
             <table class="attendance-grid w-100">
                 <thead>
                     <tr>
-                        <th class="sticky-col col-sr">#</th>
+                        <th class="sticky-col col-sr">Sr.</th>
                         <th class="sticky-col col-name">Name</th>
                         <th class="sticky-col col-desig">Designation</th>
                         @for($day = 1; $day <= $daysInMonth; $day++)

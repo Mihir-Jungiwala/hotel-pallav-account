@@ -99,6 +99,8 @@ class EmployeeController extends Controller
 
     public function update(Request $request, Employee $employee)
     {
+        \App\Support\PayrollScope::ensure($employee);
+
         $data = $request->validate($this->rules($employee->payroll_company_id, $employee), $this->messages());
         $assignments = $data['deductions'] ?? [];
         unset($data['deductions']);
@@ -148,6 +150,8 @@ class EmployeeController extends Controller
 
     public function destroy(Employee $employee)
     {
+        \App\Support\PayrollScope::ensure($employee);
+
         if (ForceMode::locked($blocker = $employee->blockingDependency(), 'This employee is already used in {$blocker} and')) {
             return back()->with('error', "This employee is already used in {$blocker} and cannot be deleted. Remove the dependent records first, or mark the employee Inactive.");
         }
@@ -159,6 +163,8 @@ class EmployeeController extends Controller
 
     public function toggleActive(Employee $employee)
     {
+        \App\Support\PayrollScope::ensure($employee);
+
         $employee->update(['is_active' => ! $employee->is_active]);
 
         return back()->with('success', 'Employee status updated.');
@@ -166,6 +172,8 @@ class EmployeeController extends Controller
 
     public function view(Employee $employee)
     {
+        \App\Support\PayrollScope::ensure($employee);
+
         $employee->load('deductions.deduction', 'idProofType', 'company');
 
         return Pdf::loadView('payroll.pdf.employee', compact('employee'))

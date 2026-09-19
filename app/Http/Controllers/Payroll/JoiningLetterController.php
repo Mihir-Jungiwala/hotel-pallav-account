@@ -46,6 +46,8 @@ class JoiningLetterController extends Controller
 
     public function destroy(JoiningLetter $joiningLetter)
     {
+        \App\Support\PayrollScope::ensure($joiningLetter);
+
         $joiningLetter->delete();
 
         return back()->with('success', 'Joining letter template deleted.');
@@ -53,6 +55,8 @@ class JoiningLetterController extends Controller
 
     public function toggleActive(JoiningLetter $joiningLetter)
     {
+        \App\Support\PayrollScope::ensure($joiningLetter);
+
         $joiningLetter->update(['is_active' => ! $joiningLetter->is_active]);
 
         return back()->with('success', 'Status updated.');
@@ -63,6 +67,8 @@ class JoiningLetterController extends Controller
      */
     public function generate(Employee $employee)
     {
+        \App\Support\PayrollScope::ensure($employee);
+
         $company = $employee->company;
         $letter = JoiningLetter::where('payroll_company_id', $company->id)->first();
 

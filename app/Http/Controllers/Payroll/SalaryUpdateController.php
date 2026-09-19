@@ -16,6 +16,8 @@ class SalaryUpdateController extends Controller
 {
     public function update(Request $request, Employee $employee)
     {
+        \App\Support\PayrollScope::ensure($employee);
+
         $data = $request->validate([
             'effective_date' => ['required', 'date'],
             'salary' => ['required', 'numeric', 'min:0'],
@@ -81,6 +83,8 @@ class SalaryUpdateController extends Controller
 
     public function history(Employee $employee)
     {
+        \App\Support\PayrollScope::ensure($employee);
+
         $history = $employee->updateHistories()
             ->with('changedBy')
             ->orderByDesc('created_at')

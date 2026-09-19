@@ -39,6 +39,8 @@ class ExperienceLetterController extends Controller
 
     public function destroy(ExperienceLetter $experienceLetter)
     {
+        \App\Support\PayrollScope::ensure($experienceLetter);
+
         $experienceLetter->delete();
 
         return back()->with('success', 'Experience letter template deleted.');
@@ -46,6 +48,8 @@ class ExperienceLetterController extends Controller
 
     public function toggleActive(ExperienceLetter $experienceLetter)
     {
+        \App\Support\PayrollScope::ensure($experienceLetter);
+
         $experienceLetter->update(['is_active' => ! $experienceLetter->is_active]);
 
         return back()->with('success', 'Status updated.');

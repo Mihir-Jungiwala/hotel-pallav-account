@@ -68,6 +68,8 @@ class SeparationController extends Controller
 
     public function update(Request $request, EmployeeSeparation $separation)
     {
+        \App\Support\PayrollScope::ensure($separation);
+
         $data = $request->validate($this->rules(), $this->messages());
 
         if ($request->hasFile('document')) {
@@ -89,6 +91,8 @@ class SeparationController extends Controller
 
     public function destroy(EmployeeSeparation $separation)
     {
+        \App\Support\PayrollScope::ensure($separation);
+
         if (ForceMode::locked(! Auth::user()->isAdmin(), 'Only Admin users can delete a separation record')) {
             return back()->with('error', 'Only Admin users can delete a separation record.');
         }
@@ -107,6 +111,8 @@ class SeparationController extends Controller
      */
     public function rejoin(Request $request, EmployeeSeparation $separation)
     {
+        \App\Support\PayrollScope::ensure($separation);
+
         $data = $request->validate([
             'joining_date' => ['required', 'date'],
             'designation' => ['required', 'string', 'max:100'],
@@ -136,6 +142,8 @@ class SeparationController extends Controller
 
     public function view(EmployeeSeparation $separation)
     {
+        \App\Support\PayrollScope::ensure($separation);
+
         $separation->load('employee', 'company', 'creator');
 
         return Pdf::loadView('payroll.pdf.separation', ['separation' => $separation])
@@ -147,6 +155,8 @@ class SeparationController extends Controller
      */
     public function experienceLetter(EmployeeSeparation $separation)
     {
+        \App\Support\PayrollScope::ensure($separation);
+
         $separation->load('employee', 'company');
         $company = $separation->company;
         $letter = ExperienceLetter::where('payroll_company_id', $company->id)->first();

@@ -85,17 +85,6 @@
                         </form>
                     </td>
                 </tr>
-
-                <div class="modal fade employee-modal" id="editEmployee{{ $row->id }}" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
-                    <form method="POST" action="{{ route('payroll.employee.update', $row) }}" enctype="multipart/form-data">@csrf @method('PUT')
-                        <div class="modal-header"><h5 class="modal-title">{{ $row->name }} <span class="text-muted fw-normal fs-6">&middot; {{ $row->employee_code }}</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                        <div class="modal-body">@include('payroll.partials._employee-fields', ['target' => $row])</div>
-                        <div class="modal-footer">
-                            <a class="btn btn-outline-p me-auto" href="{{ route('payroll.employee.view', $row) }}" target="_blank"><i class="bi bi-file-earmark-pdf"></i> Employee PDF</a>
-                            <button class="btn btn-p">Save Changes</button>
-                        </div>
-                    </form>
-                </div></div></div>
             @empty
                 <tr data-empty>
                     <td colspan="8">
@@ -122,6 +111,22 @@
 
     @include('payroll.partials._pager', ['id' => 'staffPager'])
 </div>
+
+{{-- Edit modals live here, outside the table: a <form> is not valid content
+     inside a <tbody>, and browsers silently repair that by moving it out of
+     the DOM tree the JS expects, which left every edit form blank. --}}
+@foreach($employees as $row)
+    <div class="modal fade employee-modal" id="editEmployee{{ $row->id }}" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+        <form method="POST" action="{{ route('payroll.employee.update', $row) }}" enctype="multipart/form-data">@csrf @method('PUT')
+            <div class="modal-header"><h5 class="modal-title">{{ $row->name }} <span class="text-muted fw-normal fs-6">&middot; {{ $row->employee_code }}</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">@include('payroll.partials._employee-fields', ['target' => $row])</div>
+            <div class="modal-footer">
+                <a class="btn btn-outline-p me-auto" href="{{ route('payroll.employee.view', $row) }}" target="_blank"><i class="bi bi-file-earmark-pdf"></i> Employee PDF</a>
+                <button class="btn btn-p">Save Changes</button>
+            </div>
+        </form>
+    </div></div></div>
+@endforeach
 
 <div class="modal fade employee-modal" id="addEmployee" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
     <form method="POST" action="{{ route('payroll.employee.store') }}" enctype="multipart/form-data">@csrf

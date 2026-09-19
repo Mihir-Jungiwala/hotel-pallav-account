@@ -179,7 +179,7 @@
 {{-- Per-employee update --}}
 @if($canEdit)
 @foreach($payments as $row)
-<div class="modal fade" id="pay{{ $row->id }}" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+<div class="modal fade" id="pay{{ $row->id }}" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
     <form method="POST" action="{{ route('payroll.salary-payment.update', $row) }}" class="pay-form">
         @csrf @method('PUT')
         <div class="modal-header">

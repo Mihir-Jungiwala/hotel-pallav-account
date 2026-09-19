@@ -24,17 +24,6 @@
                         </form>
                     </td>
                 </tr>
-
-                <div class="modal fade" id="editDeduction{{ $row->id }}" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-                    <form method="POST" action="{{ route('payroll.deduction.update', $row) }}">@csrf @method('PUT')
-                        <div class="modal-header"><h5 class="modal-title">Edit {{ $row->name }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                        <div class="modal-body">
-                            <div class="mb-3"><label class="form-label">Deduction Name *</label><input name="name" class="form-control" value="{{ $row->name }}" required></div>
-                            <div class="mb-3"><label class="form-label">Deduction Amount *</label><input type="number" step="0.01" name="amount" class="form-control" value="{{ $row->amount }}" required></div>
-                        </div>
-                        <div class="modal-footer"><button class="btn btn-p">Save Changes</button></div>
-                    </form>
-                </div></div></div>
             @empty
                 <tr><td colspan="4" class="text-center text-muted py-4">No deductions configured yet.</td></tr>
             @endforelse
@@ -43,7 +32,22 @@
     </div>
 </div>
 
-<div class="modal fade" id="addDeduction" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+{{-- Modals live outside the table - a <form> is not valid content inside a
+     <tbody>, and the browser corrects that in ways that break its own JS. --}}
+@foreach($deductions as $row)
+    <div class="modal fade" id="editDeduction{{ $row->id }}" tabindex="-1"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content">
+        <form method="POST" action="{{ route('payroll.deduction.update', $row) }}">@csrf @method('PUT')
+            <div class="modal-header"><h5 class="modal-title">Edit {{ $row->name }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="mb-3"><label class="form-label">Deduction Name *</label><input name="name" class="form-control" value="{{ $row->name }}" required></div>
+                <div class="mb-3"><label class="form-label">Deduction Amount *</label><input type="number" step="0.01" name="amount" class="form-control" value="{{ $row->amount }}" required></div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-p">Save Changes</button></div>
+        </form>
+    </div></div></div>
+@endforeach
+
+<div class="modal fade" id="addDeduction" tabindex="-1"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content">
     <form method="POST" action="{{ route('payroll.deduction.store') }}">@csrf
         <div class="modal-header"><h5 class="modal-title">Add Deduction</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">

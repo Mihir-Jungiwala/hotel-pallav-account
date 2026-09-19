@@ -218,7 +218,11 @@ th.col-no { width: 74px; }
    Night mode
    =========================================================================== */
 
-:root { --surface: #fff; --surface-2: #FBF9FF; }
+:root {
+    --surface: #fff; --surface-2: #FBF9FF;
+    /* Native <select> caret, re-tinted per theme so it stays visible on its own surface */
+    --select-caret: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%237A7392'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E");
+}
 
 :root[data-theme="dark"] {
     --p50: #241B3B; --p100: #2E2350; --p200: #3A2C66; --p300: #4C3A85;
@@ -226,6 +230,7 @@ th.col-no { width: 74px; }
     --ink: #EFEAFB; --ink2: #C6BEE2; --muted: #9A92B8;
     --line: #2A2142; --line2: #372B55;
     --white: #15111F; --cream: #0F0B18; --surface: #171223; --surface-2: #1D1730;
+    --select-caret: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%239A92B8'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E");
     --sh-xs: 0 1px 2px rgba(0,0,0,.5);
     --sh-sm: 0 2px 8px rgba(0,0,0,.45);
     --sh-md: 0 6px 18px rgba(0,0,0,.5);
@@ -248,12 +253,21 @@ th.col-no { width: 74px; }
 :root[data-theme="dark"] .ts-dropdown,
 :root[data-theme="dark"] .flatpickr-calendar,
 :root[data-theme="dark"] .toast-item { background: var(--surface) !important; color: var(--ink); }
+:root[data-theme="dark"] .toast-item { border-color: var(--line); }
 
 :root[data-theme="dark"] .card-header { background: var(--surface-2); color: var(--p800); border-bottom-color: var(--line); }
 :root[data-theme="dark"] .table { --bs-table-bg: transparent; color: var(--ink); }
 :root[data-theme="dark"] .table > :not(caption) > * > * { background-color: transparent; color: var(--ink); border-color: var(--line); }
 :root[data-theme="dark"] .table thead th { background: var(--surface-2); color: var(--p800); }
 :root[data-theme="dark"] .table-hover > tbody > tr:hover > * { background-color: var(--p50); color: var(--ink); }
+
+/* The floating "Save" bar on Attendance is deliberately frosted glass, not a
+   flat surface - it keeps that material in dark mode, just re-tinted dark */
+:root[data-theme="dark"] .action-bar {
+    background: rgba(23, 18, 35, .86);
+    border-top-color: rgba(167, 139, 250, .14);
+    box-shadow: 0 -8px 28px rgba(0, 0, 0, .45);
+}
 
 :root[data-theme="dark"] .form-control,
 :root[data-theme="dark"] .form-select,
@@ -401,3 +415,45 @@ th.col-no { width: 74px; }
     .content .btn, .content .form-control, .content .form-select { max-width: 100%; }
     .content .table-responsive > .table { width: auto; min-width: 100%; }
 }
+
+/* ===========================================================================
+   Payroll in night mode - the accents below carry meaning (a status, a
+   warning, today's weekend) so they get their own dark-safe tint rather than
+   flattening to the plain surface tokens.
+   =========================================================================== */
+
+:root[data-theme="dark"] .company-menu { background: rgba(23, 18, 42, .96); }
+
+/* Weekend and future-day tints in the attendance grid */
+:root[data-theme="dark"] .attendance-grid td.day-cell.is-sunday,
+:root[data-theme="dark"] .attendance-grid td.ot-cell.is-sunday { background: rgba(194, 65, 12, .16); }
+:root[data-theme="dark"] .attendance-grid thead th.day-head.is-sunday { background: rgba(194, 65, 12, .28); }
+:root[data-theme="dark"] .attendance-grid tbody tr:hover td.day-cell.is-sunday { background: rgba(194, 65, 12, .24); }
+:root[data-theme="dark"] .attendance-grid td.day-cell.is-future {
+    background: repeating-linear-gradient(135deg, transparent 0 5px, rgba(255, 255, 255, .03) 5px 6px);
+}
+:root[data-theme="dark"] .attendance-grid td.day-cell,
+:root[data-theme="dark"] .attendance-grid td.ot-cell { border-right-color: var(--line); }
+:root[data-theme="dark"] .attendance-grid tbody tr.employee-row td.day-cell { border-bottom-color: var(--line); }
+
+/* Invalid attendance key and the OT hint tint, kept legible on a dark input */
+:root[data-theme="dark"] .day-cell input.invalid-key { background: rgba(220, 38, 38, .18) !important; color: #FCA5A5 !important; }
+:root[data-theme="dark"] .ot-cell input:hover:not(:disabled) { background: rgba(245, 158, 11, .12); }
+:root[data-theme="dark"] .ot-cell input:focus { background: rgba(245, 158, 11, .16); }
+
+/* Status pills (separations, salary editability, exits) */
+:root[data-theme="dark"] .pill-live { background: rgba(21, 128, 61, .26); color: #6EE7B7; }
+:root[data-theme="dark"] .pill-live .dot { background: #34D399; }
+:root[data-theme="dark"] .pill-locked { background: rgba(71, 85, 105, .32); color: #CBD5E1; }
+:root[data-theme="dark"] .pill-unlocked { background: rgba(180, 83, 9, .28); color: #FCD34D; }
+
+/* Payment-status tone chips (pay-pending, pay-paid, ...) - the same deepened,
+   translucent treatment already used for the dashboard's kpi-chip badges */
+:root[data-theme="dark"] .tone-pending, :root[data-theme="dark"] .pay-pending { --tone: #FCD34D; --tone-bg: rgba(180, 83, 9, .28); }
+:root[data-theme="dark"] .tone-processing, :root[data-theme="dark"] .pay-processing { --tone: #93C5FD; --tone-bg: rgba(29, 78, 216, .3); }
+:root[data-theme="dark"] .tone-hold, :root[data-theme="dark"] .pay-hold { --tone: #CBD5E1; --tone-bg: rgba(71, 85, 105, .32); }
+:root[data-theme="dark"] .tone-partial, :root[data-theme="dark"] .pay-partial { --tone: #C4B5FD; --tone-bg: rgba(124, 58, 237, .3); }
+:root[data-theme="dark"] .tone-paid, :root[data-theme="dark"] .pay-paid { --tone: #6EE7B7; --tone-bg: rgba(21, 128, 61, .28); }
+:root[data-theme="dark"] .tone-failed, :root[data-theme="dark"] .pay-failed { --tone: #FCA5A5; --tone-bg: rgba(185, 28, 28, .3); }
+:root[data-theme="dark"] .pay-stat.good { border-color: rgba(21, 128, 61, .4); }
+:root[data-theme="dark"] .pay-stat.warn { border-color: rgba(180, 83, 9, .4); }

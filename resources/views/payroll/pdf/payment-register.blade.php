@@ -31,7 +31,7 @@
 <table class="grid tight">
     <thead>
         <tr>
-            <th style="width:16px;">#</th><th>ID</th><th>Employee</th><th>Mode</th>
+            <th style="width:22px;">Sr.</th><th>ID</th><th>Employee</th><th>Mode</th>
             <th class="num">Net Salary</th><th class="num">Paid</th><th class="num">Balance</th>
             <th>Status</th><th>Paid On</th><th>Reference</th><th style="width:26%;">Remarks</th>
         </tr>

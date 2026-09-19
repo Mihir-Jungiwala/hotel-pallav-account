@@ -41,6 +41,8 @@ class DeductionController extends Controller
 
     public function update(Request $request, Deduction $deduction)
     {
+        \App\Support\PayrollScope::ensure($deduction);
+
         $data = $request->validate(
             $this->rules($deduction->payroll_company_id, $deduction),
             ['name.unique' => 'A deduction with this name already exists for this company.']
@@ -53,6 +55,8 @@ class DeductionController extends Controller
 
     public function destroy(Deduction $deduction)
     {
+        \App\Support\PayrollScope::ensure($deduction);
+
         if (ForceMode::locked($deduction->assignments()->exists(), 'This deduction is already assigned to an employee')) {
             return back()->with('error', 'This deduction is already assigned to an employee and cannot be deleted.');
         }
@@ -64,6 +68,8 @@ class DeductionController extends Controller
 
     public function toggleActive(Deduction $deduction)
     {
+        \App\Support\PayrollScope::ensure($deduction);
+
         $deduction->update(['is_active' => ! $deduction->is_active]);
 
         return back()->with('success', 'Status updated.');

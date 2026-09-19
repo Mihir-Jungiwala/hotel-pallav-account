@@ -20,6 +20,8 @@ class SalaryPaymentController extends Controller
 
     public function update(Request $request, SalaryProcessing $processing)
     {
+        \App\Support\PayrollScope::ensure($processing);
+
         $this->guardAccess($processing);
 
         $data = $request->validate([

@@ -88,33 +88,6 @@
                         </form>
                     </td>
                 </tr>
-
-                <div class="modal fade" id="editSeparation{{ $row->id }}" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
-                    <form method="POST" action="{{ route('payroll.separation.update', $row) }}" enctype="multipart/form-data">@csrf @method('PUT')
-                        <div class="modal-header"><h5 class="modal-title">Exit - {{ optional($emp)->name }}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                        <div class="modal-body">
-                            @include('payroll.partials._separation-fields', ['target' => $row, 'activeEmployees' => $activeEmployees])
-                        </div>
-                        <div class="modal-footer">
-                            <a class="btn btn-outline-p me-auto" href="{{ route('payroll.separation.view', $row) }}" target="_blank"><i class="bi bi-file-earmark-pdf"></i> Exit Summary PDF</a>
-                            <button class="btn btn-p">Save Changes</button>
-                        </div>
-                    </form>
-                </div></div></div>
-
-                @if(! $row->hasRejoined())
-                <div class="modal fade" id="rejoin{{ $row->id }}" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
-                    <form method="POST" action="{{ route('payroll.separation.rejoin', $row) }}" data-bank-scope>@csrf
-                        <div class="modal-header"><h5 class="modal-title">Rejoin - {{ optional($emp)->name }}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                        <div class="modal-body">
-                            @include('payroll.partials._rejoin-fields', ['employee' => $emp])
-                        </div>
-                        <div class="modal-footer"><button class="btn btn-p">Rejoin Employee</button></div>
-                    </form>
-                </div></div></div>
-                @endif
             @empty
                 <tr data-empty>
                     <td colspan="8">
@@ -135,6 +108,38 @@
 
     @include('payroll.partials._pager', ['id' => 'separationPager'])
 </div>
+
+{{-- Modals live outside the table - a <form> is not valid content inside a
+     <tbody>, and the browser corrects that in ways that break its own JS. --}}
+@foreach($separations as $row)
+    @php $emp = $row->employee; @endphp
+    <div class="modal fade" id="editSeparation{{ $row->id }}" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+        <form method="POST" action="{{ route('payroll.separation.update', $row) }}" enctype="multipart/form-data">@csrf @method('PUT')
+            <div class="modal-header"><h5 class="modal-title">Exit - {{ optional($emp)->name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                @include('payroll.partials._separation-fields', ['target' => $row, 'activeEmployees' => $activeEmployees])
+            </div>
+            <div class="modal-footer">
+                <a class="btn btn-outline-p me-auto" href="{{ route('payroll.separation.view', $row) }}" target="_blank"><i class="bi bi-file-earmark-pdf"></i> Exit Summary PDF</a>
+                <button class="btn btn-p">Save Changes</button>
+            </div>
+        </form>
+    </div></div></div>
+
+    @if(! $row->hasRejoined())
+    <div class="modal fade" id="rejoin{{ $row->id }}" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+        <form method="POST" action="{{ route('payroll.separation.rejoin', $row) }}" data-bank-scope>@csrf
+            <div class="modal-header"><h5 class="modal-title">Rejoin - {{ optional($emp)->name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                @include('payroll.partials._rejoin-fields', ['employee' => $emp])
+            </div>
+            <div class="modal-footer"><button class="btn btn-p">Rejoin Employee</button></div>
+        </form>
+    </div></div></div>
+    @endif
+@endforeach
 
 <div class="modal fade" id="addSeparation" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
     <form method="POST" action="{{ route('payroll.separation.store') }}" enctype="multipart/form-data">@csrf

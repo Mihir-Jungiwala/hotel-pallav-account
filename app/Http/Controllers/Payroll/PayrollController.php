@@ -38,7 +38,7 @@ class PayrollController extends Controller
         }
 
         return view('payroll.index', array_merge([
-            'companies' => PayrollCompany::orderBy('name')->get(),
+            'companies' => PayrollCompany::withCount('employees')->orderBy('name')->get(),
             'company' => $company,
             'category' => $category,
             'categories' => $company === null ? ['profile' => 'Profile'] : PayrollContext::CATEGORIES,

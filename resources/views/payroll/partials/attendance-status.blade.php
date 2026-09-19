@@ -27,14 +27,6 @@
                         </form>
                     </td>
                 </tr>
-
-                <div class="modal fade" id="editStatus{{ $row->id }}" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
-                    <form method="POST" action="{{ route('payroll.attendance-status.update', $row) }}">@csrf @method('PUT')
-                        <div class="modal-header"><h5 class="modal-title">Edit {{ $row->name }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                        <div class="modal-body">@include('payroll.partials._attendance-status-fields', ['target' => $row])</div>
-                        <div class="modal-footer"><button class="btn btn-p">Save Changes</button></div>
-                    </form>
-                </div></div></div>
             @empty
                 <tr><td colspan="7" class="text-center text-muted py-4">No attendance statuses configured yet.</td></tr>
             @endforelse
@@ -43,7 +35,19 @@
     </div>
 </div>
 
-<div class="modal fade" id="addStatus" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+{{-- Modals live outside the table - a <form> is not valid content inside a
+     <tbody>, and the browser corrects that in ways that break its own JS. --}}
+@foreach($statuses as $row)
+    <div class="modal fade" id="editStatus{{ $row->id }}" tabindex="-1"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content">
+        <form method="POST" action="{{ route('payroll.attendance-status.update', $row) }}">@csrf @method('PUT')
+            <div class="modal-header"><h5 class="modal-title">Edit {{ $row->name }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">@include('payroll.partials._attendance-status-fields', ['target' => $row])</div>
+            <div class="modal-footer"><button class="btn btn-p">Save Changes</button></div>
+        </form>
+    </div></div></div>
+@endforeach
+
+<div class="modal fade" id="addStatus" tabindex="-1"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content">
     <form method="POST" action="{{ route('payroll.attendance-status.store') }}">@csrf
         <div class="modal-header"><h5 class="modal-title">Add Attendance Status</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
         <div class="modal-body">@include('payroll.partials._attendance-status-fields', ['target' => null])</div>

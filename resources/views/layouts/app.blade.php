@@ -173,9 +173,9 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/plugins/monthSelect/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
-    <link rel="stylesheet" href="{{ asset('assets/pms.css') }}?v=7">
+    <link rel="stylesheet" href="{{ asset('assets/pms.css') }}?v=8">
     <link rel="stylesheet" href="{{ asset('assets/pms-ui.css') }}?v=4">
-    <link rel="stylesheet" href="{{ asset('assets/pms-dash.css') }}?v=7">
+    <link rel="stylesheet" href="{{ asset('assets/pms-dash.css') }}?v=8">
     <link rel="stylesheet" href="{{ asset('assets/pms-nav.css') }}?v=3">
     @stack('styles')
 </head>
@@ -206,7 +206,11 @@
         <a href="{{ route('shift-handover.index') }}" class="{{ request()->routeIs('shift-handover.*') ? 'active' : '' }}" title="Shift Handover" data-label="Shift Handover"><i class="bi bi-arrow-left-right"></i><span>Shift Handover</span></a>
 
         <div class="sidebar-section">Payroll</div>
-        <a href="{{ route('payroll.index') }}" class="{{ request()->routeIs('payroll.*') ? 'active' : '' }}" title="Payroll" data-label="Payroll"><i class="bi bi-people-fill"></i><span>Payroll</span></a>
+        {{-- The main Payroll link always opens Company Listing, the module's
+             home. The "Current Company" switcher and the payroll rail (which
+             stay on screen once a company is open) are what keeps that
+             company active while moving between its individual pages. --}}
+        <a href="{{ route('payroll.index', ['current_company' => \App\Support\PayrollContext::SENTINEL]) }}" class="{{ request()->routeIs('payroll.*') ? 'active' : '' }}" title="Payroll" data-label="Payroll"><i class="bi bi-people-fill"></i><span>Payroll</span></a>
 
         <div class="sidebar-section">People</div>
         <a href="{{ route('company.index') }}" class="{{ request()->routeIs('company.*') ? 'active' : '' }}" title="Company Profiles" data-label="Company Profiles"><i class="bi bi-building"></i><span>Company Profiles</span></a>

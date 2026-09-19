@@ -41,7 +41,7 @@ body {
 [hidden] { display: none !important; }
 
 kbd {
-    background: #fff; border: 1px solid var(--line2); border-bottom-width: 2px;
+    background: var(--surface); border: 1px solid var(--line2); border-bottom-width: 2px;
     border-radius: 5px; padding: 1px 5px; font-size: 10.5px; font-weight: 700;
     color: var(--ink2); font-family: inherit; box-shadow: var(--sh-xs);
 }
@@ -134,7 +134,7 @@ kbd {
     width: 32px; height: 32px; padding: 0;
     display: inline-flex; align-items: center; justify-content: center;
     border-radius: var(--r-sm); border: 1.5px solid var(--line);
-    background: #fff; color: var(--p700); font-size: 14px;
+    background: var(--surface); color: var(--p700); font-size: 14px;
     transition: transform var(--dur-micro) var(--ease-out),
                 background-color var(--dur-base) var(--ease-out),
                 border-color var(--dur-base) var(--ease-out),
@@ -308,7 +308,7 @@ kbd {
 .company-switch-btn {
     display: flex; align-items: center; gap: 10px;
     width: 260px; max-width: 100%; padding: 8px 12px;
-    background: #fff; border: 1.5px solid var(--line2);
+    background: var(--surface); border: 1.5px solid var(--line2);
     border-radius: var(--r-md); cursor: pointer; text-align: left;
     transition: border-color var(--dur-base) var(--ease-out),
                 box-shadow var(--dur-base) var(--ease-out),
@@ -354,7 +354,7 @@ kbd {
 .company-menu .cm-search { position: relative; margin-bottom: 6px; }
 .company-menu .cm-search input {
     width: 100%; padding: 8px 10px 8px 30px; font-size: 13px;
-    border: 1px solid var(--line2); border-radius: var(--r-sm); background: #fff;
+    border: 1px solid var(--line2); border-radius: var(--r-sm); background: var(--surface); color: var(--ink);
 }
 .company-menu .cm-search input:focus { outline: none; border-color: var(--p500); box-shadow: var(--sh-focus); }
 .company-menu .cm-search i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 12px; color: var(--muted); }
@@ -390,14 +390,14 @@ kbd {
     display: flex; align-items: center; justify-content: space-between;
     gap: 12px; flex-wrap: wrap;
     padding: 12px 16px; border-top: 1px solid var(--line);
-    background: #FDFCFF; border-radius: 0 0 var(--r-lg) var(--r-lg);
+    background: var(--surface-2); border-radius: 0 0 var(--r-lg) var(--r-lg);
 }
 .pms-pager .pg-info { font-size: 12.5px; color: var(--muted); }
 .pms-pager .pg-controls { display: flex; align-items: center; gap: 4px; }
 .pms-pager button {
     min-width: 32px; height: 32px; padding: 0 9px;
     border-radius: var(--r-sm); border: 1px solid var(--line);
-    background: #fff; color: var(--ink2); font-size: 12.5px; font-weight: 700;
+    background: var(--surface); color: var(--ink2); font-size: 12.5px; font-weight: 700;
     transition: background-color var(--dur-micro) var(--ease-out),
                 border-color var(--dur-micro) var(--ease-out),
                 color var(--dur-micro) var(--ease-out),
@@ -412,15 +412,22 @@ kbd {
 }
 .pms-pager select {
     height: 32px; border-radius: var(--r-sm); border: 1px solid var(--line);
-    font-size: 12.5px; font-weight: 600; color: var(--ink2); padding: 0 6px; background: #fff;
+    font-size: 12.5px; font-weight: 600; color: var(--ink2); padding: 0 22px 0 10px; background: var(--surface);
+    appearance: none; -webkit-appearance: none;
+    background-image: var(--select-caret);
+    background-repeat: no-repeat; background-position: right 8px center; background-size: 13px;
+    cursor: pointer;
+    transition: border-color var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) var(--ease-out);
 }
+.pms-pager select:hover { border-color: var(--p400); }
+.pms-pager select:focus { outline: none; border-color: var(--p500); box-shadow: var(--sh-focus); }
 
 /* ---------------------------------------------------------------------------
    Segmented scope bar (Current Company)
    --------------------------------------------------------------------------- */
 
 .scope-bar {
-    background: #fff;
+    background: var(--surface);
     border: 1px solid var(--line);
     border-radius: var(--r-lg);
     box-shadow: var(--sh-sm);
@@ -429,7 +436,9 @@ kbd {
 
 .scope-select {
     appearance: none;
-    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%237A7392'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E") no-repeat right 12px center/16px;
+    background-color: var(--surface);
+    background-image: var(--select-caret);
+    background-repeat: no-repeat; background-position: right 12px center; background-size: 16px;
     border: 1.5px solid var(--line2);
     border-radius: var(--r-sm);
     padding: 10px 38px 10px 14px;
@@ -476,13 +485,13 @@ kbd {
     overflow: hidden;
 }
 .modal-header {
-    background: linear-gradient(180deg, var(--p50), #fff);
+    background: linear-gradient(180deg, var(--p50), var(--surface-2));
     border-bottom: 1px solid var(--line);
     padding: 18px 22px;
 }
 .modal-title { color: var(--p800); font-weight: 700; letter-spacing: -0.015em; font-size: 17px; }
 .modal-body { padding: 22px; }
-.modal-footer { border-top: 1px solid var(--line); padding: 16px 22px; background: #FDFCFF; }
+.modal-footer { border-top: 1px solid var(--line); padding: 16px 22px; background: var(--surface-2); }
 .modal-backdrop.show { opacity: .38; }
 
 /* Bootstrap's own fade is replaced so the surface arrives as a material */
@@ -557,17 +566,17 @@ kbd {
 
 .attendance-grid thead th {
     position: sticky; top: 0; z-index: 3;
-    background: #F3EEFE;
+    background: var(--surface-2);
     box-shadow: inset 0 -1px 0 var(--line2);
 }
 
 /* Identity columns stay put while the 31 day columns scroll */
 .attendance-grid .sticky-col {
     position: sticky; z-index: 2;
-    background: #fff;
+    background: var(--surface);
     box-shadow: 1px 0 0 var(--line);
 }
-.attendance-grid thead .sticky-col { z-index: 4; background: #F3EEFE; }
+.attendance-grid thead .sticky-col { z-index: 4; background: var(--surface-2); }
 .attendance-grid .col-sr   { left: 0;    min-width: 44px;  width: 44px; }
 .attendance-grid .col-name { left: 44px; min-width: 170px; }
 .attendance-grid .col-desig{ left: 214px; min-width: 140px; box-shadow: 2px 0 6px rgba(42,15,94,.06); }
@@ -663,7 +672,7 @@ kbd {
 
 .legend-row {
     padding: 12px 16px;
-    background: #FDFCFF;
+    background: var(--surface-2);
     border-bottom: 1px solid var(--line);
 }
 
@@ -671,7 +680,7 @@ kbd {
 .legend-chip {
     display: inline-flex; align-items: center; gap: 7px;
     padding: 5px 11px 5px 5px; border-radius: 999px;
-    background: #fff; border: 1px solid var(--line);
+    background: var(--surface); border: 1px solid var(--line);
     font-size: 11.5px; font-weight: 600; color: var(--ink2);
     transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
     cursor: default;
@@ -825,7 +834,7 @@ kbd {
 
 .pay-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .pay-stat {
-    background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg);
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
     padding: 14px 16px; box-shadow: var(--sh-xs); position: relative; overflow: hidden;
     transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
 }
@@ -842,7 +851,7 @@ kbd {
 .status-chip {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 6px 12px; border-radius: 999px;
-    background: #fff; border: 1px solid var(--line);
+    background: var(--surface); border: 1px solid var(--line);
     font-size: 12.5px; font-weight: 600; color: var(--ink2);
     transition: background-color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out),
                 color var(--dur-base) var(--ease-out), transform var(--dur-micro) var(--ease-out);
@@ -865,7 +874,7 @@ kbd {
 .status-option .so-body {
     display: flex; flex-direction: column; gap: 2px; height: 100%;
     padding: 11px 12px; border-radius: var(--r-md);
-    border: 1.5px solid var(--line); background: #fff;
+    border: 1.5px solid var(--line); background: var(--surface);
     transition: border-color var(--dur-base) var(--ease-out), background-color var(--dur-base) var(--ease-out),
                 box-shadow var(--dur-base) var(--ease-out), transform var(--dur-micro) var(--ease-out);
 }
@@ -946,7 +955,7 @@ tr:hover .avatar { transform: scale(1.06); }
 /* History timeline */
 .history-entry {
     border: 1px solid var(--line); border-radius: var(--r-md);
-    padding: 14px 16px; margin-bottom: 12px; background: #fff;
+    padding: 14px 16px; margin-bottom: 12px; background: var(--surface);
     transition: box-shadow var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
 }
 .history-entry:hover { box-shadow: var(--sh-sm); border-color: var(--line2); }
@@ -971,8 +980,13 @@ tr:hover .avatar { transform: scale(1.06); }
 }
 
 @media (prefers-reduced-transparency: reduce) {
-    .toast-item, .action-bar { background: #fff; backdrop-filter: none; -webkit-backdrop-filter: none; }
+    .toast-item, .action-bar { background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
+
+/* Company Listing - the whole row opens that company's payroll */
+.company-row { cursor: pointer; transition: background-color var(--dur-micro) var(--ease-out); }
+.company-row:hover { background: var(--p50); }
+.company-row:hover .avatar { transform: scale(1.06); }
 
 @media (max-width: 900px) {
     .attendance-grid .col-desig { display: none; }

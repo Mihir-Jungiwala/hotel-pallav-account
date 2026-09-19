@@ -56,6 +56,8 @@ class AttendanceStatusController extends Controller
 
     public function update(Request $request, AttendanceStatus $status)
     {
+        \App\Support\PayrollScope::ensure($status);
+
         $data = $request->validate($this->rules($status->payroll_company_id, $status), $this->messages());
         $data['shortcut_key'] = strtoupper($data['shortcut_key']);
 
@@ -66,6 +68,8 @@ class AttendanceStatusController extends Controller
 
     public function destroy(AttendanceStatus $status)
     {
+        \App\Support\PayrollScope::ensure($status);
+
         if (ForceMode::locked($status->entries()->exists(), 'This attendance status is already used in Attendance')) {
             return back()->with('error', 'This attendance status is already used in Attendance Management and cannot be deleted.');
         }
@@ -77,6 +81,8 @@ class AttendanceStatusController extends Controller
 
     public function toggleActive(AttendanceStatus $status)
     {
+        \App\Support\PayrollScope::ensure($status);
+
         $status->update(['is_active' => ! $status->is_active]);
 
         return back()->with('success', 'Status updated.');

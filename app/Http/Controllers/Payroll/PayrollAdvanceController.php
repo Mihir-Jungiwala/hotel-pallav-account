@@ -68,6 +68,8 @@ class PayrollAdvanceController extends Controller
 
     public function update(Request $request, PayrollAdvance $advance)
     {
+        \App\Support\PayrollScope::ensure($advance);
+
         if (ForceMode::locked(! Auth::user()->isAdmin(), 'Only Admin users can update advance records')) {
             return back()->with('error', 'Only Admin users can update advance records.');
         }
@@ -93,6 +95,8 @@ class PayrollAdvanceController extends Controller
 
     public function destroy(PayrollAdvance $advance)
     {
+        \App\Support\PayrollScope::ensure($advance);
+
         if (ForceMode::locked(! Auth::user()->isAdmin(), 'Only Admin users can delete advance records')) {
             return back()->with('error', 'Only Admin users can delete advance records.');
         }
@@ -112,6 +116,8 @@ class PayrollAdvanceController extends Controller
 
     public function view(PayrollAdvance $advance)
     {
+        \App\Support\PayrollScope::ensure($advance);
+
         $advance->load('employee', 'company', 'creator');
 
         return Pdf::loadView('payroll.pdf.advance', compact('advance'))
