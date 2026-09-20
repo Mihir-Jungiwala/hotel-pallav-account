@@ -12,9 +12,9 @@
 
 @section('page-actions')
     @if($food)
-        <a class="btn btn-p" target="_blank"
-           href="{{ route('payroll.report.food-charges', ['year' => $monthStart->year, 'month' => $monthStart->month]) }}">
-            <i class="bi bi-file-earmark-pdf"></i> Statement PDF
+        {{-- The bill is printed as part of the month's report, with the salary --}}
+        <a class="btn btn-outline-p" href="{{ route('payroll.monthly-report.index', ['year' => $monthStart->year, 'month' => $monthStart->month]) }}">
+            <i class="bi bi-bar-chart"></i> Monthly report
         </a>
     @endif
 @endsection

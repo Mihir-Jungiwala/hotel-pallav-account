@@ -21,9 +21,22 @@
 @endphp
 
 @section('page-actions')
+    {{-- Search is what people reach for first, so it lives up here beside the
+         export instead of inside the filters. Whatever else is filtered stays. --}}
+    <form method="GET" action="{{ route('payroll.log.index') }}" class="log-search" role="search">
+        @foreach(collect($filters)->except('q') as $key => $value)
+            @if(filled($value))<input type="hidden" name="{{ $key }}" value="{{ $value }}">@endif
+        @endforeach
+        <div class="search-field smart mb-0">
+            <i class="bi bi-search"></i>
+            <input type="search" name="q" class="form-control" value="{{ $filters['q'] ?? '' }}"
+                   placeholder="Search the log&hellip;" aria-label="Search the log">
+        </div>
+    </form>
+
     @if($logs->total() > 0)
-        <a class="btn btn-outline-p" href="{{ route('payroll.log.download', request()->query()) }}">
-            <i class="bi bi-download"></i> Export CSV
+        <a class="btn btn-p" target="_blank" href="{{ route('payroll.log.pdf', request()->query()) }}">
+            <i class="bi bi-file-earmark-pdf"></i> Export PDF
         </a>
     @endif
 @endsection
@@ -71,64 +84,106 @@
     @endforeach
 </div>
 
-{{-- Everything else, out of the way until it is wanted --}}
-<details class="log-advanced" {{ ($filters['q'] ?? $filters['entity'] ?? $filters['user'] ?? $filters['from'] ?? null) ? 'open' : '' }}>
-    <summary><i class="bi bi-funnel"></i> Search and filter</summary>
+{{-- Filters: one labelled row for what happened, one for when, and a footer for the buttons --}}
+<details class="log-advanced" {{ collect($filters)->only('action', 'entity', 'user', 'from', 'to', 'status')->filter()->isNotEmpty() ? 'open' : '' }}>
+    <summary>
+        <i class="bi bi-funnel"></i> Filters
+        @if($hasFilters)<span class="lf-badge">{{ collect($filters)->filter()->count() }} on</span>@endif
+    </summary>
 
     <form method="GET" action="{{ route('payroll.log.index') }}" class="log-filters">
+        @if($filters['q'] ?? null)<input type="hidden" name="q" value="{{ $filters['q'] }}">@endif
         @if($filters['view'] ?? null)<input type="hidden" name="view" value="{{ $filters['view'] }}">@endif
 
-        <div class="lf-cell lf-wide">
-            <label class="form-label" for="lf_q">Search</label>
-            <div class="search-field smart mb-0">
-                <i class="bi bi-search"></i>
-                <input type="search" name="q" id="lf_q" class="form-control" value="{{ $filters['q'] ?? '' }}"
-                       placeholder="Name, record, amount, anything&hellip;" aria-label="Search the log">
+        <div class="lf-section">
+            <div class="lf-title"><i class="bi bi-lightning-charge"></i> What happened</div>
+            <div class="lf-grid lf-grid-3">
+                <div class="lf-field">
+                    <label class="form-label" for="lf_action">Action</label>
+                    <select name="action" id="lf_action" class="form-select">
+                        <option value="">Any action</option>
+                        @foreach(\App\Models\PayrollLog::ACTIONS as $key => $label)
+                            <option value="{{ $key }}" @selected(($filters['action'] ?? '') === $key)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="lf-field">
+                    <label class="form-label" for="lf_entity">Record type</label>
+                    <select name="entity" id="lf_entity" class="form-select">
+                        <option value="">Any type</option>
+                        @foreach($entities as $entity)
+                            <option value="{{ $entity }}" @selected(($filters['entity'] ?? '') === $entity)>{{ $entity }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="lf-field">
+                    <label class="form-label" for="lf_user">Done by</label>
+                    <select name="user" id="lf_user" class="form-select">
+                        <option value="">Anyone</option>
+                        @foreach($people as $person)
+                            <option value="{{ $person }}" @selected(($filters['user'] ?? '') === $person)>{{ $person }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
         </div>
-        <div class="lf-cell">
-            <label class="form-label" for="lf_action">Action</label>
-            <select name="action" id="lf_action" class="form-select">
-                <option value="">Any action</option>
-                @foreach(\App\Models\PayrollLog::ACTIONS as $key => $label)
-                    <option value="{{ $key }}" @selected(($filters['action'] ?? '') === $key)>{{ $label }}</option>
-                @endforeach
-            </select>
+
+        <div class="lf-section">
+            <div class="lf-title"><i class="bi bi-calendar-range"></i> When</div>
+            <div class="lf-grid lf-grid-3">
+                <div class="lf-field">
+                    <label class="form-label" for="lf_from">From</label>
+                    <input type="date" name="from" id="lf_from" class="form-control" value="{{ $filters['from'] ?? '' }}">
+                </div>
+                <div class="lf-field">
+                    <label class="form-label" for="lf_to">To</label>
+                    <input type="date" name="to" id="lf_to" class="form-control" value="{{ $filters['to'] ?? '' }}">
+                </div>
+                <div class="lf-field">
+                    <label class="form-label" for="lf_status">Outcome</label>
+                    <select name="status" id="lf_status" class="form-select">
+                        <option value="">Any outcome</option>
+                        <option value="success" @selected(($filters['status'] ?? '') === 'success')>Worked</option>
+                        <option value="failed" @selected(($filters['status'] ?? '') === 'failed')>Did not work</option>
+                    </select>
+                </div>
+            </div>
         </div>
-        <div class="lf-cell">
-            <label class="form-label" for="lf_entity">What</label>
-            <select name="entity" id="lf_entity" class="form-select">
-                <option value="">Anything</option>
-                @foreach($entities as $entity)
-                    <option value="{{ $entity }}" @selected(($filters['entity'] ?? '') === $entity)>{{ $entity }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div class="lf-cell">
-            <label class="form-label" for="lf_user">Who</label>
-            <select name="user" id="lf_user" class="form-select">
-                <option value="">Anyone</option>
-                @foreach($people as $person)
-                    <option value="{{ $person }}" @selected(($filters['user'] ?? '') === $person)>{{ $person }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div class="lf-cell">
-            <label class="form-label" for="lf_from">From</label>
-            <input type="date" name="from" id="lf_from" class="form-control" value="{{ $filters['from'] ?? '' }}">
-        </div>
-        <div class="lf-cell">
-            <label class="form-label" for="lf_to">To</label>
-            <input type="date" name="to" id="lf_to" class="form-control" value="{{ $filters['to'] ?? '' }}">
-        </div>
-        <div class="lf-cell lf-actions">
-            <button class="btn btn-p w-100"><i class="bi bi-search"></i> Apply</button>
+
+        <div class="lf-foot">
             @if($hasFilters)
-                <a class="btn btn-ghost w-100 mt-2" href="{{ route('payroll.log.index') }}">Clear all</a>
+                <a class="btn btn-ghost" href="{{ route('payroll.log.index') }}"><i class="bi bi-x-lg"></i> Clear all</a>
             @endif
+            <button class="btn btn-p"><i class="bi bi-check2"></i> Apply filters</button>
         </div>
     </form>
 </details>
+
+{{-- What is currently narrowing the list, each with a way to drop it --}}
+@if($hasFilters)
+    @php
+        $names = [
+            'q' => 'Search', 'action' => 'Action', 'entity' => 'Type', 'user' => 'By',
+            'status' => 'Outcome', 'from' => 'From', 'to' => 'To', 'view' => 'View',
+        ];
+        $shown = fn ($key, $value) => match ($key) {
+            'action' => \App\Models\PayrollLog::ACTIONS[$value] ?? $value,
+            'status' => $value === 'failed' ? 'Did not work' : 'Worked',
+            'view' => $quickViews[$value][0] ?? $value,
+            'from', 'to' => \Illuminate\Support\Carbon::parse($value)->format('j M Y'),
+            default => $value,
+        };
+    @endphp
+    <div class="log-applied">
+        <span class="la-label">Showing only</span>
+        @foreach(collect($filters)->filter() as $key => $value)
+            <a class="la-chip" title="Remove this filter"
+               href="{{ route('payroll.log.index', collect(request()->query())->except($key, 'page')->all()) }}">
+                <span>{{ $names[$key] ?? $key }}:</span> <strong>{{ $shown($key, $value) }}</strong> <i class="bi bi-x"></i>
+            </a>
+        @endforeach
+    </div>
+@endif
 
 <div class="card">
     <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">

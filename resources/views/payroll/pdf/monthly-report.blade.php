@@ -138,6 +138,16 @@
                 <td colspan="4">Total payable to {{ $food['payee'] }} &middot; {{ \App\Support\NumberToWords::convert($food['total']) }}</td>
                 <td class="num">{{ number_format($food['total'], 2) }}</td>
             </tr>
+            {{-- Both halves, and what the month costs altogether - a row here rather
+                 than a table of its own, so it never lands alone on a second page --}}
+            @php $grand = round((float) $totalNet + $food['total'], 2); @endphp
+            <tr class="total">
+                <td colspan="4">
+                    Grand total for {{ $start->format('F Y') }}: net salary {{ number_format($totalNet, 2) }} + {{ $food['payee'] }} {{ number_format($food['total'], 2) }}
+                    &middot; {{ \App\Support\NumberToWords::convert($grand) }}
+                </td>
+                <td class="num">{{ number_format($grand, 2) }}</td>
+            </tr>
         </tbody>
     </table>
     <div class="muted" style="font-size:6.5pt; margin-top:3px;">Paid by {{ $company->name }}, not deducted from salary. Counted by calendar days from the joining date.</div>

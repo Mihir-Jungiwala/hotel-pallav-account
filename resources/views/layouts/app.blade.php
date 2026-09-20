@@ -174,10 +174,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/plugins/monthSelect/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
     <link rel="stylesheet" href="{{ asset('assets/pms.css') }}?v=8">
-    <link rel="stylesheet" href="{{ asset('assets/pms-ui.css') }}?v=6">
+    <link rel="stylesheet" href="{{ asset('assets/pms-ui.css') }}?v=7">
     <link rel="stylesheet" href="{{ asset('assets/pms-dash.css') }}?v=8">
     <link rel="stylesheet" href="{{ asset('assets/pms-nav.css') }}?v=4">
-    <link rel="stylesheet" href="{{ asset('assets/pms-payroll.css') }}?v=29">
+    <link rel="stylesheet" href="{{ asset('assets/pms-payroll.css') }}?v=31">
     @stack('styles')
 </head>
 <body class="@hasSection('subnav') has-subnav @else no-subnav @endif @guest guest-page @endguest"
@@ -332,7 +332,7 @@
 {{-- The search engine loads first: pms.js wires every search box to it --}}
 <script src="{{ asset('assets/pms-search.js') }}?v=2"></script>
 <script src="{{ asset('assets/pms.js') }}?v=11"></script>
-<script src="{{ asset('assets/pms-ui.js') }}?v=7"></script>
+<script src="{{ asset('assets/pms-ui.js') }}?v=8"></script>
 {{-- Last: it replaces the browser's own validation, so every form must exist
      and every other enhancement must have run before it takes over. --}}
 <script src="{{ asset('assets/pms-forms.js') }}?v=5"></script>

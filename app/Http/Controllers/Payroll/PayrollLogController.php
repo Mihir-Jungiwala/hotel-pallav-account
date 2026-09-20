@@ -8,7 +8,6 @@ use App\Models\PayrollLog;
 use App\Support\PayrollContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * The payroll log: everything done in payroll, newest first. SuperAdmin only.
@@ -26,6 +25,9 @@ class PayrollLogController extends Controller
         'deletions' => ['Deletions', 'bi-trash'],
         'problems' => ['Problems', 'bi-exclamation-triangle'],
     ];
+
+    /** A printed log is capped: past this it is a book, and the dates or filters should narrow it. */
+    private const PDF_LIMIT = 400;
 
     /** Entities that move money, for the "Money" view. */
     private const MONEY_ENTITIES = ['Salary slip', 'Advance', 'Bonus / incentive', 'Food charge rate', 'Attendance'];
@@ -69,34 +71,29 @@ class PayrollLogController extends Controller
         ]);
     }
 
-    /** The same list the page shows, as a spreadsheet. */
-    public function download(Request $request): StreamedResponse
+    /** The same list the page shows, as a document with every detail. */
+    public function pdf(Request $request)
     {
         $company = PayrollContext::current();
-        $rows = $this->query($request, $company)->limit(5000)->get();
-        $name = 'payroll-log-'.($company ? \Illuminate\Support\Str::slug($company->name).'-' : '').now()->format('Y-m-d').'.csv';
+        $query = $this->query($request, $company);
 
-        return response()->streamDownload(function () use ($rows) {
-            $out = fopen('php://output', 'w');
-            fputcsv($out, ['When', 'Company', 'Who', 'Action', 'Outcome', 'What', 'Record', 'Summary', 'Detail', 'From']);
+        $total = (clone $query)->count();
+        $rows = $query->limit(self::PDF_LIMIT)->get();
 
-            foreach ($rows as $log) {
-                fputcsv($out, [
-                    $log->created_at->format('Y-m-d H:i:s'),
-                    $log->company_name,
-                    $log->user_name,
-                    $log->action,
-                    $log->status,
-                    $log->entity,
-                    $log->subject_label,
-                    $log->summary,
-                    $this->flatten($log),
-                    $log->ip_address,
-                ]);
-            }
+        // Rendered once and kept: a long log is many pages by nature, so the
+        // fit-to-one-page retries that other documents use would only cost time
+        $pdf = app('dompdf.wrapper')
+            ->loadView('payroll.pdf.log', [
+                'company' => $company,
+                'rows' => $rows,
+                'filters' => $this->describeFilters($request),
+                'truncated' => $total > $rows->count(),
+                'compact' => 0,
+            ])
+            ->setPaper('a4', 'portrait');
 
-            fclose($out);
-        }, $name, ['Content-Type' => 'text/csv']);
+        return (new \App\Support\RenderedPdf($pdf->output()))
+            ->stream('payroll-log-'.($company ? \Illuminate\Support\Str::slug($company->name).'-' : '').now()->format('Y-m-d').'.pdf');
     }
 
     /** @return \Illuminate\Database\Eloquent\Builder<PayrollLog> */
@@ -136,21 +133,35 @@ class PayrollLogController extends Controller
         };
     }
 
-    /** The detail of one entry on a single line, for the spreadsheet. */
-    private function flatten(PayrollLog $log): string
+    /** The filters in force, in words, so the printed page says what it is a slice of. */
+    private function describeFilters(Request $request): array
     {
-        if (! $log->details) {
-            return '';
-        }
-
         $parts = [];
 
-        foreach ($log->details as $field => $value) {
-            $parts[] = is_array($value)
-                ? $field.': '.($value['was'] ?? '-').' -> '.($value['became'] ?? '-')
-                : $field.': '.$value;
+        if ($request->filled('view') && isset(self::QUICK_VIEWS[$request->string('view')->toString()])) {
+            $parts[] = self::QUICK_VIEWS[$request->string('view')->toString()][0];
+        }
+        if ($request->filled('q')) {
+            $parts[] = 'search "'.$request->string('q')->toString().'"';
+        }
+        if ($request->filled('action')) {
+            $parts[] = 'action: '.(PayrollLog::ACTIONS[$request->string('action')->toString()] ?? $request->string('action')->toString());
+        }
+        if ($request->filled('entity')) {
+            $parts[] = 'what: '.$request->string('entity')->toString();
+        }
+        if ($request->filled('user')) {
+            $parts[] = 'who: '.$request->string('user')->toString();
+        }
+        if ($request->filled('status')) {
+            $parts[] = 'outcome: '.$request->string('status')->toString();
+        }
+        if ($request->filled('from')) {
+            $parts[] = 'from '.Carbon::parse($request->input('from'))->format('j M Y');
+        }
+        if ($request->filled('to')) {
+            $parts[] = 'to '.Carbon::parse($request->input('to'))->format('j M Y');
         }
 
-        return implode('; ', $parts);
-    }
-}
+        return $parts;
+    }}

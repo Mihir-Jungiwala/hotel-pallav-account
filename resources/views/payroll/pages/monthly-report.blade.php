@@ -145,14 +145,9 @@
     <div class="card mt-3">
         <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
             <span><i class="bi bi-cup-hot me-1"></i> Pay to {{ $food['payee'] }}</span>
-            <div class="d-flex gap-2">
-                <a class="btn btn-sm btn-outline-p" href="{{ route('payroll.food-charge.index', ['year' => $monthStart->year, 'month' => $monthStart->month]) }}">
-                    <i class="bi bi-sliders"></i> Manage
-                </a>
-                <a class="btn btn-sm btn-p" target="_blank" href="{{ route('payroll.report.food-charges', ['year' => $monthStart->year, 'month' => $monthStart->month]) }}">
-                    <i class="bi bi-file-earmark-pdf"></i> Statement PDF
-                </a>
-            </div>
+            <a class="btn btn-sm btn-outline-p" href="{{ route('payroll.food-charge.index', ['year' => $monthStart->year, 'month' => $monthStart->month]) }}">
+                <i class="bi bi-sliders"></i> Manage
+            </a>
         </div>
         <div class="px-3 pt-3">
             <div class="master-note">
@@ -161,6 +156,20 @@
             </div>
         </div>
         @include('payroll.partials._food-table')
+    </div>
+
+    {{-- Both halves, and what the month costs altogether --}}
+    @php
+        $salaryTotal = (float) $rows->sum('net_salary');
+        $grand = round($salaryTotal + $food['total'], 2);
+    @endphp
+    <div class="card mt-3 grand-total">
+        <div class="gt-row"><span>Net salary payout</span><strong>&#8377;{{ number_format($salaryTotal, 2) }}</strong></div>
+        <div class="gt-row"><span>Payable to {{ $food['payee'] }}</span><strong>&#8377;{{ number_format($food['total'], 2) }}</strong></div>
+        <div class="gt-row gt-final">
+            <span>Total for {{ $monthStart->format('F Y') }}<small>{{ \App\Support\NumberToWords::convert($grand) }}</small></span>
+            <strong>&#8377;{{ number_format($grand, 2) }}</strong>
+        </div>
     </div>
 @endif
 

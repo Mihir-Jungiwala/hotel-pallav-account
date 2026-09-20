@@ -9,6 +9,7 @@ use App\Models\PayrollLog;
 use App\Models\PayrollMasterItem;
 use App\Models\User;
 use App\Support\PayrollLogger;
+use App\Support\PayrollPdf;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
@@ -74,6 +75,18 @@ class PayrollLogTest extends TestCase
 
         // Bookkeeping is never noise
         $this->assertArrayNotHasKey('Updated At', $rows[1]->details);
+    }
+
+    public function test_a_session_token_never_reaches_the_log(): void
+    {
+        $this->actingAs(User::factory()->superAdmin()->create());
+        $month = \App\Models\AttendanceMonth::create([
+            'payroll_company_id' => $this->a->id, 'year' => 2026, 'month' => 8,
+        ]);
+
+        $month->update(['unlock_session' => 'SECRET-SESSION-TOKEN-12345', 'is_locked' => false]);
+
+        $this->assertStringNotContainsString('SECRET-SESSION-TOKEN-12345', json_encode(PayrollLog::all()->toArray()));
     }
 
     public function test_a_save_that_changes_nothing_is_not_logged(): void
@@ -152,6 +165,45 @@ class PayrollLogTest extends TestCase
 
         $this->get(route('payroll.log.index', ['scope' => $this->a->id]));
         $this->get(route('payroll.log.index'))->assertSee('A-1')->assertDontSee('B-1');
+    }
+
+    public function test_the_export_is_a_pdf_of_the_filtered_log_with_every_detail(): void
+    {
+        $this->actingAs(User::factory()->superAdmin()->create(['name' => 'Root Admin']));
+        $employee = $this->employeeIn($this->a, 'A-1');
+        $employee->update(['salary' => 31000, 'designation' => 'Night Manager']);
+
+        $this->get(route('payroll.log.index', ['scope' => 'all']));
+
+        $body = $this->get(route('payroll.log.pdf', ['action' => 'updated']))->assertOk()->getContent();
+
+        $this->assertStringStartsWith('%PDF', $body);
+        $this->assertGreaterThanOrEqual(1, PayrollPdf::pageCount($body));
+
+        // Only the filtered entries, and the old CSV route is gone
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('payroll.log.download'));
+    }
+
+    public function test_the_pdf_is_for_the_superadmin_alone(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $this->get(route('payroll.log.pdf'))->assertForbidden();
+    }
+
+    public function test_the_page_shows_what_is_narrowing_the_list_and_search_sits_in_the_header(): void
+    {
+        $this->actingAs(User::factory()->superAdmin()->create());
+        $this->employeeIn($this->a, 'A-1');
+        $this->get(route('payroll.log.index', ['scope' => 'all']));
+
+        $this->get(route('payroll.log.index', ['action' => 'created']))
+            ->assertOk()
+            ->assertSee('Showing only')
+            ->assertSee('Remove this filter')
+            ->assertSee('class="log-search"', false)
+            ->assertSee('Export PDF')
+            ->assertDontSee('Export CSV');
     }
 
     public function test_the_log_can_be_searched_and_filtered(): void

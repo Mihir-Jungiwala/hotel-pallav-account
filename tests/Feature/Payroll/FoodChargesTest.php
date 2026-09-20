@@ -118,7 +118,7 @@ class FoodChargesTest extends TestCase
         $this->assertNull(FoodCharges::statement($this->food, 2026, 9));
     }
 
-    public function test_the_monthly_report_shows_what_is_payable_and_both_pdfs_render(): void
+    public function test_the_monthly_report_carries_salary_and_food_together_with_one_total(): void
     {
         $this->rate(3000);
         $this->staff($this->hotel, 'E-1', 'Asha Menon', '2025-06-01');
@@ -127,25 +127,31 @@ class FoodChargesTest extends TestCase
         $this->actingAs(User::factory()->admin()->create());
         $this->get(route('payroll.index', ['current_company' => $this->hotel->id]));
 
+        // Two staff on Rs 20,000 net each = 40,000, plus Rs 4,500 for Pallav Food = 44,500
         $this->get(route('payroll.monthly-report.index', ['year' => 2026, 'month' => 9]))
             ->assertOk()->assertSee('Pay to Pallav Food')->assertSee('4,500.00')->assertSee('15 / 30')
-            ->assertSee('never taken from salary');
+            ->assertSee('never taken from salary')
+            ->assertSee('Net salary payout')->assertSee('40,000.00')->assertSee('44,500.00')
+            ->assertDontSee('Statement PDF');
 
-        foreach ([route('payroll.report.food-charges', ['year' => 2026, 'month' => 9]), route('payroll.report.monthly', ['year' => 2026, 'month' => 9])] as $url) {
-            $body = $this->get($url)->assertOk()->getContent();
-            $this->assertStringStartsWith('%PDF', $body);
-            $this->assertGreaterThanOrEqual(1, PayrollPdf::pageCount($body));
-        }
+        // Salary, Pallav Food and the total all on one page, not a total left alone on a second
+        $body = $this->get(route('payroll.report.monthly', ['year' => 2026, 'month' => 9]))->assertOk()->getContent();
+        $this->assertStringStartsWith('%PDF', $body);
+        $this->assertSame(1, PayrollPdf::pageCount($body));
     }
 
-    public function test_pallav_food_sees_no_food_section_and_a_month_with_no_charge_has_no_statement(): void
+    public function test_there_is_no_separate_statement_any_more(): void
+    {
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('payroll.report.food-charges'));
+    }
+
+    public function test_pallav_food_sees_no_food_section(): void
     {
         $this->actingAs(User::factory()->admin()->create());
         $this->get(route('payroll.index', ['current_company' => $this->food->id]));
         $this->staff($this->food, 'F-1', 'Cook', '2025-06-01');
 
         $this->get(route('payroll.monthly-report.index', ['year' => 2026, 'month' => 9]))->assertOk()->assertDontSee('Pay to Pallav Food');
-        $this->get(route('payroll.report.food-charges', ['year' => 2026, 'month' => 9]))->assertNotFound();
     }
 
     public function test_the_meals_switch_and_the_amount_are_only_offered_to_hotel_pallav(): void

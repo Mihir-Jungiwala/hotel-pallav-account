@@ -26,7 +26,7 @@ use Illuminate\Support\Str;
 class PayrollModelObserver
 {
     /** Never written to the log, even when they change. */
-    private const SKIP = ['id', 'created_at', 'updated_at', 'deleted_at', 'remember_token', 'password', 'batch_id'];
+    private const SKIP = ['id', 'created_at', 'updated_at', 'deleted_at', 'remember_token', 'password', 'batch_id', 'unlock_session'];
 
     /** Model => [what it is called, how one is named, which column holds its company (null: itself)] */
     public static function models(): array

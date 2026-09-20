@@ -180,7 +180,7 @@ Route::middleware(['auth', 'auth.session', 'single.session', 'account.usable', '
         // Payroll Log (SuperAdmin): everything done in payroll, with full detail
         Route::middleware('superadmin')->group(function () {
             Route::get('/log', [\App\Http\Controllers\Payroll\PayrollLogController::class, 'index'])->name('log.index');
-            Route::get('/log/download', [\App\Http\Controllers\Payroll\PayrollLogController::class, 'download'])->name('log.download');
+            Route::get('/log/pdf', [\App\Http\Controllers\Payroll\PayrollLogController::class, 'pdf'])->name('log.pdf');
         });
 
         // Payroll Master (SuperAdmin): works on all companies, or on the selected one
@@ -299,7 +299,6 @@ Route::middleware(['auth', 'auth.session', 'single.session', 'account.usable', '
 
         // Report downloads
         Route::get('/reports/monthly/download', [SalaryReportController::class, 'monthly'])->name('report.monthly');
-        Route::get('/reports/monthly/food-charges', [SalaryReportController::class, 'foodCharges'])->name('report.food-charges');
         Route::get('/reports/period/download', [SalaryReportController::class, 'period'])->name('report.period');
     });
 });
