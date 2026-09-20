@@ -51,6 +51,8 @@ class PayrollController extends Controller
             return redirect($intended ?: route(self::FIRST_PAGE));
         }
 
+        PayrollCompany::ensureFixed();
+
         // Being on the listing means no company is open. Leaving the previous
         // one in the session made the menu beside it keep offering that
         // company's pages, as if you were still inside it.
@@ -75,8 +77,6 @@ class PayrollController extends Controller
         return view('payroll.companies.index', [
             'companies' => $companies,
             'search' => $search,
-            'activeCompanyCount' => PayrollCompany::where('is_active', true)->count(),
-            'maxCompanies' => (int) config('payroll.max_companies'),
             'totalStaff' => Employee::where('is_active', true)->count(),
             'unpaidCount' => SalaryProcessing::where('payment_status', '!=', 'Paid')->count(),
         ]);

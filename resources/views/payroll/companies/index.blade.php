@@ -3,16 +3,8 @@
      into them carry the page, and setup lives behind secondary actions. --}}
 @extends('payroll.layout', [
     'title' => 'Company Listing',
-    'subtitle' => 'Choose the company you want to manage payroll for. Everything after this - staff, attendance, salary and documents - stays inside the company you open.',
+    'subtitle' => 'Choose Hotel Pallav or Pallav Food. Everything after this - staff, attendance, salary and documents - stays inside the company you open.',
 ])
-
-@section('page-actions')
-    @if($activeCompanyCount < $maxCompanies)
-        <button class="btn btn-p" data-bs-toggle="modal" data-bs-target="#addCompanyModal" data-write-only>
-            <i class="bi bi-plus-circle"></i> New Company
-        </button>
-    @endif
-@endsection
 
 @section('page')
 
@@ -26,7 +18,7 @@
     <div class="pay-stat">
         <div class="ps-label">Companies</div>
         <div class="ps-value">{{ $companies->count() }}</div>
-        <div class="ps-sub">{{ $activeCompanyCount }} active of {{ $maxCompanies }} allowed</div>
+        <div class="ps-sub">Hotel Pallav and Pallav Food</div>
     </div>
     <div class="pay-stat">
         <div class="ps-label">Staff on payroll</div>
@@ -37,11 +29,6 @@
         <div class="ps-label">Salaries outstanding</div>
         <div class="ps-value">{{ number_format($unpaidCount) }}</div>
         <div class="ps-sub">{{ $unpaidCount > 0 ? 'Not yet fully paid' : 'Everything is settled' }}</div>
-    </div>
-    <div class="pay-stat">
-        <div class="ps-label">Capacity left</div>
-        <div class="ps-value">{{ max(0, $maxCompanies - $activeCompanyCount) }}</div>
-        <div class="ps-sub">More companies you can activate</div>
     </div>
 </div>
 
@@ -62,14 +49,10 @@
             <div class="es-text">
                 {{ $search !== ''
                     ? 'Try a different name, code or owner.'
-                    : 'Add the first company to start recording its staff, attendance and salary.' }}
+                    : 'The two companies are created automatically; reload the page.' }}
             </div>
             @if($search !== '')
                 <a class="btn btn-outline-p mt-3" href="{{ route('payroll.index') }}">Clear search</a>
-            @else
-                <button class="btn btn-p mt-3" data-bs-toggle="modal" data-bs-target="#addCompanyModal" data-write-only>
-                    <i class="bi bi-plus-circle"></i> Add the first company
-                </button>
             @endif
         </div>
     @else
@@ -119,12 +102,7 @@
                             @endif
                         </td>
                         <td onclick="event.stopPropagation()">
-                            <form method="POST" action="{{ route('payroll.company.toggle-active', $row) }}" data-status-toggle>
-                                @csrf
-                                <button class="btn btn-sm {{ $row->is_active ? 'btn-outline-success' : 'btn-outline-secondary' }}">
-                                    {{ $row->is_active ? 'Active' : 'Inactive' }}
-                                </button>
-                            </form>
+                            <span class="pill pill-live"><span class="dot"></span> Active</span>
                         </td>
                         <td class="text-end text-nowrap" onclick="event.stopPropagation()">
                             @if($row->is_active)
@@ -138,11 +116,6 @@
                                     data-open-record title="Edit company"><i class="bi bi-pencil-square"></i></button>
                             <a class="btn-icon" href="{{ route('payroll.company.view', $row) }}" target="_blank"
                                title="Company PDF"><i class="bi bi-file-earmark-pdf"></i></a>
-                            <form method="POST" action="{{ route('payroll.company.destroy', $row) }}" class="d-inline"
-                                  data-confirm="Delete {{ $row->name }}? This cannot be undone.">
-                                @csrf @method('DELETE')
-                                <button class="btn-icon danger" title="Delete company"><i class="bi bi-trash"></i></button>
-                            </form>
                         </td>
                     </tr>
                 @endforeach
@@ -190,26 +163,6 @@
         </div></div>
     </div>
 @endforeach
-
-<div class="modal fade pay-form-modal" id="addCompanyModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content">
-        <form method="POST" action="{{ route('payroll.company.store') }}" enctype="multipart/form-data">
-            @csrf
-            <div class="modal-header">
-                <div>
-                    <div class="pms-eyebrow">New</div>
-                    <h5 class="modal-title">Add a Company</h5>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">@include('payroll.partials._company-fields', ['target' => null])</div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn btn-p">Create Company</button>
-            </div>
-        </form>
-    </div></div>
-</div>
 
 @push('scripts')
 <script>

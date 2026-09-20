@@ -44,30 +44,12 @@ class PayrollCompanyController extends Controller
         ];
     }
 
-    public function store(Request $request)
-    {
-        $activeCount = PayrollCompany::where('is_active', true)->count();
-        $limit = (int) config('payroll.max_companies');
-
-        if (ForceMode::locked($activeCount >= $limit, 'You have reached the maximum of {$limit} active')) {
-            return back()->with('error', "You have reached the maximum of {$limit} active companies. Deactivate a company before adding another.");
-        }
-
-        $data = $request->validate($this->rules());
-        $data['logo_path'] = $request->file('logo')?->store('payroll/logos', 'public');
-        $data['signature_image_path'] = $request->file('signature_image')?->store('payroll/signatures', 'public');
-        $data['created_by'] = Auth::id();
-
-        unset($data['logo'], $data['signature_image']);
-
-        PayrollCompany::create($data);
-
-        return back()->with('success', 'Company created.');
-    }
-
     public function update(Request $request, PayrollCompany $company)
     {
         $data = $request->validate($this->rules($company));
+
+        // The name and code are fixed
+        unset($data['name'], $data['code']);
 
         if ($request->hasFile('logo')) {
             $data['logo_path'] = $request->file('logo')->store('payroll/logos', 'public');
@@ -81,33 +63,6 @@ class PayrollCompanyController extends Controller
         $company->update($data);
 
         return back()->with('success', 'Company updated.');
-    }
-
-    public function destroy(PayrollCompany $company)
-    {
-        if (ForceMode::locked($company->hasPayrollData(), 'This company already holds payroll data and cannot')) {
-            return back()->with('error', 'This company already holds payroll data and cannot be deleted. Mark it Inactive instead.');
-        }
-
-        $company->delete();
-
-        return back()->with('success', 'Company deleted.');
-    }
-
-    public function toggleActive(PayrollCompany $company)
-    {
-        if (! $company->is_active) {
-            $activeCount = PayrollCompany::where('is_active', true)->count();
-            $limit = (int) config('payroll.max_companies');
-
-            if (ForceMode::locked($activeCount >= $limit, 'You have reached the maximum of {$limit} active')) {
-                return back()->with('error', "You have reached the maximum of {$limit} active companies.");
-            }
-        }
-
-        $company->update(['is_active' => ! $company->is_active]);
-
-        return back()->with('success', 'Company status updated.');
     }
 
     public function view(PayrollCompany $company)

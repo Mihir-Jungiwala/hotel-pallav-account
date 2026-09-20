@@ -172,10 +172,7 @@ Route::middleware(['auth', 'auth.session', 'single.session', 'account.usable', '
         });
 
         // Company Setup
-        Route::post('/companies', [PayrollCompanyController::class, 'store'])->name('company.store');
         Route::put('/companies/{company}', [PayrollCompanyController::class, 'update'])->name('company.update');
-        Route::delete('/companies/{company}', [PayrollCompanyController::class, 'destroy'])->name('company.destroy');
-        Route::post('/companies/{company}/toggle-active', [PayrollCompanyController::class, 'toggleActive'])->name('company.toggle-active');
         Route::get('/companies/{company}/view', [PayrollCompanyController::class, 'view'])->name('company.view');
 
         /*

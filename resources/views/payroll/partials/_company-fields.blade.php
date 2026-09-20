@@ -7,12 +7,12 @@
         <div class="row g-3">
             <div class="col-md-7">
                 <label class="form-label">Company Name<span class="req">*</span></label>
-                <input name="name" class="form-control" value="{{ old('name', $c->name ?? '') }}" required>
+                <input name="name" class="form-control" value="{{ old('name', $c->name ?? '') }}" required @if($c) readonly @endif>
             </div>
             <div class="col-md-5">
                 <label class="form-label">Company Code<span class="req">*</span></label>
-                <input name="code" class="form-control text-uppercase" value="{{ old('code', $c->code ?? '') }}" required>
-                <div class="form-text">A short unique code, e.g. HP01.</div>
+                <input name="code" class="form-control text-uppercase" value="{{ old('code', $c->code ?? '') }}" required @if($c) readonly @endif>
+                <div class="form-text">Fixed. The name and code cannot be changed.</div>
             </div>
 
             <div class="col-md-6">

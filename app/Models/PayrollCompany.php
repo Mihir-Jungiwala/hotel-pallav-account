@@ -10,6 +10,24 @@ class PayrollCompany extends Model
 {
     protected $guarded = ['id'];
 
+    /**
+     * Payroll runs for exactly these two companies. They are fixed: nobody adds,
+     * renames, deactivates or deletes one. Only their details (address, logo,
+     * signatory and so on, which print on letters and slips) can be edited.
+     */
+    public const FIXED = [
+        ['name' => 'Hotel Pallav', 'code' => 'HP01'],
+        ['name' => 'Pallav Food', 'code' => 'PF01'],
+    ];
+
+    /** Creates either company if it is missing. Safe to call any number of times. */
+    public static function ensureFixed(): void
+    {
+        foreach (self::FIXED as $company) {
+            static::firstOrCreate(['code' => $company['code']], ['name' => $company['name'], 'is_active' => true]);
+        }
+    }
+
     protected $casts = ['is_active' => 'boolean'];
 
     public function employees(): HasMany
