@@ -96,6 +96,8 @@ class SalaryReportController extends Controller
             'monthStart' => $start,
             'rows' => $rows,
             'grid' => $rows->isNotEmpty() ? $this->attendanceGrid($company->id, $start) : null,
+            // What Hotel Pallav owes Pallav Food for its staff's meals; null for any other company
+            'food' => \App\Support\FoodCharges::statement($company, $start->year, $start->month),
         ]);
     }
 
@@ -159,8 +161,24 @@ class SalaryReportController extends Controller
             'daysInMonth' => $start->daysInMonth,
             'entries' => $entries,
             'statuses' => $statuses,
+            'food' => \App\Support\FoodCharges::statement($company, (int) $year, (int) $month),
         ], 'landscape')
             ->stream('monthly-salary-report-'.$start->format('Y-m').'.pdf');
+    }
+
+    /** The statement of what Hotel Pallav pays Pallav Food for one month. */
+    public function foodCharges(Request $request)
+    {
+        $company = PayrollContext::currentOrFail();
+
+        abort_if(! $request->filled('year') || ! $request->filled('month'), 404, 'Choose a month first.');
+
+        $food = \App\Support\FoodCharges::statement($company, (int) $request->input('year'), (int) $request->input('month'));
+
+        abort_if($food === null, 404, 'There is no food charge to pay for that month.');
+
+        return \App\Support\PayrollPdf::make('payroll.pdf.food-charges', ['company' => $company, 'food' => $food])
+            ->stream('pay-to-pallav-food-'.$food['month']->format('Y-m').'.pdf');
     }
 
     public function period(Request $request)

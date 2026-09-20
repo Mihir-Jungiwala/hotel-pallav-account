@@ -167,6 +167,21 @@
                        value="{{ old('department', $e->department ?? '') }}">
             </div>
 
+            {{-- Only Hotel Pallav: its staff eat at Pallav Food and the owner pays --}}
+            @if(\App\Support\PayrollContext::current()?->paysFoodCharges())
+                <div class="col-12">
+                    <div class="offer-toggle">
+                        <div class="form-check form-switch mb-0">
+                            <input type="hidden" name="eats_at_pallav_food" value="0">
+                            <input class="form-check-input" type="checkbox" role="switch" name="eats_at_pallav_food" value="1"
+                                   id="emp_food_{{ $uid }}" @checked(old('eats_at_pallav_food', $e->eats_at_pallav_food ?? false))>
+                            <label class="form-check-label" for="emp_food_{{ $uid }}">Meals from Pallav Food</label>
+                        </div>
+                        <div class="offer-hint"><i class="bi bi-cup-hot"></i> Hotel Pallav pays Pallav Food for this person's meals. It is not taken from their salary.</div>
+                    </div>
+                </div>
+            @endif
+
             <div class="col-md-4">
                 <label class="form-label" for="emp_join_{{ $uid }}">Joining date<span class="req">*</span></label>
                 <input type="date" name="joining_date" id="emp_join_{{ $uid }}" class="form-control"

@@ -85,6 +85,7 @@ class EmployeeController extends Controller
                 },
             ],
             'send_offer_letter' => ['nullable', 'boolean'],
+            'eats_at_pallav_food' => ['nullable', 'boolean'],
             'payment_mode' => ['required', Rule::in(\App\Support\PayrollMasters::choices('salary_payment_mode'))],
             // Bank details only matter when salary is actually routed to a bank
             'bank_name' => ['nullable', 'required_if:payment_mode,Bank', 'string', 'max:150'],
@@ -175,6 +176,7 @@ class EmployeeController extends Controller
         $data = $request->validate($this->rules($company->id), $this->messages());
         $assignments = $data['deductions'] ?? [];
         $sendLetter = (bool) ($data['send_offer_letter'] ?? false);
+        $data['eats_at_pallav_food'] = $company->paysFoodCharges() && (bool) ($data['eats_at_pallav_food'] ?? false);
         unset($data['deductions'], $data['send_offer_letter']);
 
         $data['payroll_company_id'] = $company->id;
@@ -236,6 +238,7 @@ class EmployeeController extends Controller
         $data = $request->validate($this->rules($employee->payroll_company_id, $employee), $this->messages());
         $assignments = $data['deductions'] ?? [];
         // Only adding someone sends the letter; editing never does
+        $data['eats_at_pallav_food'] = $employee->company->paysFoodCharges() && (bool) ($data['eats_at_pallav_food'] ?? false);
         unset($data['deductions'], $data['send_offer_letter']);
 
         if ($request->hasFile('photo')) {

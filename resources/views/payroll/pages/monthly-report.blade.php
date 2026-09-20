@@ -141,4 +141,8 @@
     </div>
 @endif
 
+@if($food ?? null)
+    @include('payroll.partials._food-statement')
+@endif
+
 @endsection

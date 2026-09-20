@@ -20,6 +20,16 @@ class PayrollCompany extends Model
         ['name' => 'Pallav Food', 'code' => 'PF01'],
     ];
 
+    /** Hotel Pallav's staff eat at Pallav Food, and Hotel Pallav (the owner) pays for it. */
+    public const FOOD_PAYER_CODE = 'HP01';
+
+    public const FOOD_PAYEE = 'Pallav Food';
+
+    public function paysFoodCharges(): bool
+    {
+        return $this->code === self::FOOD_PAYER_CODE;
+    }
+
     /** Creates either company if it is missing. Safe to call any number of times. */
     public static function ensureFixed(): void
     {

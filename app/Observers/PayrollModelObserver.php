@@ -43,6 +43,7 @@ class PayrollModelObserver
             BonusIncentive::class => ['Bonus / incentive', fn ($m) => optional($m->employee)->name ?: 'Entry #'.$m->id, 'payroll_company_id'],
             EmployeeSeparation::class => ['Resignation', fn ($m) => optional($m->employee)->name ?: 'Exit #'.$m->id, 'payroll_company_id'],
             SalaryProcessing::class => ['Salary slip', fn ($m) => $m->employee_name.' - '.$m->periodLabel(), 'payroll_company_id'],
+            \App\Models\FoodChargeRate::class => ['Food charge rate', fn ($m) => 'Rs '.$m->monthly_amount.' from '.$m->effective_from->format('M Y'), 'payroll_company_id'],
             PayrollMasterItem::class => ['Payroll Master', fn ($m) => Str::headline($m->list).': '.$m->label, 'payroll_company_id'],
         ];
     }

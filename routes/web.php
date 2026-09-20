@@ -272,6 +272,7 @@ Route::middleware(['auth', 'auth.session', 'single.session', 'account.usable', '
 
         // Report downloads
         Route::get('/reports/monthly/download', [SalaryReportController::class, 'monthly'])->name('report.monthly');
+        Route::get('/reports/monthly/food-charges', [SalaryReportController::class, 'foodCharges'])->name('report.food-charges');
         Route::get('/reports/period/download', [SalaryReportController::class, 'period'])->name('report.period');
     });
 });

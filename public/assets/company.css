@@ -1,0 +1,14 @@
+/* Company Profiles: what sits on top of the shared list and pop-up styles
+   (cashbook.css) - the company cell, contact lines and the contacts step. */
+
+.co-sub { margin-top: 2px; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.co-line { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink2); overflow-wrap: anywhere; }
+.co-line i { color: var(--p500); font-size: 12px; }
+.co-row .cb-chip { margin: 1px 2px 1px 0; }
+.co-row .cb-c-name { min-width: 200px; }
+
+.co-modal .modal-dialog { max-width: min(760px, calc(100vw - 32px)); }
+
+.co-contacts { display: flex; flex-direction: column; gap: 12px; }
+.co-contact { padding: 10px 12px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2, #FBF9FF); }
+.co-contact-role { margin-bottom: 7px; font-size: 11.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }

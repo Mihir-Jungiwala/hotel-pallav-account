@@ -118,4 +118,29 @@
     </tbody>
 </table>
 
+@if($food ?? null)
+    <h2 class="section"><span class="dot"></span>Pay to {{ $food['payee'] }}</h2>
+    <table class="grid tight avoid-break">
+        <thead>
+            <tr><th style="width:30px;">#</th><th>Employee</th><th>Designation</th><th class="num">Days counted</th><th class="num">Amount</th></tr>
+        </thead>
+        <tbody>
+        @foreach($food['rows'] as $row)
+            <tr>
+                <td>{{ $loop->iteration }}</td>
+                <td><strong>{{ $row['name'] }}</strong> {{ $row['code'] }}</td>
+                <td>{{ $row['designation'] }}</td>
+                <td class="num">{{ $row['days'] }} / {{ $food['daysInMonth'] }}</td>
+                <td class="num">{{ number_format($row['amount'], 2) }}</td>
+            </tr>
+        @endforeach
+            <tr class="total">
+                <td colspan="4">Total payable to {{ $food['payee'] }} &middot; {{ \App\Support\NumberToWords::convert($food['total']) }}</td>
+                <td class="num">{{ number_format($food['total'], 2) }}</td>
+            </tr>
+        </tbody>
+    </table>
+    <div class="muted" style="font-size:6.5pt; margin-top:3px;">Paid by {{ $company->name }}, not deducted from salary. Counted by calendar days from the joining date.</div>
+@endif
+
 @endsection
