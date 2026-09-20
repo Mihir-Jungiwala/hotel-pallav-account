@@ -17,13 +17,14 @@
         $monthLabel = 'For '.rescue(fn () => \Carbon\Carbon::createFromFormat('Y-m', $r->year_month)->format('F Y'), $r->year_month, false);
     }
     $chip = match ($kind) {
-        'deposit' => $r->revenue_source,
+        'deposit' => null,
         'misc' => $r->expense_head,
         'advance' => $monthLabel,
         default => null,
     };
     $kindLabel = ['withdrawal' => 'Cash withdrawal', 'misc' => 'Misc. expense', 'advance' => 'Staff advance'][$kind] ?? null;
-    $note = $r->instruction ?? null;
+    // A deposit says why it was given; older ones fall back to the source they were filed under
+    $note = $kind === 'deposit' ? ($r->reason ?: $r->revenue_source) : ($r->instruction ?? null);
     $bookName = $book ? \App\Support\CashLedger::BOOK_NAMES[$book] : 'Staff';
 
     $routeBase = $direction === 'in' ? 'revenue.'.$book : 'expense.'.$e['type'];
@@ -38,7 +39,7 @@
         <td data-label="Kind"><span class="cb-chip kind">{{ $kindLabel }}</span></td>
     @endif
     <td class="cb-c-name" data-label="{{ $direction === 'in' ? 'Depositor' : 'Name' }}"><strong>{{ $title }}</strong></td>
-    <td class="cb-c-detail" data-label="Details">
+    <td class="cb-c-detail" data-label="{{ $direction === 'in' ? 'Reason' : 'Details' }}">
         @if($chip)<span class="cb-chip">{{ $chip }}</span>@endif
         @if($note)<span class="cb-note">{{ $note }}</span>@endif
         @unless($chip || $note)<span class="text-muted">-</span>@endunless

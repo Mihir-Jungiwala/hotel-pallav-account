@@ -46,7 +46,7 @@ class ForceModeTest extends TestCase
         $this->actingAs(User::factory()->superAdmin()->create());
 
         // A deposit normally needs a date, depositor and amount
-        $this->post(route('revenue.hotel.store'), ['depositor' => ''])->assertSessionHasErrors(['date', 'depositor', 'amount']);
+        $this->post(route('revenue.hotel.store'), ['depositor' => ''])->assertSessionHasErrors(['date', 'depositor', 'reason', 'amount']);
 
         $this->arm();
 
@@ -61,7 +61,7 @@ class ForceModeTest extends TestCase
 
         // 'amount' is a decimal column, so a word is still refused
         $this->post(route('revenue.hotel.store'), [
-            'date' => now()->toDateString(), 'depositor' => 'Desk', 'amount' => 'lots',
+            'date' => now()->toDateString(), 'depositor' => 'Desk', 'reason' => 'x', 'amount' => 'lots',
         ])->assertSessionHasErrors('amount');
     }
 

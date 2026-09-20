@@ -80,52 +80,142 @@ class CashBooksTest extends TestCase
         $this->get(route('expense.index', ['kind' => 'advance']))->assertSee($advanceRow, false)->assertDontSee('Hotel Bulbs');
     }
 
-    // ---- names from Master Data ----------------------------------------
+    // ---- revenue depositors: Master Data only, one list per book ----------
 
-    public function test_a_new_depositor_is_added_to_master_data_once(): void
+    private function depositRow(array $overrides = []): array
     {
-        $this->assertNotNull(OptionSet::where('key', 'cash_person')->first());
-
-        $row = ['date' => now()->toDateString(), 'time' => '09:00', 'amount' => 50];
-
-        $this->post(route('revenue.hotel.store'), $row + ['depositor' => '__other__', 'depositor_new' => 'Meera Shah'])->assertSessionHasNoErrors();
-        $this->post(route('revenue.food.store'), $row + ['depositor' => '__other__', 'depositor_new' => 'meera shah'])->assertSessionHasNoErrors();
-
-        $this->assertSame('Meera Shah', HotelCashDeposit::sole()->depositor);
-        // The second spelling matches the listed name instead of adding a twin
-        $this->assertSame('Meera Shah', FoodCashDeposit::sole()->depositor);
-        $this->assertSame(['Meera Shah'], $this->people());
+        return $overrides + ['date' => now()->toDateString(), 'time' => '09:00', 'depositor' => 'Meera Shah', 'reason' => 'Room 204 checkout', 'amount' => 50];
     }
 
-    public function test_choosing_other_without_typing_a_name_is_refused(): void
+    public function test_a_deposit_is_saved_with_a_depositor_from_that_book_master_list_and_a_reason(): void
     {
-        $this->post(route('revenue.hotel.store'), ['date' => now()->toDateString(), 'time' => '09:00', 'amount' => 50, 'depositor' => '__other__'])
+        $this->offerDepositor('hotel', 'Meera Shah');
+
+        $this->post(route('revenue.hotel.store'), $this->depositRow())->assertSessionHasNoErrors();
+
+        $deposit = HotelCashDeposit::sole();
+        $this->assertSame('Meera Shah', $deposit->depositor);
+        $this->assertSame('Room 204 checkout', $deposit->reason);
+        $this->assertNull($deposit->revenue_source);
+    }
+
+    public function test_the_two_books_have_separate_depositors(): void
+    {
+        $this->offerDepositor('hotel', 'Hotel Only Person');
+        $this->offerDepositor('food', 'Food Only Person');
+
+        // Each name works in its own book and is refused in the other
+        $this->post(route('revenue.hotel.store'), $this->depositRow(['depositor' => 'Hotel Only Person']))->assertSessionHasNoErrors();
+        $this->post(route('revenue.food.store'), $this->depositRow(['depositor' => 'Food Only Person']))->assertSessionHasNoErrors();
+        $this->post(route('revenue.hotel.store'), $this->depositRow(['depositor' => 'Food Only Person']))->assertSessionHasErrors('depositor');
+        $this->post(route('revenue.food.store'), $this->depositRow(['depositor' => 'Hotel Only Person']))->assertSessionHasErrors('depositor');
+
+        $this->assertSame(1, HotelCashDeposit::count());
+        $this->assertSame(1, FoodCashDeposit::count());
+    }
+
+    public function test_a_name_typed_on_the_form_is_not_accepted_and_does_not_join_the_list(): void
+    {
+        $this->post(route('revenue.hotel.store'), $this->depositRow(['depositor' => 'Made Up Name']))
+            ->assertSessionHasErrors('depositor');
+        $this->post(route('revenue.hotel.store'), $this->depositRow(['depositor' => '__other__', 'depositor_new' => 'Sneaky']))
             ->assertSessionHasErrors('depositor');
 
         $this->assertSame(0, HotelCashDeposit::count());
+        Masters::flush();
+        $this->assertSame([], Masters::values('revenue_depositor_hotel'));
     }
 
-    public function test_a_withdrawer_joins_the_same_list_and_the_form_offers_it(): void
+    public function test_every_field_is_required(): void
+    {
+        $this->offerDepositor('hotel', 'Meera Shah');
+
+        foreach (['date', 'time', 'depositor', 'reason', 'amount'] as $field) {
+            $row = $this->depositRow();
+            unset($row[$field]);
+            $this->post(route('revenue.hotel.store'), $row)->assertSessionHasErrors($field);
+        }
+
+        $this->post(route('revenue.hotel.store'), $this->depositRow(['reason' => '   ']))->assertSessionHasErrors('reason');
+        $this->assertSame(0, HotelCashDeposit::count());
+    }
+
+    public function test_a_hidden_depositor_stays_on_an_existing_deposit_but_cannot_be_chosen_again(): void
+    {
+        $this->offerDepositor('hotel', 'Old Hand');
+        $this->post(route('revenue.hotel.store'), $this->depositRow(['depositor' => 'Old Hand']))->assertSessionHasNoErrors();
+        $deposit = HotelCashDeposit::sole();
+
+        OptionSet::where('key', 'revenue_depositor_hotel')->first()->items()->update(['is_active' => false]);
+        Masters::flush();
+
+        // Editing the deposit keeps the name it has
+        $this->put(route('revenue.hotel.update', $deposit), $this->depositRow(['depositor' => 'Old Hand', 'reason' => 'Corrected reason']))->assertSessionHasNoErrors();
+        $this->assertSame('Corrected reason', $deposit->fresh()->reason);
+
+        // But a new deposit cannot use it
+        $this->post(route('revenue.hotel.store'), $this->depositRow(['depositor' => 'Old Hand']))->assertSessionHasErrors('depositor');
+    }
+
+    public function test_the_form_carries_each_book_depositors_and_the_reason_box_but_no_source(): void
+    {
+        $this->offerDepositor('hotel', 'Hotel Person');
+        $this->offerDepositor('food', 'Food Person');
+
+        $html = $this->get(route('revenue.index'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('"depositors":{"hotel":["Hotel Person"],"food":["Food Person"]}', $html);
+        $this->assertStringContainsString('name="reason"', $html);
+        $this->assertStringNotContainsString('name="revenue_source"', $html);
+        $this->assertStringNotContainsString('name="depositor_new"', $html);
+    }
+
+    public function test_the_superadmin_is_pointed_to_master_data_for_an_empty_list(): void
+    {
+        $this->actingAs(User::factory()->superAdmin()->create());
+
+        $html = $this->get(route('revenue.index'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('revenue_depositor_hotel', $html);
+        $this->assertStringContainsString('revenue_depositor_food', $html);
+    }
+
+    public function test_the_reason_shows_in_the_list_and_on_the_receipt(): void
+    {
+        $this->offerDepositor('hotel', 'Meera Shah');
+        $this->post(route('revenue.hotel.store'), $this->depositRow(['reason' => 'Banquet advance for Sharma wedding']));
+
+        $this->get(route('revenue.index'))->assertSee('Banquet advance for Sharma wedding');
+        $this->get(route('revenue.index', ['q' => 'sharma']))->assertSee('Meera Shah');
+        $this->get(route('revenue.hotel.view', HotelCashDeposit::sole()))->assertOk();
+    }
+
+    // ---- expense receivers still come from the shared Cash Handlers list ---
+
+    public function test_a_withdrawer_joins_the_cash_handlers_list_and_the_expense_form_offers_it(): void
     {
         $this->post(route('expense.food-withdrawal.store'), [
             'date' => now()->toDateString(), 'time' => '09:00', 'amount' => 75, 'withdrawer' => '__other__', 'withdrawer_new' => 'Ravi Patel',
         ])->assertSessionHasNoErrors();
 
         $this->assertSame(['Ravi Patel'], $this->people());
-        $this->get(route('revenue.index'))->assertSee('<option value="Ravi Patel">Ravi Patel</option>', false);
         $this->get(route('expense.index'))->assertSee('<option value="Ravi Patel">Ravi Patel</option>', false);
     }
 
-    public function test_names_already_on_past_entries_are_a_hidden_person_again_when_reused(): void
+    public function test_a_withdrawer_typed_twice_in_different_case_is_one_name(): void
     {
-        $this->post(route('revenue.hotel.store'), ['date' => now()->toDateString(), 'time' => '09:00', 'amount' => 5, 'depositor' => 'Old Hand']);
-        OptionSet::where('key', 'cash_person')->first()->items()->update(['is_active' => false]);
-        $this->assertSame([], $this->people());
+        $row = ['date' => now()->toDateString(), 'time' => '09:00', 'amount' => 5, 'withdrawer' => '__other__'];
 
-        $this->post(route('revenue.hotel.store'), ['date' => now()->toDateString(), 'time' => '09:00', 'amount' => 5, 'depositor' => 'Old Hand']);
+        $this->post(route('expense.hotel-withdrawal.store'), $row + ['withdrawer_new' => 'Meera Shah'])->assertSessionHasNoErrors();
+        $this->post(route('expense.food-withdrawal.store'), $row + ['withdrawer_new' => 'meera shah'])->assertSessionHasNoErrors();
 
-        $this->assertSame(['Old Hand'], $this->people());
-        $this->assertSame(1, OptionSet::where('key', 'cash_person')->first()->items()->count());
+        $this->assertSame(['Meera Shah'], $this->people());
+    }
+
+    public function test_choosing_other_without_typing_a_withdrawer_is_refused(): void
+    {
+        $this->post(route('expense.hotel-withdrawal.store'), ['date' => now()->toDateString(), 'time' => '09:00', 'amount' => 50, 'withdrawer' => '__other__'])
+            ->assertSessionHasErrors('withdrawer');
     }
 
     // ---- validation ------------------------------------------------------
@@ -143,25 +233,26 @@ class CashBooksTest extends TestCase
     public function test_a_refused_save_reopens_the_pop_up_with_what_was_typed(): void
     {
         $this->from(route('revenue.index'))->post(route('revenue.hotel.store'), [
-            '_form' => 'cashbook', '_book' => 'hotel', 'depositor' => 'Typed Name', 'date' => now()->toDateString(), 'time' => '09:00', 'amount' => 0,
+            '_form' => 'cashbook', '_book' => 'hotel', 'depositor' => 'Typed Name', 'reason' => 'Typed reason', 'date' => now()->toDateString(), 'time' => '09:00', 'amount' => 0,
         ])->assertSessionHasErrors('amount');
 
-        $this->get(route('revenue.index'))->assertSee('"depositor":"Typed Name"', false);
+        $this->get(route('revenue.index'))->assertSee('"depositor":"Typed Name"', false)->assertSee('"reason":"Typed reason"', false);
     }
 
     // ---- editing ---------------------------------------------------------
 
     public function test_a_deposit_can_be_edited_and_the_words_follow_the_amount(): void
     {
+        $this->offerDepositor('hotel', 'After');
         $deposit = $this->deposit(HotelCashDeposit::class, 'Before');
 
         $this->put(route('revenue.hotel.update', $deposit), [
-            'date' => now()->toDateString(), 'time' => '11:00', 'depositor' => 'After', 'revenue_source' => 'Banquet', 'amount' => 250,
+            'date' => now()->toDateString(), 'time' => '11:00', 'depositor' => 'After', 'reason' => 'Banquet advance', 'amount' => 250,
         ])->assertSessionHasNoErrors();
 
         $deposit->refresh();
         $this->assertSame('After', $deposit->depositor);
-        $this->assertSame('Banquet', $deposit->revenue_source);
+        $this->assertSame('Banquet advance', $deposit->reason);
         $this->assertSame('Two Hundred Fifty Rupees Only', $deposit->amount_in_words);
     }
 
@@ -315,7 +406,7 @@ class CashBooksTest extends TestCase
         }
         HotelCashDeposit::create([
             'date' => now()->toDateString(), 'time' => '10:00', 'user_id' => $this->admin->id, 'full_name' => 'A',
-            'depositor' => 'Needle Person', 'revenue_source' => 'Banquet', 'amount' => 24000, 'amount_in_words' => 'x',
+            'depositor' => 'Needle Person', 'reason' => 'Banquet advance', 'amount' => 24000, 'amount_in_words' => 'x',
         ]);
         $this->deposit(FoodCashDeposit::class, 'Food Haystack');
 

@@ -70,7 +70,8 @@
     }
 
     function setField(name, value) {
-        if (name === 'depositor' || name === 'withdrawer') return setPerson(name, value);
+        if (name === 'depositor' && !expense) return loadDepositors(book(), value);
+        if (name === 'withdrawer') return setPerson(name, value);
         const field = form.elements[name];
         if (!field || field instanceof RadioNodeList) return;
 
@@ -81,7 +82,65 @@
         if (name === 'year_month') field.dispatchEvent(new Event('pms:sync'));              // refresh the month picker
     }
 
-    const FIELDS = ['depositor', 'withdrawer', 'revenue_source', 'expense_name', 'expense_head', 'employee_id', 'year_month', 'amount', 'instruction'];
+    const FIELDS = ['depositor', 'withdrawer', 'reason', 'expense_name', 'expense_head', 'employee_id', 'year_month', 'amount', 'instruction'];
+
+
+    /* -----------------------------------------------------------------------
+       Revenue depositors: each book has its own list (Master Data), so the
+       choices change when the book does. A name that has since been hidden
+       is kept on an existing deposit so editing it does not lose the name.
+       ----------------------------------------------------------------------- */
+
+    const depositorSelect = form.querySelector('[data-depositor-select]');
+    const depositorNote = form.querySelector('[data-depositor-empty]');
+
+    function loadDepositors(bookKey, selected) {
+        if (!depositorSelect) return;
+        const names = (data.depositors && data.depositors[bookKey]) || [];
+        const options = names.slice();
+        if (selected && !options.includes(selected)) options.push(selected);
+
+        const ts = depositorSelect.tomselect;
+        if (ts) {
+            ts.clear(true);
+            ts.clearOptions();
+            ts.addOption({ value: '', text: 'Choose a depositor…' });
+            options.forEach((n) => ts.addOption({ value: n, text: n }));
+            ts.refreshOptions(false);
+            ts.setValue(selected || '', true);
+        } else {
+            depositorSelect.innerHTML = '';
+            depositorSelect.add(new Option('Choose a depositor…', ''));
+            options.forEach((n) => depositorSelect.add(new Option(n, n)));
+            depositorSelect.value = selected || '';
+        }
+
+        // Nothing to pick: say where to add names, and link there for the SuperAdmin
+        const empty = names.length === 0 && !selected;
+        if (depositorNote) {
+            depositorNote.hidden = !empty;
+            if (empty) {
+                const label = (data.bookNames && data.bookNames[bookKey]) || 'this book';
+                const text = depositorNote.querySelector('[data-depositor-empty-text]');
+                text.textContent = 'No depositors are set up for ' + label + ' yet. ';
+                const link = data.masterLinks && data.masterLinks[bookKey];
+                if (link) {
+                    const a = document.createElement('a');
+                    a.href = link;
+                    a.textContent = 'Add them in Master Data';
+                    text.appendChild(a);
+                } else {
+                    text.appendChild(document.createTextNode('Ask the SuperAdmin to add them in Master Data.'));
+                }
+            }
+        }
+    }
+
+    // Choosing the other book swaps the list and clears the previous pick
+    form.addEventListener('change', (event) => {
+        if (!expense && event.target.name === '_book') loadDepositors(event.target.value, '');
+    });
+
 
     /* -----------------------------------------------------------------------
        Show only what belongs to the chosen kind, and post to its route

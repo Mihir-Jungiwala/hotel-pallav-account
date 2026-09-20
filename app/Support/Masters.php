@@ -22,7 +22,17 @@ class Masters
     /** Active items for a list, in the order the SuperAdmin arranged them. */
     public static function items(string $key): Collection
     {
-        return self::$cache[$key] ??= OptionSet::where('key', $key)->first()?->activeItems()->get() ?? collect();
+        return self::$cache[$key] ??= self::load($key);
+    }
+
+    private static function load(string $key): Collection
+    {
+        $items = OptionSet::where('key', $key)->first()?->activeItems()->get() ?? collect();
+
+        // A list of names reads alphabetically, whatever order they were added in
+        return in_array($key, OptionSet::NAME_ONLY, true)
+            ? $items->sortBy(fn ($item) => mb_strtolower($item->label), SORT_NATURAL)->values()
+            : $items;
     }
 
     /** Plain values, handy for validation rules. */

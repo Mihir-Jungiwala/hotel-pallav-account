@@ -71,7 +71,9 @@ class OneBusinessTest extends TestCase
 
     public function test_a_hotel_and_a_food_deposit_go_to_their_own_books(): void
     {
-        $row = ['date' => now()->toDateString(), 'time' => '09:00', 'depositor' => 'Front desk', 'amount' => 250];
+        $this->offerDepositor('hotel', 'Front desk');
+        $this->offerDepositor('food', 'Front desk');
+        $row = ['date' => now()->toDateString(), 'time' => '09:00', 'depositor' => 'Front desk', 'reason' => 'Test', 'amount' => 250];
 
         $this->post(route('revenue.hotel.store'), $row)->assertSessionHasNoErrors();
         $this->post(route('revenue.food.store'), $row)->assertSessionHasNoErrors();
@@ -106,9 +108,10 @@ class OneBusinessTest extends TestCase
     public function test_someone_below_admin_cannot_choose_the_date_and_time(): void
     {
         $this->actingAs(User::factory()->editor()->create());
+        $this->offerDepositor('hotel', 'Front desk');
 
         $this->post(route('revenue.hotel.store'), [
-            'date' => '2020-01-01', 'time' => '03:00', 'depositor' => 'Front desk', 'amount' => 10,
+            'date' => '2020-01-01', 'time' => '03:00', 'depositor' => 'Front desk', 'reason' => 'Test', 'amount' => 10,
         ])->assertSessionHasNoErrors();
 
         $deposit = HotelCashDeposit::sole();
@@ -139,8 +142,9 @@ class OneBusinessTest extends TestCase
 
     public function test_an_admin_can_still_set_the_date_and_time(): void
     {
+        $this->offerDepositor('hotel', 'Front desk');
         $this->post(route('revenue.hotel.store'), [
-            'date' => '2026-09-01', 'time' => '09:15', 'depositor' => 'Front desk', 'amount' => 10,
+            'date' => '2026-09-01', 'time' => '09:15', 'depositor' => 'Front desk', 'reason' => 'Test', 'amount' => 10,
         ]);
 
         $this->assertSame('2026-09-01', HotelCashDeposit::sole()->date->toDateString());

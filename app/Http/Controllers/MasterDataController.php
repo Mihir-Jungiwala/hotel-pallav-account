@@ -148,6 +148,18 @@ class MasterDataController extends Controller
 
     private function itemRules(Request $request, OptionSet $set, ?OptionItem $item = null): array
     {
+        // A list of names keeps only the name: it is also what is stored, and it always shows
+        if ($set->isNameOnly()) {
+            $request->merge(['value' => $request->string('label')->trim()->toString()]);
+            $data = $request->validate([
+                'label' => ['required', 'string', 'max:60'],
+                'value' => ['required', 'string', 'max:60',
+                    Rule::unique('option_items', 'value')->where('option_set_id', $set->id)->ignore($item?->id)],
+            ], ['value.unique' => 'That name is already on this list.']);
+
+            return ['label' => trim($data['label']), 'value' => $data['value'], 'is_active' => true, 'is_default' => false];
+        }
+
         // A blank value falls back to the label, so the duplicate check has to
         // run against the value that will actually be stored
         if (! $request->filled('value')) {

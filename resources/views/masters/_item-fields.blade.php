@@ -1,5 +1,13 @@
-@php $i = $item ?? null; @endphp
+@php
+    $i = $item ?? null;
+    $nameOnly = $nameOnly ?? false;
+@endphp
 
+@if($nameOnly)
+    {{-- A list of people: the name is all there is to fill in --}}
+    <label class="form-label" for="item_name_{{ $i->id ?? 'new' }}">Name<span class="req">*</span></label>
+    <input name="label" id="item_name_{{ $i->id ?? 'new' }}" class="form-control" value="{{ old('label', $i->label ?? '') }}" maxlength="60" required autofocus autocomplete="off">
+@else
 <div class="row g-3">
     <div class="col-md-6">
         <label class="form-label">Option *</label>
@@ -25,3 +33,4 @@
         </label>
     </div>
 </div>
+@endif

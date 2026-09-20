@@ -10,7 +10,7 @@
     $id = $name.'_'.Str::random(4);
 @endphp
 
-<label class="form-label">{{ $label ?? ($set->name ?? Str::headline($key)) }} @if($required ?? false)*@endif</label>
+<label class="form-label">{{ $label ?? ($set->name ?? Str::headline($key)) }}@if($required ?? false)<span class="req">*</span>@endif</label>
 
 @if($items->isEmpty())
     <input name="{{ $name }}" class="form-control" value="{{ $selected }}" @required($required ?? false)>

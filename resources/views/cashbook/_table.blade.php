@@ -22,7 +22,7 @@
                     <th>Book</th>
                     @if($withKind)<th>Kind</th>@endif
                     <th>{{ $direction === 'in' ? 'Depositor' : 'Name' }}</th>
-                    <th>Details</th>
+                    <th>{{ $direction === 'in' ? 'Reason' : 'Details' }}</th>
                     <th class="text-end">Amount</th>
                     <th>By</th>
                     <th class="text-end">Actions</th>

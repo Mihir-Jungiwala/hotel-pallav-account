@@ -90,12 +90,13 @@ class RolePermissionTest extends TestCase
     public function test_a_viewer_cannot_write_and_is_told_which_screen(): void
     {
         $viewer = User::factory()->viewer()->create(['role_id' => $this->role('Viewer')->id]);
+        $this->offerDepositor('hotel', 'Front desk');
 
         $this->actingAs($viewer)->get(route('revenue.index'))->assertOk();
 
         $this->from(route('revenue.index'))
             ->post(route('revenue.hotel.store'), [
-                'date' => now()->toDateString(), 'time' => '09:00', 'depositor' => 'Front desk', 'amount' => 100,
+                'date' => now()->toDateString(), 'time' => '09:00', 'depositor' => 'Front desk', 'reason' => 'Test', 'amount' => 100,
             ])
             ->assertRedirect(route('revenue.index'))
             ->assertSessionHas('error');
@@ -306,9 +307,10 @@ class RolePermissionTest extends TestCase
     {
         $editor = User::factory()->editor()->create(['role_id' => $this->role('Editor')->id]);
         $this->actingAs($editor);
+        $this->offerDepositor('hotel', 'Front desk');
 
         $this->post(route('revenue.hotel.store'), [
-            'date' => '2026-09-01', 'time' => '03:00', 'depositor' => 'Front desk', 'amount' => 10,
+            'date' => '2026-09-01', 'time' => '03:00', 'depositor' => 'Front desk', 'reason' => 'Test', 'amount' => 10,
         ])->assertSessionHasNoErrors();
         $this->assertTrue(\App\Models\HotelCashDeposit::sole()->date->isToday(), 'stamped, not chosen');
 
@@ -316,7 +318,7 @@ class RolePermissionTest extends TestCase
         Access::flush();
 
         $this->post(route('revenue.hotel.store'), [
-            'date' => '2026-09-01', 'time' => '03:00', 'depositor' => 'Front desk', 'amount' => 20,
+            'date' => '2026-09-01', 'time' => '03:00', 'depositor' => 'Front desk', 'reason' => 'Test', 'amount' => 20,
         ])->assertSessionHasNoErrors();
 
         $this->assertSame('2026-09-01', \App\Models\HotelCashDeposit::orderByDesc('id')->first()->date->toDateString());

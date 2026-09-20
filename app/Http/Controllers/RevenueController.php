@@ -5,13 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\FoodCashDeposit;
 use App\Models\HotelCashDeposit;
 use App\Support\CashLedger;
-use App\Support\CashPeople;
+use App\Support\Masters;
 use App\Support\ForceMode;
 use App\Support\NumberToWords;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 /**
  * Cash paid in. One business, two cash books side by side: Hotel and Food.
@@ -74,7 +75,13 @@ class RevenueController extends Controller
         $reopen = old('_form') === 'cashbook' ? $this->formFromOldInput() : null;
         $actions = collect(self::BOOKS)->map(fn ($b, $key) => route("revenue.$key.store"))->all();
 
-        return view('revenue.index', compact('records', 'entries', 'forms', 'blank', 'reopen', 'actions', 'stats', 'filter', 'q'));
+        // Each book has its own depositors, kept in Master Data. The form shows the list of the book chosen.
+        $depositors = collect(self::BOOKS)->map(fn ($b, $key) => $this->depositors($key))->all();
+        $masterLinks = Auth::user()->isSuperAdmin()
+            ? collect(CashLedger::DEPOSITOR_SETS)->map(fn ($set) => route('masters.index', ['set' => $set]))->all()
+            : [];
+
+        return view('revenue.index', compact('records', 'entries', 'forms', 'blank', 'reopen', 'actions', 'stats', 'filter', 'q', 'depositors', 'masterLinks'));
     }
 
     private function formData(string $book, ?Model $r): array
@@ -87,7 +94,7 @@ class RevenueController extends Controller
             'action' => $r ? route("revenue.$book.update", $r) : route("revenue.$book.store"),
             'values' => $r ? [
                 'date' => $r->date?->format('Y-m-d'), 'time' => substr((string) $r->time, 0, 5),
-                'depositor' => $r->depositor, 'revenue_source' => $r->revenue_source, 'amount' => $r->amount,
+                'depositor' => $r->depositor, 'reason' => $r->reason ?: $r->revenue_source, 'amount' => $r->amount,
             ] : ['date' => today()->format('Y-m-d'), 'time' => null],
         ];
     }
@@ -100,31 +107,55 @@ class RevenueController extends Controller
         $data = $this->formData($book, $record);
         $data['values'] = array_merge($data['values'], array_filter([
             'date' => old('date'), 'time' => old('time'), 'depositor' => old('depositor'),
-            'revenue_source' => old('revenue_source'), 'amount' => old('amount'),
+            'reason' => old('reason'), 'amount' => old('amount'),
         ], fn ($v) => $v !== null));
 
         return $data;
     }
 
-    private function rules(): array
+    /** The active depositors Master Data offers for a book. */
+    private function depositors(string $book): array
     {
+        return Masters::values(CashLedger::DEPOSITOR_SETS[$book]);
+    }
+
+    /**
+     * Every field is required. The depositor has to be one Master Data offers
+     * for this book (an edit may also keep the name it already has, even if
+     * that name has since been hidden).
+     */
+    private function rules(string $book, ?Model $existing = null): array
+    {
+        $allowed = $this->depositors($book);
+        if ($existing && $existing->depositor) {
+            $allowed[] = $existing->depositor;
+        }
+
         return [
             'date' => ['required', 'date', 'before_or_equal:today'],
             'time' => ['required'],
-            'depositor' => ['required', 'string', 'max:100'],
-            'revenue_source' => ['nullable', 'string', 'max:60'],
+            'depositor' => ['required', 'string', 'max:100', Rule::in($allowed)],
+            'reason' => ['required', 'string', 'max:500'],
             'amount' => ['required', 'numeric', 'min:0.01', 'max:9999999999.99'],
         ];
     }
 
-    /** Validated input shaped for the table: the depositor settled and remembered, the amount in words. */
-    private function payload(Request $request): array
+    private function messages(string $book): array
     {
-        // "Other" on the form means a name typed in the box beside it
-        $request->merge(['depositor' => CashPeople::resolve($request->input('depositor'), $request->input('depositor_new'))]);
+        $list = CashLedger::BOOK_NAMES[$book];
 
-        $data = $request->validate($this->rules());
-        $data['depositor'] = CashPeople::remember($data['depositor']);
+        return [
+            'depositor.required' => 'Choose who is depositing.',
+            'depositor.in' => "Choose a depositor from the {$list} list. The SuperAdmin adds names in Master Data.",
+            'reason.required' => 'Write what this cash is for.',
+        ];
+    }
+
+    /** Validated input shaped for the table: the amount in words is worked out here. */
+    private function payload(Request $request, string $book, ?Model $existing = null): array
+    {
+        $data = $request->validate($this->rules($book, $existing), $this->messages($book));
+        $data['reason'] = trim($data['reason']);
         $data['amount_in_words'] = NumberToWords::convert($data['amount']);
 
         return $data;
@@ -137,7 +168,7 @@ class RevenueController extends Controller
 
     public function store(Request $request, string $book)
     {
-        $data = $this->payload($request);
+        $data = $this->payload($request, $book);
         $data['user_id'] = Auth::id();
         $data['full_name'] = Auth::user()->name;
 
@@ -154,7 +185,7 @@ class RevenueController extends Controller
             return back()->with('error', 'You are not allowed to edit this deposit.');
         }
 
-        $deposit->update($this->payload($request));
+        $deposit->update($this->payload($request, $book, $deposit));
 
         return back()->with('success', self::BOOKS[$book]['label'].' deposit #'.$deposit->entryNumber().' updated.');
     }
@@ -186,7 +217,7 @@ class RevenueController extends Controller
                 'Time' => substr((string) $deposit->time, 0, 5),
                 'Recorded By' => $deposit->full_name,
                 'Depositor' => $deposit->depositor,
-                'Source' => $deposit->revenue_source,
+                'Reason' => $deposit->reason ?: $deposit->revenue_source,
                 'Amount' => '₹'.number_format($deposit->amount, 2),
                 'Amount in Words' => $deposit->amount_in_words,
             ],

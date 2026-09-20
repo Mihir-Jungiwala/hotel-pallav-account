@@ -7,6 +7,7 @@
     $stampDate = old('date', $date ?? now()->format('Y-m-d'));
     $stampTime = substr((string) old('time', $time ?? now()->format('H:i')), 0, 5);
     $stampCol = $col ?? 'col-md-6';
+    $stampHint = $hint ?? true;   // pass hint => false to leave the note under the field out
     $stampId = 'stamp_'.Str::random(5);
 @endphp
 
@@ -21,14 +22,14 @@
         <label class="form-label" for="{{ $stampId }}">Date and time<span class="req">*</span></label>
         <input type="datetime-local" id="{{ $stampId }}" class="form-control" data-stamp-when
                value="{{ $stampDate }}T{{ $stampTime }}" max="{{ now()->format('Y-m-d\TH:i') }}" required>
-        <div class="form-text">Cannot be in the future.</div>
+        @if($stampHint)<div class="form-text">Cannot be in the future.</div>@endif
     @else
         <span class="form-label d-block">Date and time</span>
         <div class="field-readonly">
             <i class="bi bi-lock"></i>
             <span data-entry-stamp-text>{{ \Carbon\Carbon::parse($stampDate.' '.$stampTime)->format('d M Y, H:i') }}</span>
         </div>
-        <div class="form-text">{{ isset($date) ? 'Only an Admin can change when this was entered.' : 'Stamped automatically when you save.' }}</div>
+        @if($stampHint)<div class="form-text">{{ isset($date) ? 'Only an Admin can change when this was entered.' : 'Stamped automatically when you save.' }}</div>@endif
     @endif
     <input type="hidden" name="date" value="{{ $stampDate }}" data-stamp-date>
     <input type="hidden" name="time" value="{{ $stampTime }}" data-stamp-time>

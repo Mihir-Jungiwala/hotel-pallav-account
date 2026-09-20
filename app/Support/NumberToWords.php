@@ -14,21 +14,37 @@ class NumberToWords
     ];
 
     /**
-     * Converts an integer amount into Indian-numbering-system words,
-     * e.g. 123456 -> "One Lakh Twenty Three Thousand Four Hundred Fifty Six Rupees Only".
+     * Converts an amount into Indian-numbering-system words, paise included,
+     * e.g. 123456 -> "One Lakh Twenty Three Thousand Four Hundred Fifty Six Rupees Only"
+     * and 12500.50 -> "Twelve Thousand Five Hundred Rupees and Fifty Paise Only".
      */
     public static function convert(int|float $number): string
     {
-        $number = (int) round($number);
+        $paiseTotal = (int) round($number * 100);
 
-        if ($number === 0) {
+        if ($paiseTotal === 0) {
             return 'Zero Rupees Only';
         }
 
-        if ($number < 0 || $number > 1000000000) {
+        if ($paiseTotal < 0 || $paiseTotal > 100000000000) {
             return (string) $number;
         }
 
+        $rupees = intdiv($paiseTotal, 100);
+        $paise = $paiseTotal % 100;
+
+        $words = $rupees > 0 ? self::rupeeWords($rupees).($rupees === 1 ? ' Rupee' : ' Rupees') : '';
+
+        if ($paise > 0) {
+            $words .= ($words !== '' ? ' and ' : '').self::twoDigits($paise).' Paise';
+        }
+
+        return $words.' Only';
+    }
+
+    /** A whole number of rupees in words, without the currency. */
+    private static function rupeeWords(int $number): string
+    {
         $crore = intdiv($number, 10000000);
         $number %= 10000000;
         $lakh = intdiv($number, 100000);
@@ -41,7 +57,7 @@ class NumberToWords
         $parts = [];
 
         if ($crore > 0) {
-            $parts[] = self::twoDigits($crore).' Crore';
+            $parts[] = self::rupeeWords($crore).' Crore';
         }
         if ($lakh > 0) {
             $parts[] = self::twoDigits($lakh).' Lakh';
@@ -56,7 +72,7 @@ class NumberToWords
             $parts[] = self::twoDigits($remainder);
         }
 
-        return trim(implode(' ', $parts)).' Rupees Only';
+        return trim(implode(' ', $parts));
     }
 
     private static function twoDigits(int $n): string

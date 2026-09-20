@@ -2,7 +2,7 @@
 @section('title', 'Company Profiles')
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('assets/cashbook.css') }}?v=4">
+<link rel="stylesheet" href="{{ asset('assets/cashbook.css') }}?v=12">
 <link rel="stylesheet" href="{{ asset('assets/company.css') }}?v=7">
 @endpush
 

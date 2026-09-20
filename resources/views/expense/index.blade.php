@@ -2,7 +2,7 @@
 @section('title', 'Expenses')
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('assets/cashbook.css') }}?v=4">
+<link rel="stylesheet" href="{{ asset('assets/cashbook.css') }}?v=12">
 @endpush
 
 @section('content')
@@ -165,6 +165,6 @@
 <script type="application/json" id="cashData">{!! json_encode(['mode' => 'expense', 'blank' => $blank, 'records' => $forms, 'reopen' => $reopen, 'actions' => $actions], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) !!}</script>
 
 @push('scripts')
-<script src="{{ asset('assets/cashbook.js') }}?v=2"></script>
+<script src="{{ asset('assets/cashbook.js') }}?v=5"></script>
 @endpush
 @endsection

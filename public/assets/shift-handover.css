@@ -350,6 +350,9 @@
     border: 1px solid var(--line2) !important; border-radius: var(--r-sm) !important; background-color: var(--surface, #fff) !important;
 }
 .sh-modal .ts-wrapper.single .ts-control:hover { border-color: var(--p300) !important; }
+/* The chosen shift reads like the date beside it: same weight, size and colour */
+.sh-modal .ts-wrapper.single .ts-control .item { font-weight: 400; font-size: inherit; color: var(--ink); }
+.sh-modal .form-control.flatpickr-alt { color: var(--ink); }
 .sh-modal .ts-wrapper.single.focus .ts-control { border-color: var(--p500) !important; }
 :root[data-theme="dark"] .sh-modal .modal-footer .btn-ghost { background: var(--surface-2); color: var(--ink2); }
 

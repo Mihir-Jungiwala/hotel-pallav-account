@@ -38,8 +38,8 @@
                                 <div class="fs-hint">The shift that is ending and handing over the till.</div>
                             </div>
                             <div class="row g-3">
-                                @include('partials._entry-stamp', ['col' => 'col-sm-7'])
-                                <div class="col-sm-5">
+                                @include('partials._entry-stamp', ['col' => 'col-sm-6', 'hint' => false])
+                                <div class="col-sm-6">
                                     @include('partials._option-field', ['key' => 'shift', 'name' => 'shift', 'value' => $blank['shift'], 'label' => 'Shift', 'required' => true])
                                 </div>
                             </div>

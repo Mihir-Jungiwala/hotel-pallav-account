@@ -2,7 +2,7 @@
 @section('title', 'Handover')
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('assets/shift-handover.css') }}?v=19">
+<link rel="stylesheet" href="{{ asset('assets/shift-handover.css') }}?v=20">
 @endpush
 
 @section('content')

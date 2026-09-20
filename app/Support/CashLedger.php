@@ -18,6 +18,9 @@ class CashLedger
     /** How each cash book is named on screen and on receipts. */
     public const BOOK_NAMES = ['hotel' => 'Hotel Pallav', 'food' => 'Pallav Food'];
 
+    /** The Master Data list of depositors kept for each book (Revenue picks from these only). */
+    public const DEPOSITOR_SETS = ['hotel' => 'revenue_depositor_hotel', 'food' => 'revenue_depositor_food'];
+
     /** The book's newest entry: highest number, latest row on a tie. */
     public static function newestId(string $model): ?int
     {
@@ -99,7 +102,7 @@ class CashLedger
         return $rows->filter(function ($r) use ($tests, $extra) {
             $text = self::normalise(implode(' ', array_filter([
                 '#'.$r->entryNumber(), $r->entryNumber(), $r->date?->format('d-m-Y d M Y l Y-m-d'), substr((string) $r->time, 0, 5),
-                $r->depositor, $r->withdrawer, $r->expense_name, $r->expense_head, $r->revenue_source, $r->instruction,
+                $r->depositor, $r->withdrawer, $r->expense_name, $r->expense_head, $r->revenue_source, $r->reason, $r->instruction,
                 $r->year_month, $r->full_name, $r->user?->displayName(), $r->amount_in_words,
                 number_format((float) $r->amount, 2, '.', ''), number_format((float) $r->amount, 2), ...$extra($r),
             ], fn ($v) => $v !== null && $v !== '')));

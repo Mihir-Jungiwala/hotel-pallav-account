@@ -2,7 +2,7 @@
 @section('title', 'Revenue')
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('assets/cashbook.css') }}?v=4">
+<link rel="stylesheet" href="{{ asset('assets/cashbook.css') }}?v=12">
 @endpush
 
 @section('content')
@@ -51,7 +51,7 @@
     </div>
 </div>
 
-@include('cashbook._filters', ['route' => 'revenue.index', 'filter' => $filter, 'q' => $q, 'searchHint' => 'Search depositor, source, amount or date'])
+@include('cashbook._filters', ['route' => 'revenue.index', 'filter' => $filter, 'q' => $q, 'searchHint' => 'Search depositor, reason, amount or date'])
 
 @if($records->isEmpty())
     <div class="card reveal">
@@ -85,7 +85,7 @@
 
             <div class="modal-body">
                 <div class="form-section">
-                    <div class="fs-head"><div class="fs-title"><i class="bi bi-journal-bookmark"></i> Which book</div><div class="fs-hint">Where this cash is booked.</div></div>
+                    <div class="fs-head"><div class="fs-title"><i class="bi bi-journal-bookmark"></i> Which book<span class="req">*</span></div><div class="fs-hint">Each book has its own depositors.</div></div>
                     <div class="cb-choice" role="radiogroup" aria-label="Which book" data-choice="book">
                         <label><input type="radio" name="_book" value="hotel" checked><span><i class="bi bi-building"></i> Hotel Pallav</span></label>
                         <label><input type="radio" name="_book" value="food"><span><i class="bi bi-cup-hot"></i> Pallav Food</span></label>
@@ -96,14 +96,28 @@
                     <div class="fs-head"><div class="fs-title"><i class="bi bi-person"></i> Who and when</div></div>
                     <div class="row g-3">
                         @include('partials._entry-stamp')
-                        <div class="col-md-6">@include('cashbook._person-field', ['name' => 'depositor', 'label' => 'Depositor'])</div>
-                        <div class="col-12">@include('partials._option-field', ['key' => 'revenue_source', 'name' => 'revenue_source', 'value' => null, 'label' => 'Source'])</div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="cash_depositor">Depositor<span class="req">*</span></label>
+                            <select name="depositor" id="cash_depositor" class="form-select" data-depositor-select required>
+                                <option value="">Choose a depositor&hellip;</option>
+                            </select>
+                            <div class="form-text cb-depositor-empty" data-depositor-empty hidden>
+                                <i class="bi bi-info-circle"></i>
+                                <span data-depositor-empty-text></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="form-section">
                     <div class="fs-head"><div class="fs-title"><i class="bi bi-cash-stack"></i> Amount</div></div>
                     @include('partials._amount-field', ['label' => 'Amount deposited'])
+                </div>
+
+                <div class="form-section">
+                    <div class="fs-head"><div class="fs-title"><i class="bi bi-chat-left-text"></i> Reason<span class="req">*</span></div></div>
+                    <label class="form-label visually-hidden" for="cash_reason">Reason</label>
+                    <textarea name="reason" id="cash_reason" class="form-control" rows="3" maxlength="500" required></textarea>
                 </div>
             </div>
 
@@ -115,9 +129,9 @@
     </div></div>
 </div>
 
-<script type="application/json" id="cashData">{!! json_encode(['mode' => 'revenue', 'blank' => $blank, 'records' => $forms, 'reopen' => $reopen, 'actions' => $actions], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) !!}</script>
+<script type="application/json" id="cashData">{!! json_encode(['mode' => 'revenue', 'blank' => $blank, 'records' => $forms, 'reopen' => $reopen, 'actions' => $actions, 'depositors' => $depositors, 'masterLinks' => $masterLinks, 'bookNames' => \App\Support\CashLedger::BOOK_NAMES], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) !!}</script>
 
 @push('scripts')
-<script src="{{ asset('assets/cashbook.js') }}?v=2"></script>
+<script src="{{ asset('assets/cashbook.js') }}?v=5"></script>
 @endpush
 @endsection
