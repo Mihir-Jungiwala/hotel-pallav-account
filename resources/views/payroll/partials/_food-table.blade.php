@@ -1,4 +1,20 @@
-{{-- The month's bill: one line per person, with why a part month is part. --}}
+{{-- The month's food bill: one line per person, with why a month is part of one.
+     Used on the Food Charges page and at the foot of the Monthly Report. --}}
+@if(count($food['prices']) > 1)
+    <div class="px-3 pt-3">
+        <div class="master-note">
+            <i class="bi bi-arrow-repeat"></i>
+            <span>
+                The price changed during {{ $food['month']->format('F') }}:
+                @foreach($food['prices'] as $price)
+                    <strong>&#8377;{{ number_format($price['amount'], 2) }}</strong>{{ $loop->first ? ' from the 1st' : ' from '.$price['from']->format('j M') }}{{ $loop->last ? '.' : ',' }}
+                @endforeach
+                Each day is charged at the price in force that day.
+            </span>
+        </div>
+    </div>
+@endif
+
 <div class="table-responsive">
     <table class="table align-middle mb-0">
         <thead>
@@ -28,7 +44,7 @@
         @endforeach
             <tr class="fw-bold">
                 <td colspan="4">
-                    Total payable to {{ $food['payee'] }}
+                    {{ $food['owed'] ? 'Total payable to '.$food['payee'] : 'Total cost of staff meals' }}
                     <span class="cell-sub fw-normal">{{ \App\Support\NumberToWords::convert($food['total']) }}</span>
                 </td>
                 <td class="money">₹{{ number_format($food['total'], 2) }}</td>

@@ -2,49 +2,114 @@
 
 namespace App\Support;
 
+use App\Models\AttendanceEntry;
 use App\Models\Employee;
 use App\Models\EmployeeSeparation;
 use App\Models\FoodChargeRate;
 use App\Models\PayrollCompany;
+use App\Models\SalaryProcessing;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 /**
- * What Hotel Pallav owes Pallav Food for its staff's meals in a month.
+ * The cost of staff meals at Pallav Food, month by month.
  *
- * The staff do not pay; the owner does, so none of this touches salary. Pallav
- * Food fixes one monthly amount per employee. It is counted by calendar days:
- * every day counts, absent days and week-offs included. Only days outside
- * someone's service count for nothing - before they joined, or after their
- * last working day - so a full month is the full amount and a mid-month joiner
- * pays from their joining date.
+ * Pallav Food alone decides the price, and it is a price per employee for a
+ * whole month. A price can change part-way through a month: the old one stays
+ * on record and the new one starts on the day it is entered, so each day is
+ * charged at the price in force that day (a day's share is the monthly price
+ * divided by the days in that month). That is why the amount is worked out a
+ * day at a time.
  *
- * It reads the staff list rather than processed salary, so the month still
- * running shows what is building up before any salary is generated.
+ * Which days count:
+ *  - every calendar day of someone's service, from their joining date to their
+ *    last working day, absent days and week-offs included
+ *  - except a day marked with an attendance status that says food is not
+ *    counted (leave, for example): that day is left out
+ *
+ * Once salary has been generated for a month, in either company, that month is
+ * closed to price changes, so a bill that has been paid against can never be
+ * quietly rewritten.
+ *
+ * Hotel Pallav owes Pallav Food for its staff. Pallav Food's own staff eat at
+ * the same price, shown as a cost of its own rather than something owed.
  */
 class FoodCharges
 {
-    /** The monthly amount in force for a month: the latest one that had started by then. */
-    public static function rateFor(PayrollCompany $company, Carbon $month): ?float
+    /* ---------------------------------------------------------------- price */
+
+    /** Every price ever set, oldest first. Pallav Food's alone. */
+    public static function rates(): Collection
     {
-        $rate = FoodChargeRate::where('payroll_company_id', $company->id)
-            ->whereDate('effective_from', '<=', $month->copy()->endOfMonth())
-            ->orderByDesc('effective_from')->orderByDesc('id')
-            ->first();
+        $provider = PayrollCompany::foodProvider();
+
+        if ($provider === null) {
+            return collect();
+        }
+
+        return FoodChargeRate::where('payroll_company_id', $provider->id)
+            ->orderBy('effective_from')->orderBy('id')->get();
+    }
+
+    /** The monthly price in force on one day, or null before any price was set. */
+    public static function rateOn(Carbon $day, ?Collection $rates = null): ?float
+    {
+        $rates ??= self::rates();
+
+        $rate = $rates->filter(fn (FoodChargeRate $r) => $r->effective_from->lessThanOrEqualTo($day))->last();
 
         return $rate ? (float) $rate->monthly_amount : null;
     }
 
-    /** The rate in force today, for the page and the form. */
-    public static function currentRate(PayrollCompany $company): ?float
+    /** The price in force today. */
+    public static function currentRate(): ?float
     {
-        return self::rateFor($company, now());
+        return self::rateOn(now()->startOfDay());
+    }
+
+    /* --------------------------------------------------------------- locking */
+
+    /** The most recent month for which salary has been generated in either company, as the first of that month. */
+    public static function lockedThrough(): ?Carbon
+    {
+        $latest = SalaryProcessing::orderByDesc('year')->orderByDesc('month')->first(['year', 'month']);
+
+        return $latest ? Carbon::create($latest->year, $latest->month, 1)->startOfDay() : null;
+    }
+
+    /** Whether a date falls in a month that salary has already been generated for. */
+    public static function isLocked(Carbon $date): bool
+    {
+        $locked = self::lockedThrough();
+
+        return $locked !== null && $date->copy()->startOfMonth()->lessThanOrEqualTo($locked);
+    }
+
+    /** The first month a price can still start in. */
+    public static function firstOpenMonth(): Carbon
+    {
+        $locked = self::lockedThrough();
+
+        return $locked ? $locked->copy()->addMonthNoOverflow() : Carbon::create(2000, 1, 1)->startOfDay();
+    }
+
+    /* ------------------------------------------------------------ the bill */
+
+    /** Staff who are charged in a company, whether or not the month has any salary processed yet. */
+    public static function chargedStaff(PayrollCompany $company): Collection
+    {
+        return Employee::where('payroll_company_id', $company->id)
+            ->where('eats_at_pallav_food', true)
+            ->orderBy('name')->get();
     }
 
     /**
-     * Days of the month someone is charged for: every day they were on the
-     * payroll, from their joining date to their last working day.
+     * Days of one month that someone is charged for.
+     *
+     * @param  array<int, int>  $skipped  day numbers marked with a status that leaves food out
+     * @return array<int, int>  the day numbers that count
      */
-    public static function daysCounted(Carbon $monthStart, ?Carbon $joined, ?Carbon $lastWorkingDay = null): int
+    public static function countedDays(Carbon $monthStart, ?Carbon $joined, ?Carbon $lastWorkingDay = null, array $skipped = []): array
     {
         $from = $monthStart->copy()->startOfMonth();
         $to = $monthStart->copy()->endOfMonth()->startOfDay();
@@ -57,33 +122,34 @@ class FoodCharges
             $to = $lastWorkingDay->copy()->startOfDay();
         }
 
-        return $to->greaterThanOrEqualTo($from) ? $from->diffInDays($to) + 1 : 0;
-    }
+        $days = [];
 
-    /** Staff who are charged, whether or not the month has any salary processed yet. */
-    public static function chargedStaff(PayrollCompany $company)
-    {
-        return Employee::where('payroll_company_id', $company->id)
-            ->where('eats_at_pallav_food', true)
-            ->orderBy('name')->get();
+        for ($day = $from->copy(); $day->lessThanOrEqualTo($to); $day->addDay()) {
+            if (! in_array($day->day, $skipped, true)) {
+                $days[] = $day->day;
+            }
+        }
+
+        return $days;
     }
 
     /**
-     * The statement for one month, or null when this company pays no food
-     * charge, no amount is set yet, or nobody was charged that month.
+     * The statement for one month in one company, or null when the company
+     * does not use Pallav Food, no price is set yet, or nobody was charged.
      *
-     * @return array{payee: string, month: Carbon, rate: float, daysInMonth: int, rows: array<int, array<string, mixed>>, total: float}|null
+     * @return array<string, mixed>|null
      */
     public static function statement(PayrollCompany $company, int $year, int $month): ?array
     {
-        if (! $company->paysFoodCharges()) {
+        if (! $company->servesMeals()) {
             return null;
         }
 
         $start = Carbon::create($year, $month, 1)->startOfDay();
-        $rate = self::rateFor($company, $start);
+        $rates = self::rates();
+        $daysInMonth = $start->daysInMonth;
 
-        if ($rate === null) {
+        if ($rates->isEmpty() || self::rateOn($start->copy()->endOfMonth()->startOfDay(), $rates) === null) {
             return null;
         }
 
@@ -94,18 +160,35 @@ class FoodCharges
             ->whereNull('rejoined_at')->where('status', 'Relieved')
             ->pluck('last_working_date', 'employee_id');
 
-        $rows = $staff->map(function (Employee $employee) use ($start, $rate, $lastDays) {
+        // Days marked with a status that leaves food out, per employee
+        $skippedDays = AttendanceEntry::query()
+            ->whereHas('month', fn ($q) => $q->where('payroll_company_id', $company->id)->where('year', $year)->where('month', $month))
+            ->where('skips_food', true)
+            ->get(['employee_id', 'day'])
+            ->groupBy('employee_id')->map(fn ($rows) => $rows->pluck('day')->map(fn ($d) => (int) $d)->all());
+
+        $rows = $staff->map(function (Employee $employee) use ($start, $rates, $daysInMonth, $lastDays, $skippedDays) {
             $left = ($lastDays[$employee->id] ?? null) ? Carbon::parse($lastDays[$employee->id]) : null;
-            $days = self::daysCounted($start, $employee->joining_date, $left);
+            $skipped = $skippedDays[$employee->id] ?? [];
+            $counted = self::countedDays($start, $employee->joining_date, $left, $skipped);
+
+            // Each day at the price in force that day, each worth a day's share of the month
+            $total = 0.0;
+            foreach ($counted as $day) {
+                $total += (self::rateOn($start->copy()->day($day), $rates) ?? 0.0) / $daysInMonth;
+            }
+
+            // Days that would have counted but were left out, so the bill explains itself
+            $inService = self::countedDays($start, $employee->joining_date, $left);
 
             return [
                 'name' => $employee->name,
                 'code' => $employee->employee_code,
                 'designation' => $employee->designation,
-                'days' => $days,
-                'amount' => round($rate * $days / $start->daysInMonth, 2),
-                // Why a part month, so nobody has to work it out from the dates
-                'note' => self::note($start, $employee->joining_date, $left),
+                'days' => count($counted),
+                'left_out' => count($inService) - count($counted),
+                'amount' => round($total, 2),
+                'note' => self::note($start, $employee->joining_date, $left, count($inService) - count($counted)),
             ];
         })
             ->filter(fn ($row) => $row['days'] > 0)
@@ -115,17 +198,46 @@ class FoodCharges
             return null;
         }
 
+        $owed = $company->paysFoodCharges();
+
         return [
             'payee' => PayrollCompany::FOOD_PAYEE,
+            // Hotel Pallav owes it; Pallav Food's own staff are simply a cost
+            'owed' => $owed,
+            'title' => $owed ? 'Pay to '.PayrollCompany::FOOD_PAYEE : 'Staff meals',
             'month' => $start,
-            'rate' => $rate,
-            'daysInMonth' => $start->daysInMonth,
+            'daysInMonth' => $daysInMonth,
+            'prices' => self::pricesIn($start, $rates),
+            'rate' => self::rateOn($start->copy()->endOfMonth()->startOfDay(), $rates),
             'rows' => $rows,
             'total' => round(array_sum(array_column($rows, 'amount')), 2),
         ];
     }
 
-    private static function note(Carbon $monthStart, ?Carbon $joined, ?Carbon $left): ?string
+    /**
+     * The prices in force during a month, in order, for saying "3,000 until 14
+     * Sep, then 3,500". A single entry when the price did not change.
+     *
+     * @return array<int, array{from: Carbon, amount: float}>
+     */
+    public static function pricesIn(Carbon $monthStart, ?Collection $rates = null): array
+    {
+        $rates ??= self::rates();
+        $end = $monthStart->copy()->endOfMonth()->startOfDay();
+
+        $opening = self::rateOn($monthStart, $rates);
+        $prices = $opening !== null ? [['from' => $monthStart->copy(), 'amount' => $opening]] : [];
+
+        foreach ($rates as $rate) {
+            if ($rate->effective_from->greaterThan($monthStart) && $rate->effective_from->lessThanOrEqualTo($end)) {
+                $prices[] = ['from' => $rate->effective_from->copy(), 'amount' => (float) $rate->monthly_amount];
+            }
+        }
+
+        return $prices;
+    }
+
+    private static function note(Carbon $monthStart, ?Carbon $joined, ?Carbon $left, int $leftOut): ?string
     {
         $parts = [];
 
@@ -135,6 +247,10 @@ class FoodCharges
 
         if ($left !== null && $left->isSameMonth($monthStart) && $left->isSameYear($monthStart)) {
             $parts[] = 'left '.$left->format('j M');
+        }
+
+        if ($leftOut > 0) {
+            $parts[] = $leftOut.' '.($leftOut === 1 ? 'day' : 'days').' not counted';
         }
 
         return $parts ? implode(', ', $parts) : null;

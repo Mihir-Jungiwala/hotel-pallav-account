@@ -167,8 +167,8 @@
                        value="{{ old('department', $e->department ?? '') }}">
             </div>
 
-            {{-- Only Hotel Pallav: its staff eat at Pallav Food and the owner pays --}}
-            @if(\App\Support\PayrollContext::current()?->paysFoodCharges())
+            {{-- Both companies eat at Pallav Food; what it costs is in Food Charges --}}
+            @if(\App\Support\PayrollContext::current()?->servesMeals())
                 <div class="col-12">
                     <div class="offer-toggle">
                         <div class="form-check form-switch mb-0">
@@ -177,7 +177,7 @@
                                    id="emp_food_{{ $uid }}" @checked(old('eats_at_pallav_food', $e->eats_at_pallav_food ?? false))>
                             <label class="form-check-label" for="emp_food_{{ $uid }}">Meals from Pallav Food</label>
                         </div>
-                        <div class="offer-hint"><i class="bi bi-cup-hot"></i> Hotel Pallav pays Pallav Food for this person's meals. It is not taken from their salary.</div>
+                        <div class="offer-hint"><i class="bi bi-cup-hot"></i> The cost of this person's meals is worked out in Food Charges. It is never taken from their salary.</div>
                     </div>
                 </div>
             @endif

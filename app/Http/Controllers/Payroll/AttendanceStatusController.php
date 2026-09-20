@@ -41,6 +41,7 @@ class AttendanceStatusController extends Controller
             ],
             'attendance_percentage' => ['required', Rule::in(AttendanceStatus::ALLOWED_PERCENTAGES)],
             'status_type' => ['required', Rule::in(['Paid', 'Unpaid'])],
+            'skips_food' => ['nullable', 'boolean'],
         ];
     }
 
@@ -74,6 +75,15 @@ class AttendanceStatusController extends Controller
         $data['shortcut_key'] = strtoupper($data['shortcut_key']);
 
         $status->update($data);
+
+        // Days already marked with this status follow the option while their month is
+        // still open. A month whose salary is generated keeps what it had, so a bill
+        // that has been worked out never changes underneath anyone.
+        if ($status->wasChanged('skips_food')) {
+            \App\Models\AttendanceEntry::where('attendance_status_id', $status->id)
+                ->whereHas('month', fn ($q) => $q->where('is_locked', false))
+                ->update(['skips_food' => $status->skips_food]);
+        }
 
         return back()->with('success', 'Attendance status updated.');
     }

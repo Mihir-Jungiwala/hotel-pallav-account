@@ -214,6 +214,7 @@ Route::middleware(['auth', 'auth.session', 'single.session', 'account.usable', '
             Route::get('/salary-update', [SalaryUpdateController::class, 'index'])->name('salary-update.index');
             Route::get('/salary-update/{employee}', [SalaryUpdateController::class, 'show'])->whereNumber('employee')->name('salary-update.show');
             Route::get('/salary-payments', [SalaryPaymentController::class, 'index'])->name('salary-payment.index');
+            Route::get('/food-price', [\App\Http\Controllers\Payroll\FoodPriceController::class, 'index'])->name('food-price.index');
             Route::get('/food-charges', [\App\Http\Controllers\Payroll\FoodChargeController::class, 'index'])->name('food-charge.index');
             Route::get('/experience-letter', [ExperienceLetterController::class, 'index'])->name('experience-letter.index');
             Route::get('/resignations', [SeparationController::class, 'index'])->name('separation.index');
@@ -288,8 +289,8 @@ Route::middleware(['auth', 'auth.session', 'single.session', 'account.usable', '
         Route::get('/separations/{separation}/experience-letter', [SeparationController::class, 'experienceLetter'])->name('separation.experience-letter');
 
         // Food charges paid to Pallav Food
-        Route::post('/food-charges/rate', [\App\Http\Controllers\Payroll\FoodChargeController::class, 'saveRate'])->name('food-charge.rate');
-        Route::delete('/food-charges/rate/{rate}', [\App\Http\Controllers\Payroll\FoodChargeController::class, 'destroyRate'])->name('food-charge.rate.destroy');
+        Route::post('/food-price', [\App\Http\Controllers\Payroll\FoodPriceController::class, 'store'])->name('food-price.store');
+        Route::delete('/food-price/{rate}', [\App\Http\Controllers\Payroll\FoodPriceController::class, 'destroy'])->name('food-price.destroy');
         Route::post('/food-charges/{employee}/toggle', [\App\Http\Controllers\Payroll\FoodChargeController::class, 'toggleEmployee'])->name('food-charge.toggle');
 
         // Salary payments

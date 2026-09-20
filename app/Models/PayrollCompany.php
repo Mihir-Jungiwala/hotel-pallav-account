@@ -20,14 +20,39 @@ class PayrollCompany extends Model
         ['name' => 'Pallav Food', 'code' => 'PF01'],
     ];
 
-    /** Hotel Pallav's staff eat at Pallav Food, and Hotel Pallav (the owner) pays for it. */
+    /**
+     * Pallav Food cooks for both companies and alone decides the price. Hotel
+     * Pallav's staff eat there and Hotel Pallav (the owner) pays for it; Pallav
+     * Food's own staff eat there too, at the same price, as a cost of its own.
+     */
     public const FOOD_PAYER_CODE = 'HP01';
+
+    public const FOOD_PROVIDER_CODE = 'PF01';
 
     public const FOOD_PAYEE = 'Pallav Food';
 
+    /** Hotel Pallav: owes Pallav Food for its staff's meals. */
     public function paysFoodCharges(): bool
     {
         return $this->code === self::FOOD_PAYER_CODE;
+    }
+
+    /** Pallav Food: sets the price. The only company that can. */
+    public function providesFood(): bool
+    {
+        return $this->code === self::FOOD_PROVIDER_CODE;
+    }
+
+    /** Either company: its staff can be marked as eating at Pallav Food. */
+    public function servesMeals(): bool
+    {
+        return $this->paysFoodCharges() || $this->providesFood();
+    }
+
+    /** The company that decides the price. */
+    public static function foodProvider(): ?self
+    {
+        return static::where('code', self::FOOD_PROVIDER_CODE)->first();
     }
 
     /** Creates either company if it is missing. Safe to call any number of times. */

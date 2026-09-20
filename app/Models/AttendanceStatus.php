@@ -10,7 +10,7 @@ class AttendanceStatus extends Model
 {
     protected $guarded = ['id'];
 
-    protected $casts = ['is_active' => 'boolean'];
+    protected $casts = ['is_active' => 'boolean', 'skips_food' => 'boolean'];
 
     public const ALLOWED_PERCENTAGES = [0, 25, 50, 75, 100];
 

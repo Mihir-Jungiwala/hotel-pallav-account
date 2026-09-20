@@ -119,7 +119,7 @@
 </table>
 
 @if($food ?? null)
-    <h2 class="section"><span class="dot"></span>Pay to {{ $food['payee'] }}</h2>
+    <h2 class="section"><span class="dot"></span>{{ $food['title'] }}</h2>
     <table class="grid tight avoid-break">
         <thead>
             <tr><th style="width:30px;">#</th><th>Employee</th><th>Designation</th><th class="num">Days counted</th><th class="num">Amount</th></tr>
@@ -135,7 +135,7 @@
             </tr>
         @endforeach
             <tr class="total">
-                <td colspan="4">Total payable to {{ $food['payee'] }} &middot; {{ \App\Support\NumberToWords::convert($food['total']) }}</td>
+                <td colspan="4">{{ $food['owed'] ? 'Total payable to '.$food['payee'] : 'Total cost of staff meals' }} &middot; {{ \App\Support\NumberToWords::convert($food['total']) }}</td>
                 <td class="num">{{ number_format($food['total'], 2) }}</td>
             </tr>
             {{-- Both halves, and what the month costs altogether - a row here rather
@@ -143,14 +143,20 @@
             @php $grand = round((float) $totalNet + $food['total'], 2); @endphp
             <tr class="total">
                 <td colspan="4">
-                    Grand total for {{ $start->format('F Y') }}: net salary {{ number_format($totalNet, 2) }} + {{ $food['payee'] }} {{ number_format($food['total'], 2) }}
+                    Grand total for {{ $start->format('F Y') }}: net salary {{ number_format($totalNet, 2) }} + {{ $food['owed'] ? $food['payee'] : 'staff meals' }} {{ number_format($food['total'], 2) }}
                     &middot; {{ \App\Support\NumberToWords::convert($grand) }}
                 </td>
                 <td class="num">{{ number_format($grand, 2) }}</td>
             </tr>
         </tbody>
     </table>
-    <div class="muted" style="font-size:6.5pt; margin-top:3px;">Paid by {{ $company->name }}, not deducted from salary. Counted by calendar days from the joining date.</div>
+    <div class="muted" style="font-size:6.5pt; margin-top:3px;">
+        {{ $food['owed'] ? 'Paid by '.$company->name : 'A cost of '.$company->name }}, not deducted from salary. Counted by day from the joining date; a day marked with a status that leaves food out is not counted.
+        @if(count($food['prices']) > 1)
+            Price changed in the month:
+            @foreach($food['prices'] as $price){{ number_format($price['amount'], 2) }}{{ $loop->first ? ' from the 1st' : ' from '.$price['from']->format('j M') }}{{ $loop->last ? '.' : '; ' }}@endforeach
+        @endif
+    </div>
 @endif
 
 @endsection

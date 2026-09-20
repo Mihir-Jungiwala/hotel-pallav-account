@@ -55,5 +55,20 @@
                 @endforeach
             </select>
         </div>
+
+        {{-- Only matters to companies that eat at Pallav Food --}}
+        @if(\App\Support\PayrollContext::current()?->servesMeals())
+            <div class="col-12">
+                <div class="offer-toggle">
+                    <div class="form-check form-switch mb-0">
+                        <input type="hidden" name="skips_food" value="0">
+                        <input class="form-check-input" type="checkbox" role="switch" name="skips_food" value="1"
+                               id="as_food_{{ $uid }}" @checked(old('skips_food', $s->skips_food ?? false))>
+                        <label class="form-check-label" for="as_food_{{ $uid }}">Food is not counted on this status</label>
+                    </div>
+                    <div class="offer-hint"><i class="bi bi-cup-hot"></i> A day marked with it is left out of the Pallav Food bill, for everyone who eats there.</div>
+                </div>
+            </div>
+        @endif
     </div>
 </div>

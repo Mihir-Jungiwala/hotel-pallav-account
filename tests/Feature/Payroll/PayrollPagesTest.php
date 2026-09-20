@@ -52,15 +52,34 @@ class PayrollPagesTest extends TestCase
     #[\PHPUnit\Framework\Attributes\DataProvider('pageProvider')]
     public function test_the_page_renders_when_the_company_is_empty(string $route): void
     {
-        $this->get(route($route))->assertOk()->assertSee($this->company->name);
+        $company = $this->openFor($route);
+
+        $this->get(route($route))->assertOk()->assertSee($company->name);
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('pageProvider')]
     public function test_the_page_renders_with_records(string $route): void
     {
         $this->seedRecords();
+        $company = $this->openFor($route);
 
-        $this->get(route($route))->assertOk()->assertSee($this->company->name);
+        $this->get(route($route))->assertOk()->assertSee($company->name);
+    }
+
+    /**
+     * Food Price is Pallav Food's alone, so that one page is opened from its
+     * payroll; every other page is Hotel Pallav's here.
+     */
+    private function openFor(string $route): PayrollCompany
+    {
+        if ($route !== 'payroll.food-price.index') {
+            return $this->company;
+        }
+
+        $food = PayrollCompany::where('code', 'PF01')->firstOrFail();
+        $this->get(route('payroll.index', ['current_company' => $food->id]));
+
+        return $food;
     }
 
     public function test_the_dashboard_flags_missing_setup_for_a_new_company(): void
@@ -115,7 +134,14 @@ class PayrollPagesTest extends TestCase
         $response = $this->get(route('payroll.staff.index'))->assertOk();
 
         // Each feature stays its own entry rather than being folded together
-        foreach (PayrollContext::MODULES as [$route, $label]) {
+        foreach (PayrollContext::MODULES as $slug => [$route, $label]) {
+            // The price is Pallav Food's alone; Hotel Pallav's menu rightly leaves it out
+            if ($slug === 'food-price') {
+                $response->assertDontSee('Food Price');
+
+                continue;
+            }
+
             $response->assertSee($label);
         }
     }

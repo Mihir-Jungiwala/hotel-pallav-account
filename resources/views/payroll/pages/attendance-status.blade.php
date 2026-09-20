@@ -56,7 +56,10 @@
                         {{ $row->attendance_percentage }}%
                         <span class="cell-sub">of a working day</span>
                     </td>
-                    <td>{{ $row->status_type }}</td>
+                    <td>
+                        {{ $row->status_type }}
+                        @if($row->skips_food)<span class="cell-sub"><i class="bi bi-cup-hot"></i> Food not counted</span>@endif
+                    </td>
                     <td>
                         <form method="POST" action="{{ route('payroll.attendance-status.toggle-active', $row) }}" data-status-toggle>@csrf
                             <button class="btn btn-sm {{ $row->is_active ? 'btn-outline-success' : 'btn-outline-secondary' }}">

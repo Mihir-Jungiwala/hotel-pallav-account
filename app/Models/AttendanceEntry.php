@@ -9,7 +9,7 @@ class AttendanceEntry extends Model
 {
     protected $guarded = ['id'];
 
-    protected $casts = ['overtime_hours' => 'decimal:2'];
+    protected $casts = ['overtime_hours' => 'decimal:2', 'skips_food' => 'boolean'];
 
     public function month(): BelongsTo
     {

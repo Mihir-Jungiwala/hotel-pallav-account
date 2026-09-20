@@ -132,6 +132,8 @@ class AttendanceController extends Controller
                             'attendance_status_id' => $status?->id,
                             'shortcut_key' => $status?->shortcut_key,
                             'attendance_percentage' => $status?->attendance_percentage ?? 0,
+                            // Copied onto the day, so changing the status later never rewrites a bill
+                            'skips_food' => (bool) ($status?->skips_food ?? false),
                             'overtime_hours' => $hours,
                         ]
                     );

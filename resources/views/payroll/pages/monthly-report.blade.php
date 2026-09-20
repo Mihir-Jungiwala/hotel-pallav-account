@@ -144,7 +144,7 @@
 @if($food ?? null)
     <div class="card mt-3">
         <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <span><i class="bi bi-cup-hot me-1"></i> Pay to {{ $food['payee'] }}</span>
+            <span><i class="bi bi-cup-hot me-1"></i> {{ $food['title'] }}</span>
             <a class="btn btn-sm btn-outline-p" href="{{ route('payroll.food-charge.index', ['year' => $monthStart->year, 'month' => $monthStart->month]) }}">
                 <i class="bi bi-sliders"></i> Manage
             </a>
@@ -152,7 +152,10 @@
         <div class="px-3 pt-3">
             <div class="master-note">
                 <i class="bi bi-info-circle"></i>
-                <span>Paid by {{ $company->name }}, never taken from salary. {{ $food['payee'] }} charges &#8377;{{ number_format($food['rate'], 2) }} per employee for a full month, counted by calendar days.</span>
+                <span>
+                    @if($food['owed'])Paid by {{ $company->name }}, never taken from salary.@else A cost of {{ $company->name }}, never taken from salary.@endif
+                    {{ $food['payee'] }} charges &#8377;{{ number_format($food['rate'], 2) }} per employee for a full month, counted by day. A day marked with a status that leaves food out is not counted.
+                </span>
             </div>
         </div>
         @include('payroll.partials._food-table')
@@ -165,7 +168,7 @@
     @endphp
     <div class="card mt-3 grand-total">
         <div class="gt-row"><span>Net salary payout</span><strong>&#8377;{{ number_format($salaryTotal, 2) }}</strong></div>
-        <div class="gt-row"><span>Payable to {{ $food['payee'] }}</span><strong>&#8377;{{ number_format($food['total'], 2) }}</strong></div>
+        <div class="gt-row"><span>{{ $food['owed'] ? 'Payable to '.$food['payee'] : 'Staff meals' }}</span><strong>&#8377;{{ number_format($food['total'], 2) }}</strong></div>
         <div class="gt-row gt-final">
             <span>Total for {{ $monthStart->format('F Y') }}<small>{{ \App\Support\NumberToWords::convert($grand) }}</small></span>
             <strong>&#8377;{{ number_format($grand, 2) }}</strong>

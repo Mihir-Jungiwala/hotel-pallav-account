@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\AttendanceStatus;
 use App\Models\Employee;
 use App\Models\FoodChargeRate;
 use App\Models\PayrollCompany;
@@ -38,16 +39,22 @@ class PayrollDemoSeeder extends Seeder
             ['EMP005', 'Manoj Chauhan', 'Chef', 'Kitchen', 25000, '2025-08-23', false],
         ]);
 
+        // Pallav Food's own staff eat there too, at the same price
         $this->staff($food, [
-            ['PF001', 'Alpesh Joshi', 'Restaurant Manager', 'Management', 32000, '2024-02-12', false],
-            ['PF002', 'Nilesh Bhatt', 'Head Cook', 'Kitchen', 24000, '2024-05-20', false],
+            ['PF001', 'Alpesh Joshi', 'Restaurant Manager', 'Management', 32000, '2024-02-12', true],
+            ['PF002', 'Nilesh Bhatt', 'Head Cook', 'Kitchen', 24000, '2024-05-20', true],
             ['PF003', 'Priya Mehta', 'Steward', 'Service', 14000, '2025-01-15', false],
         ]);
 
-        // What Pallav Food charges Hotel Pallav for each of its staff, per month
-        if ($hotel && ! FoodChargeRate::where('payroll_company_id', $hotel->id)->exists()) {
+        // A day on leave is not a day of meals, in both companies
+        AttendanceStatus::whereIn('payroll_company_id', array_filter([$hotel?->id, $food?->id]))
+            ->where(fn ($q) => $q->where('name', 'like', '%leave%')->orWhere('name', 'like', '%absent%'))
+            ->update(['skips_food' => true]);
+
+        // What Pallav Food charges per employee per month. Its price, not Hotel Pallav's
+        if ($food && ! FoodChargeRate::where('payroll_company_id', $food->id)->exists()) {
             FoodChargeRate::create([
-                'payroll_company_id' => $hotel->id,
+                'payroll_company_id' => $food->id,
                 'monthly_amount' => 3000,
                 'effective_from' => now()->subMonths(6)->startOfMonth(),
             ]);

@@ -123,6 +123,7 @@ class PayrollModelObserver
     /** Column names that do not read as English on their own. */
     private const LABELS = [
         'eats_at_pallav_food' => 'Meals from Pallav Food',
+        'skips_food' => 'Food not counted',
         'is_active' => 'Active',
         'employee_code' => 'Employee ID',
         'contact_number' => 'Mobile',
