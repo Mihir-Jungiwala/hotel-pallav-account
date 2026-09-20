@@ -18,9 +18,6 @@ class PayrollCompanyController extends Controller
             'name' => ['required', 'string', 'max:150'],
             'code' => ['required', 'string', 'max:50', Rule::unique('payroll_companies', 'code')->ignore($company?->id)],
             'logo' => ['nullable', 'image', 'max:4096'],
-            // Hotel Pallav only: what Pallav Food charges per employee per month
-            'food_charge_amount' => ['nullable', 'numeric', 'min:0', 'max:1000000'],
-            'food_charge_from' => ['nullable', 'date'],
             'owner_name' => ['nullable', 'string', 'max:150'],
             // These print on every salary slip and joining letter
             'mobile_number' => ['required', 'string', 'max:15'],
@@ -54,9 +51,6 @@ class PayrollCompanyController extends Controller
         // The name and code are fixed
         unset($data['name'], $data['code']);
 
-        $this->saveFoodCharge($company, $data['food_charge_amount'] ?? null, $data['food_charge_from'] ?? null);
-        unset($data['food_charge_amount'], $data['food_charge_from']);
-
         if ($request->hasFile('logo')) {
             $data['logo_path'] = $request->file('logo')->store('payroll/logos', 'public');
         }
@@ -69,27 +63,6 @@ class PayrollCompanyController extends Controller
         $company->update($data);
 
         return back()->with('success', 'Company updated.');
-    }
-
-    /** A changed amount starts a new rate from its month; earlier months keep the amount they had. */
-    private function saveFoodCharge(PayrollCompany $company, $amount, $from): void
-    {
-        if (! $company->paysFoodCharges() || $amount === null || $amount === '') {
-            return;
-        }
-
-        $current = \App\Support\FoodCharges::currentRate($company);
-
-        if ($current !== null && abs($current - (float) $amount) < 0.005) {
-            return;
-        }
-
-        \App\Models\FoodChargeRate::create([
-            'payroll_company_id' => $company->id,
-            'monthly_amount' => $amount,
-            'effective_from' => \Illuminate\Support\Carbon::parse($from ?: now())->startOfMonth(),
-            'created_by' => Auth::id(),
-        ]);
     }
 
     public function view(PayrollCompany $company)

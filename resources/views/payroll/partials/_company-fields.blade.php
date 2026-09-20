@@ -15,20 +15,6 @@
                 <div class="form-text">Fixed. The name and code cannot be changed.</div>
             </div>
 
-            @if($c && $c->paysFoodCharges())
-                @php $foodRate = \App\Support\FoodCharges::currentRate($c); @endphp
-                <div class="col-md-7">
-                    <label class="form-label">Food charge per employee, per month<span class="opt">paid to {{ \App\Models\PayrollCompany::FOOD_PAYEE }}</span></label>
-                    <input type="number" step="0.01" min="0" name="food_charge_amount" class="form-control"
-                           value="{{ old('food_charge_amount', $foodRate) }}" placeholder="e.g. 1500">
-                    <div class="form-text">The fixed monthly amount {{ \App\Models\PayrollCompany::FOOD_PAYEE }} charges for each employee who eats there. Counted by calendar days from the joining date.</div>
-                </div>
-                <div class="col-md-5">
-                    <label class="form-label">Starts from<span class="opt">only if changing</span></label>
-                    <input type="date" name="food_charge_from" class="form-control" value="{{ old('food_charge_from', now()->startOfMonth()->format('Y-m-d')) }}">
-                    <div class="form-text">A changed amount applies from this month on; earlier months keep theirs.</div>
-                </div>
-            @endif
             <div class="col-md-6">
                 <label class="form-label">Owner Name <span class="opt">optional</span></label>
                 <input name="owner_name" class="form-control" value="{{ old('owner_name', $c->owner_name ?? '') }}">

@@ -36,7 +36,7 @@ class RolePermissionsTest extends TestCase
         $editor = User::factory()->editor()->create();
         $this->actingAs($editor);
 
-        $this->post(route('company.store'), ['name' => 'Editor Co'])->assertSessionHasNoErrors();
+        $this->post(route('company.store'), ['name' => 'Editor Co', 'contacts' => [['role' => 'Managing Director', 'name' => 'Main Person']]])->assertSessionHasNoErrors();
         $company = CompanyProfile::where('name', 'Editor Co')->firstOrFail();
 
         $this->delete(route('company.destroy', $company))->assertSessionHas('error');

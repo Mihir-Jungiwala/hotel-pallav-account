@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccessController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\BillMasterController;
 use App\Http\Controllers\CompanyProfileController;
@@ -39,6 +40,10 @@ Route::middleware('guest')->group(function () {
     Route::get('/login/code', [AuthController::class, 'showVerify'])->name('login.verify');
     Route::post('/login/code', [AuthController::class, 'verify'])->middleware('throttle:30,1')->name('login.verify.check');
     Route::post('/login/code/resend', [AuthController::class, 'resend'])->middleware('throttle:6,1')->name('login.verify.resend');
+
+    // First sign-in: replace the emailed password before the account opens
+    Route::get('/set-password', [AuthController::class, 'showFirstPassword'])->name('password.first');
+    Route::post('/set-password', [AuthController::class, 'setFirstPassword'])->middleware('throttle:10,1')->name('password.first.update');
 
     // Forgotten password, by code rather than by link
     Route::get('/forgot-password', [AuthController::class, 'showForgot'])->name('password.request');
@@ -90,6 +95,18 @@ Route::middleware(['auth', 'auth.session', 'single.session', 'account.usable', '
         Route::post('/{user}/two-factor', [UserController::class, 'toggleTwoFactor'])->name('two-factor');
         Route::put('/{user}/password', [UserController::class, 'resetPassword'])->name('reset-password');
         Route::post('/{user}/transfer-superadmin', [UserController::class, 'transferSuperAdmin'])->name('transfer-superadmin');
+        Route::get('/{user}/detail', [AccessController::class, 'user'])->name('detail');
+        Route::post('/{user}/permission', [AccessController::class, 'userOverride'])->name('permission');
+    });
+
+    // The ladder of roles and what each rung may do
+    Route::middleware('admin')->prefix('access')->name('access.')->group(function () {
+        Route::get('/', [AccessController::class, 'index'])->name('index');
+        Route::post('/roles', [AccessController::class, 'store'])->name('store');
+        Route::put('/roles/{role}', [AccessController::class, 'update'])->name('update');
+        Route::delete('/roles/{role}', [AccessController::class, 'destroy'])->name('destroy');
+        Route::post('/roles/order', [AccessController::class, 'reorder'])->name('reorder');
+        Route::post('/roles/{role}/permission', [AccessController::class, 'togglePermission'])->name('permission');
     });
 
     // Company profiles
@@ -97,6 +114,7 @@ Route::middleware(['auth', 'auth.session', 'single.session', 'account.usable', '
     Route::post('/company', [CompanyProfileController::class, 'store'])->name('company.store');
     Route::put('/company/{company}', [CompanyProfileController::class, 'update'])->name('company.update');
     Route::delete('/company/{company}', [CompanyProfileController::class, 'destroy'])->name('company.destroy');
+    Route::get('/company/{company}/view', [CompanyProfileController::class, 'view'])->name('company.view');
 
     // Revenue: one set of handlers for both cash books, named revenue.hotel.* and revenue.food.*
     Route::get('/revenue', [RevenueController::class, 'index'])->name('revenue.index');
@@ -160,7 +178,10 @@ Route::middleware(['auth', 'auth.session', 'single.session', 'account.usable', '
         Route::get('/companies', [PayrollController::class, 'index'])->name('company.index');
 
         // Payroll Log (SuperAdmin): everything done in payroll, with full detail
-        Route::get('/log', [\App\Http\Controllers\Payroll\PayrollLogController::class, 'index'])->middleware('superadmin')->name('log.index');
+        Route::middleware('superadmin')->group(function () {
+            Route::get('/log', [\App\Http\Controllers\Payroll\PayrollLogController::class, 'index'])->name('log.index');
+            Route::get('/log/download', [\App\Http\Controllers\Payroll\PayrollLogController::class, 'download'])->name('log.download');
+        });
 
         // Payroll Master (SuperAdmin): works on all companies, or on the selected one
         Route::middleware('superadmin')->prefix('master')->name('master.')->group(function () {
@@ -193,6 +214,7 @@ Route::middleware(['auth', 'auth.session', 'single.session', 'account.usable', '
             Route::get('/salary-update', [SalaryUpdateController::class, 'index'])->name('salary-update.index');
             Route::get('/salary-update/{employee}', [SalaryUpdateController::class, 'show'])->whereNumber('employee')->name('salary-update.show');
             Route::get('/salary-payments', [SalaryPaymentController::class, 'index'])->name('salary-payment.index');
+            Route::get('/food-charges', [\App\Http\Controllers\Payroll\FoodChargeController::class, 'index'])->name('food-charge.index');
             Route::get('/experience-letter', [ExperienceLetterController::class, 'index'])->name('experience-letter.index');
             Route::get('/resignations', [SeparationController::class, 'index'])->name('separation.index');
             Route::get('/salary-slips', [SalarySlipController::class, 'index'])->name('salary-slip.index');
@@ -264,6 +286,11 @@ Route::middleware(['auth', 'auth.session', 'single.session', 'account.usable', '
         Route::post('/separations/{separation}/rejoin', [SeparationController::class, 'rejoin'])->name('separation.rejoin');
         Route::get('/separations/{separation}/view', [SeparationController::class, 'view'])->name('separation.view');
         Route::get('/separations/{separation}/experience-letter', [SeparationController::class, 'experienceLetter'])->name('separation.experience-letter');
+
+        // Food charges paid to Pallav Food
+        Route::post('/food-charges/rate', [\App\Http\Controllers\Payroll\FoodChargeController::class, 'saveRate'])->name('food-charge.rate');
+        Route::delete('/food-charges/rate/{rate}', [\App\Http\Controllers\Payroll\FoodChargeController::class, 'destroyRate'])->name('food-charge.rate.destroy');
+        Route::post('/food-charges/{employee}/toggle', [\App\Http\Controllers\Payroll\FoodChargeController::class, 'toggleEmployee'])->name('food-charge.toggle');
 
         // Salary payments
         Route::put('/salary-payments/{processing}', [SalaryPaymentController::class, 'update'])->name('salary-payment.update');

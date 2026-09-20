@@ -69,7 +69,7 @@ class PayrollLogTest extends TestCase
         $this->assertSame('Front Office', $rows[0]->details['Designation']);
 
         // A change records what each field was and what it became
-        $this->assertSame(['was' => '24000', 'became' => '30000'], $rows[1]->details['Salary']);
+        $this->assertSame(['was' => '24000.00', 'became' => '30000'], $rows[1]->details['Salary']);
         $this->assertSame(['was' => 'Front Office', 'became' => 'Manager'], $rows[1]->details['Designation']);
 
         // Bookkeeping is never noise

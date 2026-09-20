@@ -1,0 +1,294 @@
+/* Roles and permissions. Colours come from the app tokens, so night mode
+   follows without a second set of rules. Each role carries its own accent
+   in --role, which tints only that role's own furniture. */
+
+.ac-head-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-left: auto; }
+
+.ac-readonly {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+    padding: 10px 14px; border-radius: 12px; font-size: 13px; color: var(--ink2);
+    background: var(--surface-2, #FBF9FF); border: 1px solid var(--line);
+}
+.ac-readonly i { color: var(--p600); }
+
+.ac-layout { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 18px; align-items: start; }
+
+/* ---------------------------------------------------------- the ladder */
+.ac-ladder-wrap {
+    background: var(--surface, #fff); border: 1px solid var(--line); border-radius: var(--r-lg, 18px);
+    padding: 16px; position: sticky; top: 84px;
+}
+.ac-side-head h3 { font-size: 14.5px; font-weight: 800; color: var(--ink); margin: 0 0 2px; }
+.ac-side-head p { font-size: 12px; color: var(--muted); margin: 0 0 12px; }
+
+.ac-ladder { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.ac-ladder.saving { opacity: .6; pointer-events: none; }
+
+.ac-rung {
+    --role: #7C3AED;
+    display: flex; align-items: center; gap: 6px; padding: 8px 8px 8px 4px;
+    border: 1.5px solid var(--line); border-radius: 13px; background: var(--surface, #fff);
+    transition: border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+}
+.ac-rung:hover { border-color: var(--line2); }
+.ac-rung.current { border-color: var(--role); box-shadow: 0 0 0 3px color-mix(in srgb, var(--role) 16%, transparent); }
+.ac-rung.dragging { opacity: .55; transform: scale(.99); }
+.ac-rung[draggable="true"] { cursor: grab; }
+.ac-rung[draggable="true"]:active { cursor: grabbing; }
+
+.ac-grip { color: var(--muted); font-size: 15px; padding: 0 2px; opacity: .55; }
+.ac-rung.pinned .ac-grip { opacity: .2; }
+
+.ac-rung-body { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; color: inherit; }
+.ac-rung-icon {
+    width: 34px; height: 34px; border-radius: 10px; flex: none;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 15px;
+    color: #fff; background: linear-gradient(140deg, color-mix(in srgb, var(--role) 78%, #fff), var(--role));
+}
+.ac-rung-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.ac-rung-name { font-size: 14px; font-weight: 800; color: var(--ink); }
+.ac-rung-meta { font-size: 11.5px; color: var(--muted); }
+
+.ac-rung-side { display: flex; align-items: center; }
+.ac-pin { color: var(--muted); font-size: 12px; padding: 4px; }
+.ac-move { display: flex; flex-direction: column; gap: 2px; }
+.ac-move button {
+    width: 22px; height: 18px; border: 0; border-radius: 5px; background: transparent; color: var(--muted);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 10px; padding: 0;
+}
+.ac-move button:hover { background: var(--p50); color: var(--p700); }
+
+.ac-hint { font-size: 11.5px; color: var(--muted); margin: 12px 0 0; line-height: 1.5; }
+.ac-hint i { color: var(--p500); }
+
+/* ------------------------------------------------------ the role's panel */
+.ac-main {
+    --role: #7C3AED;
+    background: var(--surface, #fff); border: 1px solid var(--line); border-radius: var(--r-lg, 18px); padding: 20px 22px;
+}
+.ac-role-head { display: flex; align-items: flex-start; gap: 14px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.ac-role-icon {
+    width: 46px; height: 46px; border-radius: 14px; flex: none;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 20px; color: #fff;
+    background: linear-gradient(140deg, color-mix(in srgb, var(--role) 78%, #fff), var(--role));
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--role) 30%, transparent);
+}
+.ac-role-title { flex: 1; min-width: 0; }
+.ac-role-title h3 { font-size: 19px; font-weight: 800; color: var(--ink); margin: 0 0 3px; letter-spacing: -.02em; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ac-role-title p { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.5; }
+.ac-chip { font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: var(--p100); color: var(--p800); }
+.ac-role-tools { display: flex; align-items: center; gap: 6px; flex: none; }
+
+.ac-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 16px 0; }
+.ac-sum {
+    display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 12px;
+    background: var(--surface-2, #FBF9FF); border: 1px solid var(--line);
+}
+.ac-sum span { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.ac-sum strong { font-size: 19px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.ac-sum.warn strong { color: #B45309; }
+:root[data-theme="dark"] .ac-sum.warn strong { color: #FCD34D; }
+
+.ac-inherit {
+    display: flex; align-items: center; gap: 9px; padding: 10px 14px; border-radius: 12px; font-size: 13px; color: var(--ink2);
+    background: color-mix(in srgb, var(--role) 8%, var(--surface, #fff));
+    border: 1px solid color-mix(in srgb, var(--role) 26%, var(--line));
+}
+.ac-inherit i { color: var(--role); font-size: 15px; }
+.ac-inherit.off { background: var(--surface-2, #FBF9FF); border-color: var(--line); color: var(--muted); }
+.ac-inherit.off i { color: var(--muted); }
+
+.ac-group {
+    font-size: 11.5px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--muted);
+    margin: 22px 0 10px; padding-bottom: 7px; border-bottom: 1px solid var(--line);
+}
+
+/* --------------------------------------------------- the permission grid */
+.ac-grid { display: flex; flex-direction: column; }
+.ac-grid-head, .ac-row { display: grid; grid-template-columns: minmax(0, 1fr) repeat(5, 76px); align-items: center; gap: 4px; }
+.ac-grid-head {
+    padding: 0 8px 8px; font-size: 10.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--muted);
+}
+.ac-grid-head span:not(:first-child) { text-align: center; }
+.ac-grid-head .warn { color: #B45309; }
+:root[data-theme="dark"] .ac-grid-head .warn { color: #FCD34D; }
+
+.ac-row { padding: 8px; border-radius: 11px; }
+.ac-row:nth-child(odd) { background: var(--surface-2, #FBF9FF); }
+.ac-row:hover { background: var(--p50); }
+
+.ac-module { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+.ac-module > i { font-size: 15px; color: var(--p600); margin-top: 2px; }
+.ac-module span { display: flex; flex-direction: column; min-width: 0; }
+.ac-module strong { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+.ac-module small { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+
+.ac-cell { display: flex; align-items: center; justify-content: center; }
+.ac-na { color: var(--line2); font-size: 14px; }
+
+.ac-toggle { position: relative; margin: 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.ac-toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.ac-box {
+    width: 26px; height: 26px; border-radius: 8px; border: 1.5px solid var(--line2); background: var(--surface, #fff);
+    display: inline-flex; align-items: center; justify-content: center; color: transparent; font-size: 13px;
+    transition: background-color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+}
+.ac-toggle:hover .ac-box { border-color: var(--p400); }
+.ac-toggle input:checked + .ac-box { background: linear-gradient(140deg, var(--p500), var(--p700)); border-color: transparent; color: #fff; }
+.ac-toggle.warn input:checked + .ac-box { background: linear-gradient(140deg, #F59E0B, #B45309); }
+.ac-toggle input:focus-visible + .ac-box { outline: 2px solid var(--p500); outline-offset: 2px; }
+.ac-toggle input:disabled + .ac-box { opacity: .5; cursor: default; }
+
+/* Inherited: on, but from somewhere else, and said so in words */
+.ac-toggle.inherited .ac-box { border-style: dashed; border-color: var(--p300); background: var(--p50); color: var(--p600); }
+.ac-from { font-size: 9.5px; font-weight: 700; color: var(--p600); letter-spacing: .02em; white-space: nowrap; }
+.ac-toggle.saving { opacity: .5; }
+.ac-toggle.just-saved .ac-box, .ac-ability.just-saved .ac-switch { animation: acSaved 900ms var(--ease-out); }
+@keyframes acSaved { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--p500) 55%, transparent); } 100% { box-shadow: 0 0 0 10px transparent; } }
+
+/* ------------------------------------------------------------- the powers */
+.ac-abilities { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.ac-ability {
+    display: flex; align-items: flex-start; gap: 12px; margin: 0; cursor: pointer;
+    padding: 12px 14px; border-radius: 13px; border: 1.5px solid var(--line); background: var(--surface, #fff);
+    transition: border-color var(--dur-base) var(--ease-out), background-color var(--dur-base) var(--ease-out);
+}
+.ac-ability:hover { border-color: var(--p300); }
+.ac-ability input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.ac-ability-body { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.ac-ability-top { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.ac-ability-top i { color: var(--p600); font-size: 14px; }
+.ac-ability-top strong { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+.ac-ability small { font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+.ac-ability.warn .ac-ability-top i { color: #B45309; }
+.ac-warn-chip { font-size: 9.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 1px 7px; border-radius: 20px; background: #FEF3C7; color: #92400E; }
+:root[data-theme="dark"] .ac-warn-chip { background: rgba(180, 83, 9, .24); color: #FCD34D; }
+
+.ac-switch {
+    width: 38px; height: 22px; border-radius: 20px; flex: none; margin-top: 2px;
+    background: var(--line2); position: relative;
+    transition: background-color var(--dur-base) var(--ease-out);
+}
+.ac-switch > span {
+    position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform var(--dur-base) var(--ease-spring, ease);
+}
+input:checked ~ .ac-switch { background: linear-gradient(140deg, var(--p500), var(--p700)); }
+.ac-ability.warn input:checked ~ .ac-switch { background: linear-gradient(140deg, #F59E0B, #B45309); }
+input:checked ~ .ac-switch > span { transform: translateX(16px); }
+input:focus-visible ~ .ac-switch { outline: 2px solid var(--p500); outline-offset: 2px; }
+.ac-ability.inherited { border-style: dashed; background: var(--p50); }
+
+.ac-inherit-toggle { display: flex; align-items: flex-start; gap: 12px; margin: 0; cursor: pointer; position: relative; }
+.ac-inherit-toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.ac-inherit-toggle .ac-ability-body strong { font-size: 13.5px; color: var(--ink); }
+.ac-inherit-toggle .ac-ability-body small { font-size: 11.5px; color: var(--muted); }
+
+/* ------------------------------------------------- the role form's pickers */
+.ac-icon-pick, .ac-colour-pick { display: flex; flex-wrap: wrap; gap: 8px; }
+.ac-colour-pick { margin-top: 10px; }
+.ac-icon-pick label, .ac-colour-pick label { position: relative; margin: 0; cursor: pointer; }
+.ac-icon-pick input, .ac-colour-pick input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.ac-icon-pick span {
+    width: 38px; height: 38px; border-radius: 11px; border: 1.5px solid var(--line2); background: var(--surface, #fff);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 16px; color: var(--ink2);
+}
+.ac-icon-pick input:checked + span { border-color: var(--p500); background: var(--p50); color: var(--p700); box-shadow: 0 0 0 3px color-mix(in srgb, var(--p500) 14%, transparent); }
+.ac-colour-pick span { width: 30px; height: 30px; border-radius: 50%; display: block; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.35); }
+.ac-colour-pick input:checked + span { outline: 2.5px solid var(--ink); outline-offset: 2px; }
+.ac-icon-pick input:focus-visible + span, .ac-colour-pick input:focus-visible + span { outline: 2px solid var(--p500); outline-offset: 2px; }
+
+@media (max-width: 1199.98px) {
+    .ac-layout { grid-template-columns: minmax(0, 1fr); }
+    .ac-ladder-wrap { position: static; }
+    .ac-ladder { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+    .ac-abilities { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 767.98px) {
+    .ac-main { padding: 16px 14px; }
+    .ac-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ac-grid { overflow-x: auto; }
+    .ac-grid-head, .ac-row { grid-template-columns: minmax(180px, 1fr) repeat(5, 58px); min-width: 470px; }
+    .ac-module small { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ac-rung, .ac-box, .ac-switch > span { transition: none; }
+    .ac-toggle.just-saved .ac-box, .ac-ability.just-saved .ac-switch { animation: none; }
+}
+
+/* ===========================================================================
+   One person's permissions, on the User Accounts screen
+   =========================================================================== */
+.up-head {
+    --role: #7C3AED;
+    display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 14px;
+    border-radius: 13px; border: 1px solid color-mix(in srgb, var(--role) 26%, var(--line));
+    background: color-mix(in srgb, var(--role) 7%, var(--surface, #fff));
+}
+.up-role-icon {
+    width: 38px; height: 38px; border-radius: 11px; flex: none; color: #fff; font-size: 16px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: linear-gradient(140deg, color-mix(in srgb, var(--role) 78%, #fff), var(--role));
+}
+.up-head > div { display: flex; flex-direction: column; min-width: 0; }
+.up-head strong { font-size: 14.5px; color: var(--ink); }
+.up-head span { font-size: 12px; color: var(--muted); }
+.up-head-counts { margin-left: auto; display: flex; gap: 14px; text-align: right; flex: none; }
+.up-head-counts span { font-size: 11.5px; color: var(--muted); display: flex; flex-direction: column; }
+.up-head-counts strong { font-size: 17px; color: var(--ink); }
+.up-head-counts .warn strong { color: #B45309; }
+
+.up-overrides { margin-bottom: 14px; }
+.up-overrides h6 { font-size: 11.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+.up-override {
+    display: flex; align-items: center; gap: 8px; padding: 7px 11px; border-radius: 10px; margin-bottom: 5px; font-size: 13px;
+    background: var(--surface-2, #FBF9FF); border: 1px solid var(--line);
+}
+.up-override.on i { color: #0F766E; }
+.up-override.off i { color: #B91C1C; }
+.up-override small { margin-left: auto; font-size: 11px; color: var(--muted); }
+
+.up-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+.up-legend i { font-size: 9px; margin-right: 4px; }
+
+.up-group { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 14px 0 6px; }
+.up-module {
+    display: flex; align-items: flex-start; gap: 12px; padding: 8px 10px; border-radius: 10px; flex-wrap: wrap;
+}
+.up-module:nth-child(odd) { background: var(--surface-2, #FBF9FF); }
+.up-module-name { font-size: 13px; font-weight: 700; color: var(--ink); flex: 0 0 168px; display: flex; align-items: center; gap: 7px; }
+.up-module-name i { color: var(--p600); }
+.up-actions { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0; }
+
+.up-action {
+    display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 20px;
+    font-size: 11.5px; font-weight: 600; border: 1px solid var(--line);
+    background: var(--surface, #fff); color: var(--muted);
+}
+.up-action i { font-size: 9px; }
+.up-action.yes { color: var(--p800); border-color: var(--p200); background: var(--p50); }
+.up-action.origin-inherited { border-style: dashed; }
+.up-action.origin-granted { color: #0F766E; border-color: #5EEAD4; background: #F0FDFA; }
+.up-action.origin-revoked { color: #B91C1C; border-color: #FECACA; background: #FEF2F2; text-decoration: line-through; }
+:root[data-theme="dark"] .up-action.origin-granted { background: rgba(15, 118, 110, .18); border-color: rgba(94, 234, 212, .35); color: #5EEAD4; }
+:root[data-theme="dark"] .up-action.origin-revoked { background: rgba(185, 28, 28, .18); border-color: rgba(254, 202, 202, .3); color: #FCA5A5; }
+.up-action small { font-size: 10px; opacity: .8; }
+
+.up-flip {
+    width: 18px; height: 18px; border-radius: 50%; border: 0; padding: 0; margin-left: 2px;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 9px;
+    background: var(--p100); color: var(--p700);
+}
+.up-flip:hover { background: var(--p600); color: #fff; }
+.up-flip:disabled { opacity: .4; }
+.up-flip.clear { background: transparent; color: var(--muted); }
+.up-flip.clear:hover { background: var(--line); color: var(--ink2); }
+
+.up-note { font-size: 11.5px; color: var(--muted); margin: 14px 0 0; line-height: 1.5; }
+.up-note i { color: var(--p500); }
+
+/* Role cards on the account form carry their role's own colour */
+.role-option { --role: #7C3AED; }
+.role-option input:checked + .ro-body { border-color: var(--role); box-shadow: 0 0 0 3px color-mix(in srgb, var(--role) 15%, transparent); }
+.role-option .ro-head i { color: var(--role); }
+.ro-count { font-size: 11px; color: var(--muted); margin-top: 3px; display: block; }

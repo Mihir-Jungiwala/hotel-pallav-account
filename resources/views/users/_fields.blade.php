@@ -1,7 +1,11 @@
 @php
+    use App\Models\Role;
+
     $t = $target ?? null;
-    $roleIcons = ['Admin' => 'bi-person-gear', 'Editor' => 'bi-pencil-square', 'Viewer' => 'bi-eye'];
-    $currentRole = old('role', $t->role ?? (in_array('Editor', $roles, true) ? 'Editor' : ($roles[0] ?? null)));
+    // Roles come from the ladder, so one added on the Roles screen can be
+    // handed out here straight away, with its own icon and colour.
+    $roleRecords = collect($roles)->map(fn ($name) => Role::byKey($name))->filter()->values();
+    $currentRole = old('role', $t->role ?? ($roleRecords->firstWhere('key', 'Editor')?->name ?? $roleRecords->first()?->name));
 @endphp
 
 <div class="row g-3">
@@ -32,15 +36,19 @@
     <div class="col-12">
         <label class="form-label">Role *</label>
         <div class="role-options">
-            @foreach($roles as $role)
-                <label class="role-option role-{{ strtolower($role) }}">
-                    <input type="radio" name="role" value="{{ $role }}" @checked($currentRole === $role) required>
+            @foreach($roleRecords as $role)
+                <label class="role-option" style="--role:{{ $role->accent }};">
+                    <input type="radio" name="role" value="{{ $role->name }}" @checked($currentRole === $role->name) required>
                     <span class="ro-body">
-                        <span class="ro-head"><i class="bi {{ $roleIcons[$role] ?? 'bi-person' }}"></i>{{ $role }}</span>
-                        <span class="ro-desc">{{ \App\Models\User::ROLE_DESCRIPTIONS[$role] }}</span>
+                        <span class="ro-head"><i class="bi {{ $role->icon }}"></i>{{ $role->name }}</span>
+                        <span class="ro-desc">{{ $role->description ?: 'No description yet.' }}</span>
+                        <span class="ro-count">{{ count($role->effectivePermissions()) }} things allowed</span>
                     </span>
                 </label>
             @endforeach
+        </div>
+        <div class="form-text">
+            <a href="{{ route('access.index') }}"><i class="bi bi-diagram-3"></i> See what each role may do</a>
         </div>
     </div>
 </div>

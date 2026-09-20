@@ -12,7 +12,7 @@ class RequireSuperAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        abort_unless(Auth::check() && Auth::user()->isSuperAdmin(), 403);
+        abort_unless(Auth::check() && Auth::user()->can('masters.view'), 403);
 
         return $next($request);
     }

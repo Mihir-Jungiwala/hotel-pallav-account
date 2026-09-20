@@ -9,6 +9,8 @@ class CompanyProfile extends Model
 {
     protected $guarded = ['id'];
 
+    protected $casts = ['contacts' => 'array'];
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

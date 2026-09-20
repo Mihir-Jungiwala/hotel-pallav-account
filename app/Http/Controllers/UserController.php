@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
+use App\Models\Role;
 use App\Models\User;
 use App\Models\UserAuditLog;
 use App\Services\UserHierarchy;
@@ -10,7 +11,10 @@ use App\Support\PasswordPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Mail\NewAccountMail;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -77,11 +81,14 @@ class UserController extends Controller
 
         $data = $request->validate(array_merge($this->profileRules(), [
             'role' => ['required', Rule::in($this->hierarchy->assignableRoles($actor))],
-            'password' => PasswordPolicy::rules(),
-            'must_change_password' => ['nullable', 'boolean'],
+            // The password is generated and emailed, so there has to be an address
+            'email' => ['required', 'email', 'max:254', Rule::unique('users', 'email')],
         ]), array_merge($this->messages(), [
             'role.in' => 'You are not allowed to create an account with that role.',
+            'email.required' => 'An email address is needed - the sign-in password is sent to it.',
         ]));
+
+        $temporary = PasswordPolicy::generate();
 
         $user = User::create([
             'name' => $data['name'],
@@ -89,8 +96,10 @@ class UserController extends Controller
             'email' => $data['email'] ?? null,
             'phone' => $data['phone'] ?? null,
             'role' => $data['role'],
-            'password' => Hash::make($data['password']),
-            'must_change_password' => $request->boolean('must_change_password', true),
+            'role_id' => Role::byKey($data['role'])?->id,
+            'password' => Hash::make($temporary),
+            // Always: nobody but the account holder ever knows their real password
+            'must_change_password' => true,
             'password_changed_at' => now(),
             'is_active' => true,
             'created_by' => $actor->id,
@@ -98,7 +107,11 @@ class UserController extends Controller
 
         UserAuditLog::record('user.created', $user, ['role' => $user->role]);
 
-        return back()->with('success', "Account @{$user->username} created as {$user->role}.");
+        $sent = $this->emailPassword($user, $temporary);
+
+        return back()->with($sent ? 'success' : 'error', $sent
+            ? "Account @{$user->username} created as {$user->role}. The sign-in password has been emailed to {$user->email}."
+            : "Account @{$user->username} was created, but the password email could not be sent. Use Reset password to try again.");
     }
 
     public function update(Request $request, User $user)
@@ -113,6 +126,7 @@ class UserController extends Controller
         ]));
 
         $data['username'] = Str::lower($data['username']);
+        $data['role_id'] = Role::byKey($data['role'])?->id;
 
         $before = $user->only(['name', 'username', 'email', 'phone', 'role']);
         $user->update($data);
@@ -185,11 +199,15 @@ class UserController extends Controller
     {
         $this->authorizeManage(Auth::user(), $user);
 
-        $data = $request->validate(['password' => PasswordPolicy::rules()], $this->messages());
+        if (blank($user->email)) {
+            return back()->with('error', "@{$user->username} has no email address, so a new password cannot be sent. Add one first.");
+        }
+
+        $temporary = PasswordPolicy::generate();
 
         $user->forceFill([
-            'password' => Hash::make($data['password']),
-            'must_change_password' => $request->boolean('must_change_password', true),
+            'password' => Hash::make($temporary),
+            'must_change_password' => true,
             'password_changed_at' => now(),
             'failed_login_attempts' => 0,
             'locked_until' => null,
@@ -197,9 +215,35 @@ class UserController extends Controller
             'remember_token' => Str::random(60),
         ])->save();
 
-        UserAuditLog::record('user.password_reset', $user, ['force_change' => $user->must_change_password]);
+        UserAuditLog::record('user.password_reset', $user, ['emailed' => true]);
 
-        return back()->with('success', "Password reset for @{$user->username}.");
+        $sent = $this->emailPassword($user, $temporary, isReset: true);
+
+        return back()->with($sent ? 'success' : 'error', $sent
+            ? "A new password has been emailed to {$user->email}. @{$user->username} must replace it when they sign in."
+            : "The password was reset but the email could not be sent to {$user->email}. Check the mail settings and reset again.");
+    }
+
+    /**
+     * Emails an account its sign-in password. Creating the account must not
+     * fail because the mail server did, so this reports rather than throws -
+     * the password can always be sent again with Reset password.
+     */
+    private function emailPassword(User $user, string $password, bool $isReset = false): bool
+    {
+        if (blank($user->email)) {
+            return false;
+        }
+
+        try {
+            Mail::to($user->email, $user->name)->send(new NewAccountMail($user, $password, $isReset));
+        } catch (\Throwable $e) {
+            Log::warning('Account password email failed', ['user' => $user->id, 'error' => $e->getMessage()]);
+
+            return false;
+        }
+
+        return true;
     }
 
     public function destroy(User $user)

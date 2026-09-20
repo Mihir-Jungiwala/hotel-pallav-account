@@ -129,7 +129,7 @@ class FoodChargesTest extends TestCase
 
         $this->get(route('payroll.monthly-report.index', ['year' => 2026, 'month' => 9]))
             ->assertOk()->assertSee('Pay to Pallav Food')->assertSee('4,500.00')->assertSee('15 / 30')
-            ->assertSee('not taken from any salary');
+            ->assertSee('never taken from salary');
 
         foreach ([route('payroll.report.food-charges', ['year' => 2026, 'month' => 9]), route('payroll.report.monthly', ['year' => 2026, 'month' => 9])] as $url) {
             $body = $this->get($url)->assertOk()->getContent();
@@ -159,21 +159,69 @@ class FoodChargesTest extends TestCase
         $this->get(route('payroll.staff.index'))->assertDontSee('Meals from Pallav Food');
     }
 
-    public function test_saving_a_new_amount_starts_a_new_rate_and_an_unchanged_one_does_not(): void
+    public function test_the_amount_is_saved_from_the_food_charges_page_and_the_same_month_is_not_duplicated(): void
     {
         $this->actingAs(User::factory()->admin()->create());
         $this->get(route('payroll.index', ['current_company' => $this->hotel->id]));
 
-        $details = [
-            'name' => 'Hotel Pallav', 'code' => 'HP01', 'mobile_number' => '9000000000', 'address' => '1 Road', 'city' => 'Rajkot',
-            'state' => 'Gujarat', 'authorized_person_name' => 'R Patel', 'authorized_designation' => 'Manager',
-        ];
-
-        $this->put(route('payroll.company.update', $this->hotel), $details + ['food_charge_amount' => 2400, 'food_charge_from' => '2026-09-01']);
-        $this->put(route('payroll.company.update', $this->hotel), $details + ['food_charge_amount' => 2400, 'food_charge_from' => '2026-09-01']);
+        $this->post(route('payroll.food-charge.rate'), ['monthly_amount' => 2400, 'effective_from' => '2026-09'])->assertSessionHas('success');
+        $this->post(route('payroll.food-charge.rate'), ['monthly_amount' => 2600, 'effective_from' => '2026-09']);
 
         $this->assertSame(1, FoodChargeRate::count());
-        $this->assertSame(2400.0, FoodCharges::rateFor($this->hotel, Carbon::create(2026, 9, 1)));
+        $this->assertSame(2600.0, FoodCharges::rateFor($this->hotel, Carbon::create(2026, 9, 1)));
+
+        // A later month is a new amount beside it, not a replacement
+        $this->post(route('payroll.food-charge.rate'), ['monthly_amount' => 3000, 'effective_from' => '2026-10']);
+        $this->assertSame(2, FoodChargeRate::count());
+        $this->assertSame(2600.0, FoodCharges::rateFor($this->hotel, Carbon::create(2026, 9, 1)));
+        $this->assertSame(3000.0, FoodCharges::rateFor($this->hotel, Carbon::create(2026, 10, 1)));
+    }
+
+    public function test_the_food_charges_page_belongs_to_hotel_pallav_alone(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $this->get(route('payroll.index', ['current_company' => $this->hotel->id]));
+        $this->get(route('payroll.food-charge.index'))->assertOk()->assertSee('Who eats at Pallav Food');
+        $this->get(route('payroll.staff.index'))->assertSee('Food Charges');
+
+        $this->get(route('payroll.index', ['current_company' => $this->food->id]));
+        $this->get(route('payroll.food-charge.index'))->assertNotFound();
+        $this->get(route('payroll.staff.index'))->assertDontSee('Food Charges');
+    }
+
+    public function test_the_switch_on_the_page_includes_and_excludes_someone(): void
+    {
+        $this->rate(3000);
+        $employee = $this->staff($this->hotel, 'E-1', 'Asha Menon', '2025-06-01', eats: false);
+
+        $this->actingAs(User::factory()->admin()->create());
+        $this->get(route('payroll.index', ['current_company' => $this->hotel->id]));
+
+        $this->post(route('payroll.food-charge.toggle', $employee))->assertSessionHas('success');
+        $this->assertTrue($employee->fresh()->eats_at_pallav_food);
+
+        $this->post(route('payroll.food-charge.toggle', $employee));
+        $this->assertFalse($employee->fresh()->eats_at_pallav_food);
+    }
+
+    public function test_someone_who_has_left_is_charged_only_up_to_their_last_day(): void
+    {
+        $this->rate(3000);
+        $employee = $this->staff($this->hotel, 'E-1', 'Asha Menon', '2025-06-01');
+
+        \App\Models\EmployeeSeparation::create([
+            'payroll_company_id' => $this->hotel->id, 'employee_id' => $employee->id,
+            'separation_type' => 'Resignation', 'resignation_date' => '2026-09-01', 'reason' => 'Moving city',
+            'last_working_date' => '2026-09-10', 'status' => 'Relieved',
+        ]);
+
+        $statement = FoodCharges::statement($this->hotel, 2026, 9);
+        $this->assertSame(10, $statement['rows'][0]['days']);
+        $this->assertSame(1000.0, $statement['total']);
+
+        // and nothing at all the month after
+        $this->assertNull(FoodCharges::statement($this->hotel, 2026, 10));
     }
 
     public function test_the_meals_flag_is_saved_only_for_hotel_pallav_staff(): void

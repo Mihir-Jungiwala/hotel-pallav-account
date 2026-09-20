@@ -2,9 +2,10 @@
 
 namespace App\Support;
 
+use App\Models\Employee;
+use App\Models\EmployeeSeparation;
 use App\Models\FoodChargeRate;
 use App\Models\PayrollCompany;
-use App\Models\SalaryProcessing;
 use Illuminate\Support\Carbon;
 
 /**
@@ -12,9 +13,13 @@ use Illuminate\Support\Carbon;
  *
  * The staff do not pay; the owner does, so none of this touches salary. Pallav
  * Food fixes one monthly amount per employee. It is counted by calendar days:
- * every day of the month counts, absent days and week-offs included, and only
- * the days before someone joined are left out - so a full month is the full
- * amount and a mid-month joiner pays for the days from their joining date.
+ * every day counts, absent days and week-offs included. Only days outside
+ * someone's service count for nothing - before they joined, or after their
+ * last working day - so a full month is the full amount and a mid-month joiner
+ * pays from their joining date.
+ *
+ * It reads the staff list rather than processed salary, so the month still
+ * running shows what is building up before any salary is generated.
  */
 class FoodCharges
 {
@@ -29,31 +34,43 @@ class FoodCharges
         return $rate ? (float) $rate->monthly_amount : null;
     }
 
-    /** The rate in force today, for showing on the company form. */
+    /** The rate in force today, for the page and the form. */
     public static function currentRate(PayrollCompany $company): ?float
     {
         return self::rateFor($company, now());
     }
 
-    /** Days of the month that count for someone who joined on $joined. */
-    public static function daysCounted(Carbon $monthStart, ?Carbon $joined): int
+    /**
+     * Days of the month someone is charged for: every day they were on the
+     * payroll, from their joining date to their last working day.
+     */
+    public static function daysCounted(Carbon $monthStart, ?Carbon $joined, ?Carbon $lastWorkingDay = null): int
     {
-        $daysInMonth = $monthStart->daysInMonth;
+        $from = $monthStart->copy()->startOfMonth();
+        $to = $monthStart->copy()->endOfMonth()->startOfDay();
 
-        if ($joined === null || $joined->lessThan($monthStart)) {
-            return $daysInMonth;
+        if ($joined !== null && $joined->greaterThan($from)) {
+            $from = $joined->copy()->startOfDay();
         }
 
-        if ($joined->greaterThan($monthStart->copy()->endOfMonth())) {
-            return 0;
+        if ($lastWorkingDay !== null && $lastWorkingDay->lessThan($to)) {
+            $to = $lastWorkingDay->copy()->startOfDay();
         }
 
-        return $daysInMonth - ($joined->day - 1);
+        return $to->greaterThanOrEqualTo($from) ? $from->diffInDays($to) + 1 : 0;
+    }
+
+    /** Staff who are charged, whether or not the month has any salary processed yet. */
+    public static function chargedStaff(PayrollCompany $company)
+    {
+        return Employee::where('payroll_company_id', $company->id)
+            ->where('eats_at_pallav_food', true)
+            ->orderBy('name')->get();
     }
 
     /**
      * The statement for one month, or null when this company pays no food
-     * charge, no amount is set, or nobody is charged.
+     * charge, no amount is set yet, or nobody was charged that month.
      *
      * @return array{payee: string, month: Carbon, rate: float, daysInMonth: int, rows: array<int, array<string, mixed>>, total: float}|null
      */
@@ -70,22 +87,27 @@ class FoodCharges
             return null;
         }
 
-        $rows = SalaryProcessing::with('employee')
-            ->where('payroll_company_id', $company->id)
-            ->where('year', $year)->where('month', $month)
-            ->whereHas('employee', fn ($q) => $q->where('eats_at_pallav_food', true))
-            ->orderBy('employee_name')->get()
-            ->map(function (SalaryProcessing $slip) use ($start, $rate) {
-                $days = self::daysCounted($start, $slip->employee?->joining_date);
+        $staff = self::chargedStaff($company);
 
-                return [
-                    'name' => $slip->employee_name,
-                    'code' => $slip->employee_code,
-                    'designation' => $slip->designation,
-                    'days' => $days,
-                    'amount' => round($rate * $days / $start->daysInMonth, 2),
-                ];
-            })
+        // Anyone relieved and not since rejoined stops being charged after their last day
+        $lastDays = EmployeeSeparation::whereIn('employee_id', $staff->pluck('id'))
+            ->whereNull('rejoined_at')->where('status', 'Relieved')
+            ->pluck('last_working_date', 'employee_id');
+
+        $rows = $staff->map(function (Employee $employee) use ($start, $rate, $lastDays) {
+            $left = ($lastDays[$employee->id] ?? null) ? Carbon::parse($lastDays[$employee->id]) : null;
+            $days = self::daysCounted($start, $employee->joining_date, $left);
+
+            return [
+                'name' => $employee->name,
+                'code' => $employee->employee_code,
+                'designation' => $employee->designation,
+                'days' => $days,
+                'amount' => round($rate * $days / $start->daysInMonth, 2),
+                // Why a part month, so nobody has to work it out from the dates
+                'note' => self::note($start, $employee->joining_date, $left),
+            ];
+        })
             ->filter(fn ($row) => $row['days'] > 0)
             ->values()->all();
 
@@ -101,5 +123,20 @@ class FoodCharges
             'rows' => $rows,
             'total' => round(array_sum(array_column($rows, 'amount')), 2),
         ];
+    }
+
+    private static function note(Carbon $monthStart, ?Carbon $joined, ?Carbon $left): ?string
+    {
+        $parts = [];
+
+        if ($joined !== null && $joined->isSameMonth($monthStart) && $joined->isSameYear($monthStart)) {
+            $parts[] = 'joined '.$joined->format('j M');
+        }
+
+        if ($left !== null && $left->isSameMonth($monthStart) && $left->isSameYear($monthStart)) {
+            $parts[] = 'left '.$left->format('j M');
+        }
+
+        return $parts ? implode(', ', $parts) : null;
     }
 }

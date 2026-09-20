@@ -25,7 +25,7 @@ class ForceMode
 
     public static function availableTo(): bool
     {
-        return Auth::check() && Auth::user()->isSuperAdmin();
+        return Auth::check() && Auth::user()->can('system.force');
     }
 
     public static function enabled(): bool

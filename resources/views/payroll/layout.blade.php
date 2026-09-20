@@ -9,7 +9,7 @@
 @php
     $company = \App\Support\PayrollContext::current();
     $companyOptions = \App\Support\PayrollContext::selectable();
-    $sections = \App\Support\PayrollNav::sections();
+    $sections = \App\Support\PayrollNav::sections($company);
     $counts = \App\Support\PayrollNav::counts($company);
     $initials = fn ($name) => collect(explode(' ', trim((string) $name)))
         ->take(2)->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))->implode('');

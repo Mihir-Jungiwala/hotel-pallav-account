@@ -29,7 +29,9 @@ class PayrollPagesTest extends TestCase
     {
         parent::setUp();
 
-        $this->company = PayrollCompany::create(['name' => 'Pallav Hotel', 'code' => 'PH01']);
+        // The real company, so the pages that exist only for it are covered too
+        PayrollCompany::ensureFixed();
+        $this->company = PayrollCompany::where('code', 'HP01')->firstOrFail();
 
         $this->actingAs(User::factory()->admin()->create());
         $this->get(route('payroll.index', ['current_company' => $this->company->id]));
@@ -50,7 +52,7 @@ class PayrollPagesTest extends TestCase
     #[\PHPUnit\Framework\Attributes\DataProvider('pageProvider')]
     public function test_the_page_renders_when_the_company_is_empty(string $route): void
     {
-        $this->get(route($route))->assertOk()->assertSee('Pallav Hotel');
+        $this->get(route($route))->assertOk()->assertSee($this->company->name);
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('pageProvider')]
@@ -58,7 +60,7 @@ class PayrollPagesTest extends TestCase
     {
         $this->seedRecords();
 
-        $this->get(route($route))->assertOk()->assertSee('Pallav Hotel');
+        $this->get(route($route))->assertOk()->assertSee($this->company->name);
     }
 
     public function test_the_dashboard_flags_missing_setup_for_a_new_company(): void
@@ -99,15 +101,13 @@ class PayrollPagesTest extends TestCase
 
     public function test_the_company_listing_can_be_searched(): void
     {
-        PayrollCompany::create(['name' => 'Pallav Food', 'code' => 'PF01']);
-
         // Asserted against the table rows, not the whole page: the company
         // switcher in the menu lists every company you could open, which is
         // the point of it, so it names them all whatever the search says.
         $this->get(route('payroll.index', ['q' => 'Food']))
             ->assertOk()
             ->assertSee('data-row="Pallav Food', false)
-            ->assertDontSee('data-row="Pallav Hotel', false);
+            ->assertDontSee('data-row="Hotel Pallav', false);
     }
 
     public function test_every_page_carries_the_menu_of_the_other_pages(): void

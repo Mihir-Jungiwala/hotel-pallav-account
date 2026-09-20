@@ -94,8 +94,7 @@ class MockDataSeeder extends Seeder
                     'tcs_percentage' => 0,
                     'tds_percentage' => 0,
                     'gst_number' => $c['gst'],
-                    'md_one_name' => 'Managing Director',
-                    'md_one_mobile' => '9876543210',
+                    'contacts' => [['role' => 'Managing Director', 'name' => 'Managing Director', 'email' => null, 'mobile' => '9876543210']],
                     'created_by' => $this->admin->id,
                 ]
             );

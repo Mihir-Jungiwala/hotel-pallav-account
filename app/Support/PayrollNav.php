@@ -19,11 +19,17 @@ use App\Models\SalaryProcessing;
 class PayrollNav
 {
     /** Section heading => [slug => [route, label, icon]], in the module's order. */
-    public static function sections(): array
+    public static function sections(?PayrollCompany $company = null): array
     {
         $sections = [];
+        $company ??= PayrollContext::current();
 
         foreach (PayrollContext::MODULES as $slug => [$route, $label, $icon, $section]) {
+            // Food charges exist only for the company that pays them
+            if ($slug === 'food-charge' && ! $company?->paysFoodCharges()) {
+                continue;
+            }
+
             $sections[$section][$slug] = [$route, $label, $icon];
         }
 
@@ -61,6 +67,7 @@ class PayrollNav
             'bonus-incentive' => BonusIncentive::where('payroll_company_id', $id)->count(),
             'salary-slip' => SalaryProcessing::where('payroll_company_id', $id)->count(),
             'salary-payment' => SalaryProcessing::where('payroll_company_id', $id)->where('payment_status', '!=', 'Paid')->count(),
+            'food-charge' => $company->paysFoodCharges() ? Employee::where('payroll_company_id', $id)->where('eats_at_pallav_food', true)->count() : 0,
         ];
     }
 }

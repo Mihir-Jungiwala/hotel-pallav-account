@@ -1,5 +1,9 @@
 @extends('layouts.app')
 @section('title', 'User Accounts')
+
+@push('styles')
+<link rel="stylesheet" href="{{ asset('assets/access.css') }}?v=1">
+@endpush
 @section('content')
 
 @php
@@ -143,6 +147,7 @@
                         <li><button data-bs-toggle="tab" data-bs-target="#{{ $tabId }}-password" type="button"><i class="bi bi-key"></i> Password</button></li>
                     @endif
                     <li><button class="{{ $canManage ? '' : 'active' }}" data-bs-toggle="tab" data-bs-target="#{{ $tabId }}-access" type="button"><i class="bi bi-shield-lock"></i> Access</button></li>
+                    <li><button data-bs-toggle="tab" data-bs-target="#{{ $tabId }}-permissions" type="button"><i class="bi bi-key"></i> Permissions</button></li>
                 </ul>
             @endif
 
@@ -165,33 +170,38 @@
                     <form method="POST" action="{{ route('users.reset-password', $u) }}">
                         @csrf @method('PUT')
                         <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">New password *</label>
-                                <div class="input-icon">
-                                    <i class="bi bi-lock"></i>
-                                    <input type="password" name="password" id="pw{{ $u->id }}" class="form-control" autocomplete="new-password" required data-strength>
-                                    <button type="button" class="reveal-btn" data-reveal="#pw{{ $u->id }}"><i class="bi bi-eye"></i></button>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Confirm password *</label>
-                                <input type="password" name="password_confirmation" class="form-control" autocomplete="new-password" required>
-                            </div>
                             <div class="col-12">
-                                <div class="form-check">
-                                    <input type="hidden" name="must_change_password" value="0">
-                                    <input class="form-check-input" type="checkbox" name="must_change_password" value="1" id="mcp{{ $u->id }}" checked>
-                                    <label class="form-check-label" for="mcp{{ $u->id }}" style="font-size:13px;">Require a new password at next sign-in</label>
+                                <div class="master-note">
+                                    <i class="bi bi-envelope-check"></i>
+                                    <span>
+                                        A new password is generated and emailed to
+                                        <strong>{{ $u->email ?: 'this person' }}</strong>. Nobody else ever sees it, and
+                                        &#64;{{ $u->username }} has to replace it before they can reach anything.
+                                    </span>
                                 </div>
                             </div>
                         </div>
-                        <div class="d-flex justify-content-between align-items-center mt-3">
-                            <button type="button" class="btn btn-sm btn-outline-p" data-generate-password="#pw{{ $u->id }}"><i class="bi bi-magic"></i> Generate strong password</button>
-                            <button class="btn btn-p" data-busy-label="Resetting…"><i class="bi bi-key"></i> Reset Password</button>
+                        <div class="d-flex justify-content-end align-items-center mt-3">
+                            <button class="btn btn-p" data-busy-label="Sending…" @disabled(! $u->email)
+                                    data-confirm-title="Email a new password?"
+                                    data-confirm="&#64;{{ $u->username }} is signed out and must set a new password the next time they sign in."
+                                    data-confirm-label="Send it">
+                                <i class="bi bi-key"></i> Reset and email password
+                            </button>
                         </div>
+                        @unless($u->email)
+                            <p class="text-muted mt-2" style="font-size:12.5px;">
+                                <i class="bi bi-exclamation-circle"></i> Add an email address on the Account tab first - that is where the password goes.
+                            </p>
+                        @endunless
                     </form>
                 </div>
                 @endif
+
+                {{-- What they may actually do, and where each answer comes from --}}
+                <div class="tab-pane fade" id="{{ $tabId }}-permissions">
+                    @include('users._permissions', ['u' => $u, 'canManage' => $canManage])
+                </div>
 
                 {{-- Access --}}
                 <div class="tab-pane fade {{ $canManage ? '' : 'show active' }}" id="{{ $tabId }}-access">
@@ -320,28 +330,33 @@
                 <div class="form-step" data-step="Account">
                     @include('users._fields', ['target' => null, 'roles' => $assignableRoles])
                 </div>
-                <div class="form-step" data-step="Password">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Password *</label>
-                            <div class="input-icon">
-                                <i class="bi bi-lock"></i>
-                                <input type="password" name="password" id="newUserPw" class="form-control" autocomplete="new-password" required data-strength>
-                                <button type="button" class="reveal-btn" data-reveal="#newUserPw"><i class="bi bi-eye"></i></button>
+                <div class="form-step" data-step="Sign-in">
+                    <div class="signin-steps">
+                        <div class="ss-item">
+                            <span class="ss-num">1</span>
+                            <div>
+                                <div class="ss-title">We email them a password</div>
+                                <div class="ss-text">Generated here, sent to the email address on the Account step. You never see it and neither does anyone else.</div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Confirm password *</label>
-                            <input type="password" name="password_confirmation" class="form-control" autocomplete="new-password" required>
-                        </div>
-                        <div class="col-12 d-flex flex-wrap justify-content-between align-items-center gap-2">
-                            <div class="form-check">
-                                <input type="hidden" name="must_change_password" value="0">
-                                <input class="form-check-input" type="checkbox" name="must_change_password" value="1" id="newUserMcp" checked>
-                                <label class="form-check-label" for="newUserMcp" style="font-size:13px;">Require a new password at first sign-in</label>
+                        <div class="ss-item">
+                            <span class="ss-num">2</span>
+                            <div>
+                                <div class="ss-title">They sign in with it once</div>
+                                <div class="ss-text">It gets them no further than the next step.</div>
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline-p" data-generate-password="#newUserPw"><i class="bi bi-magic"></i> Generate strong password</button>
                         </div>
+                        <div class="ss-item">
+                            <span class="ss-num">3</span>
+                            <div>
+                                <div class="ss-title">They choose their own password</div>
+                                <div class="ss-text">Then they sign in again with it. From that point only they know it.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="master-note mt-3">
+                        <i class="bi bi-info-circle"></i>
+                        <span>If the email does not arrive, use <strong>Reset and email password</strong> on their record to send it again.</span>
                     </div>
                 </div>
             </div>
@@ -379,5 +394,8 @@
     clear.addEventListener('click', function(){ role = ''; apply(); });
 })();
 </script>
+@endpush
+@push('scripts')
+<script src="{{ asset('assets/access.js') }}?v=1"></script>
 @endpush
 @endsection

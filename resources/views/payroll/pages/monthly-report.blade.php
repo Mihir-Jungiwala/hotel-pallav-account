@@ -142,7 +142,26 @@
 @endif
 
 @if($food ?? null)
-    @include('payroll.partials._food-statement')
+    <div class="card mt-3">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <span><i class="bi bi-cup-hot me-1"></i> Pay to {{ $food['payee'] }}</span>
+            <div class="d-flex gap-2">
+                <a class="btn btn-sm btn-outline-p" href="{{ route('payroll.food-charge.index', ['year' => $monthStart->year, 'month' => $monthStart->month]) }}">
+                    <i class="bi bi-sliders"></i> Manage
+                </a>
+                <a class="btn btn-sm btn-p" target="_blank" href="{{ route('payroll.report.food-charges', ['year' => $monthStart->year, 'month' => $monthStart->month]) }}">
+                    <i class="bi bi-file-earmark-pdf"></i> Statement PDF
+                </a>
+            </div>
+        </div>
+        <div class="px-3 pt-3">
+            <div class="master-note">
+                <i class="bi bi-info-circle"></i>
+                <span>Paid by {{ $company->name }}, never taken from salary. {{ $food['payee'] }} charges &#8377;{{ number_format($food['rate'], 2) }} per employee for a full month, counted by calendar days.</span>
+            </div>
+        </div>
+        @include('payroll.partials._food-table')
+    </div>
 @endif
 
 @endsection

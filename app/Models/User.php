@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Support\Access;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -52,6 +54,7 @@ class User extends Authenticatable
         'phone',
         'password',
         'role',
+        'role_id',
         'is_active',
         'must_change_password',
         'created_by',
@@ -113,9 +116,22 @@ class User extends Authenticatable
         return $this->trashed() ? '@'.$this->username.' (deleted)' : '@'.$this->username;
     }
 
+    /** The rung this account stands on. */
+    public function roleRecord(): ?Role
+    {
+        return $this->role_id
+            ? Role::ladder()->firstWhere('id', $this->role_id)
+            : Role::byKey($this->role);
+    }
+
+    public function extraPermissions(): HasMany
+    {
+        return $this->hasMany(UserPermission::class);
+    }
+
     public function rank(): int
     {
-        return self::RANKS[$this->role] ?? 0;
+        return $this->roleRecord()?->level ?? self::RANKS[$this->role] ?? 0;
     }
 
     public function isSuperAdmin(): bool
@@ -123,27 +139,52 @@ class User extends Authenticatable
         return $this->role === self::ROLE_SUPERADMIN;
     }
 
-    /** Admin or above. */
+    /**
+     * May this account do that? The role decides, then anything given to or
+     * taken from this person alone has the last word.
+     */
+    public function can($permission, $arguments = []): bool
+    {
+        if (! is_string($permission) || ! str_contains($permission, '.')) {
+            return parent::can($permission, $arguments);
+        }
+
+        return Access::allows($this, $permission);
+    }
+
+    /** @param  list<string>|string  $abilities */
+    public function canAny($abilities, $arguments = []): bool
+    {
+        foreach ((array) $abilities as $permission) {
+            if ($this->can($permission, $arguments)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** Runs the user management screens. */
     public function isAdmin(): bool
     {
-        return $this->rank() >= self::RANKS[self::ROLE_ADMIN];
+        return $this->can('users.view');
     }
 
     public function isViewer(): bool
     {
-        return $this->role === self::ROLE_VIEWER;
+        return ! $this->canWrite();
     }
 
-    /** Editor or above: allowed to create and update records. */
+    /** Allowed to record or correct anything at all. */
     public function canWrite(): bool
     {
-        return $this->rank() >= self::RANKS[self::ROLE_EDITOR];
+        return Access::writes($this);
     }
 
-    /** Admin or above: allowed to delete records. */
+    /** Allowed to delete anything at all. */
     public function canDelete(): bool
     {
-        return $this->isAdmin();
+        return Access::deletes($this);
     }
 
     /**

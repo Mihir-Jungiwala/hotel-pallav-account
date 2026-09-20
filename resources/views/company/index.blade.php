@@ -3,12 +3,14 @@
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('assets/cashbook.css') }}?v=4">
-<link rel="stylesheet" href="{{ asset('assets/company.css') }}?v=1">
+<link rel="stylesheet" href="{{ asset('assets/company.css') }}?v=7">
 @endpush
 
 @section('content')
 @php
     $rate = fn ($v) => rtrim(rtrim(number_format((float) $v, 2), '0'), '.').'%';
+    $rateLabels = ['discount_percentage' => 'Discount', 'gst_percentage' => 'GST', 'tcs_percentage' => 'TCS', 'tds_percentage' => 'TDS'];
+    $initials = fn ($name) => collect(preg_split('/\s+/', trim($name)))->filter()->take(2)->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))->implode('');
 @endphp
 
 <div class="page-head reveal">
@@ -17,9 +19,22 @@
         <h2 class="pms-title">Company Profiles</h2>
         <p class="pms-sub">The companies you bill, with their tax details and the people to contact.</p>
     </div>
-    <button type="button" class="btn btn-p" data-bs-toggle="modal" data-bs-target="#companyModal" data-write-only>
-        <i class="bi bi-building-add"></i> Add Company
-    </button>
+    <div class="co-head-actions">
+        <form method="GET" action="{{ route('company.index') }}" class="cb-search" role="search" data-cb-search>
+            @if(request('per'))<input type="hidden" name="per" value="{{ request('per') }}">@endif
+            <div class="search-field smart">
+                <i class="bi bi-search"></i>
+                <input type="search" name="q" value="{{ $q }}" class="form-control" autocomplete="off"
+                       placeholder="Search companies&hellip;" aria-label="Search companies" title='Tips: several words must all match, "exact phrase"'>
+                @if($q !== '')
+                    <a class="search-clear" href="{{ route('company.index', array_filter(['per' => request('per')])) }}" title="Clear search" aria-label="Clear search"><i class="bi bi-x-lg"></i></a>
+                @endif
+            </div>
+        </form>
+        <button type="button" class="btn btn-p" data-bs-toggle="modal" data-bs-target="#companyModal" data-write-only>
+            <i class="bi bi-building-add"></i> Add Company
+        </button>
+    </div>
 </div>
 
 <div class="kpi-grid">
@@ -34,7 +49,7 @@
         <div class="kpi-foot"><span class="kpi-chip">{{ $stats['total'] - $stats['withGst'] }} without</span></div>
     </div>
     <div class="kpi reveal">
-        <div class="kpi-top"><span class="kpi-icon due"><i class="bi bi-people"></i></span><span class="kpi-label">Contacts on file</span></div>
+        <div class="kpi-top"><span class="kpi-icon due"><i class="bi bi-people"></i></span><span class="kpi-label">People on file</span></div>
         <div class="kpi-value">{{ $stats['contacts'] }}</div>
         <div class="kpi-foot"><span class="kpi-chip">Across all companies</span></div>
     </div>
@@ -43,20 +58,6 @@
         <div class="kpi-value">{{ $stats['month'] }}</div>
         <div class="kpi-foot"><span class="kpi-chip">{{ now()->format('F Y') }}</span></div>
     </div>
-</div>
-
-<div class="cb-filters reveal">
-    <form method="GET" action="{{ route('company.index') }}" class="cb-search" role="search" data-cb-search>
-        @if(request('per'))<input type="hidden" name="per" value="{{ request('per') }}">@endif
-        <div class="search-field smart">
-            <i class="bi bi-search"></i>
-            <input type="search" name="q" value="{{ $q }}" class="form-control" autocomplete="off"
-                   placeholder="Search company, GST number, email, contact or city&hellip;" aria-label="Search companies" title='Tips: several words must all match, "exact phrase"'>
-            @if($q !== '')
-                <a class="search-clear" href="{{ route('company.index', array_filter(['per' => request('per')])) }}" title="Clear search" aria-label="Clear search"><i class="bi bi-x-lg"></i></a>
-            @endif
-        </div>
-    </form>
 </div>
 
 @if($companies->isEmpty())
@@ -75,9 +76,9 @@
                 <thead>
                     <tr>
                         <th>Company</th>
+                        <th>Location</th>
                         <th>Contact</th>
-                        <th>GST number</th>
-                        <th>Rates</th>
+                        <th>Billing rates</th>
                         <th>People</th>
                         <th class="text-end">Actions</th>
                     </tr>
@@ -85,15 +86,24 @@
                 <tbody>
                 @foreach($companies as $company)
                     @php
-                        $people = collect($contacts)->filter(fn ($label, $key) => filled($company->{"{$key}_name"}));
-                        $rates = collect(['discount_percentage' => 'Discount', 'gst_percentage' => 'GST', 'tcs_percentage' => 'TCS', 'tds_percentage' => 'TDS'])
-                            ->filter(fn ($label, $field) => $company->{$field} !== null && (float) $company->{$field} > 0);
-                        $place = collect([$company->address, $company->pincode, $company->country])->filter()->implode(', ');
+                        $people = collect($company->contacts ?? []);
+                        $rates = collect($rateLabels)->filter(fn ($label, $field) => $company->{$field} !== null && (float) $company->{$field} > 0);
                     @endphp
                     <tr class="cb-row co-row">
                         <td class="cb-c-name" data-label="Company">
-                            <strong>{{ $company->name }}</strong>
-                            @if($place)<div class="co-sub">{{ $place }}</div>@endif
+                            <div class="co-id">
+                                <span class="co-avatar" aria-hidden="true">{{ $initials($company->name) }}</span>
+                                <div class="co-id-text">
+                                    <button type="button" class="co-name" data-bs-toggle="modal" data-bs-target="#companyView" data-company-id="{{ $company->id }}">{{ $company->name }}</button>
+                                    @if($company->gst_number)<span class="cb-chip kind">GST {{ $company->gst_number }}</span>@else<span class="co-sub">No GST number</span>@endif
+                                    <span class="co-sub">Added {{ $company->created_at?->format('d M Y') }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td data-label="Location">
+                            @if($company->address)<div class="co-line">{{ $company->address }}</div>@endif
+                            @if($company->pincode || $company->country)<div class="co-sub">{{ collect([$company->pincode, $company->country])->filter()->implode(' · ') }}</div>@endif
+                            @unless($company->address || $company->pincode || $company->country)<span class="text-muted">-</span>@endunless
                         </td>
                         <td data-label="Contact">
                             @if($company->email)<div class="co-line"><i class="bi bi-envelope"></i> {{ $company->email }}</div>@endif
@@ -101,19 +111,19 @@
                             @if($company->phone_number)<div class="co-line"><i class="bi bi-telephone"></i> {{ $company->phone_number }}</div>@endif
                             @unless($company->email || $company->mobile_number || $company->phone_number)<span class="text-muted">-</span>@endunless
                         </td>
-                        <td data-label="GST number">
-                            @if($company->gst_number)<span class="cb-chip kind">{{ $company->gst_number }}</span>@else<span class="text-muted">-</span>@endif
-                        </td>
-                        <td data-label="Rates">
+                        <td data-label="Billing rates">
                             @forelse($rates as $field => $label)<span class="cb-chip">{{ $label }} {{ $rate($company->{$field}) }}</span> @empty<span class="text-muted">-</span>@endforelse
                         </td>
                         <td data-label="People">
-                            @if($people->isNotEmpty())
-                                <span class="cb-chip" title="{{ $people->map(fn ($label, $key) => $label.': '.$company->{"{$key}_name"})->implode(', ') }}">{{ $people->count() }} {{ Str::plural('contact', $people->count()) }}</span>
-                            @else<span class="text-muted">-</span>@endif
+                            @forelse($people->take(2) as $person)
+                                <div class="co-person-cell"><i class="bi bi-person"></i><div><strong>{{ $person['name'] ?: $person['email'] }}</strong>@if(! empty($person['role']))<span class="co-role">{{ $person['role'] }}</span>@endif</div></div>
+                            @empty<span class="text-muted">-</span>@endforelse
+                            @if($people->count() > 2)<span class="cb-chip">+{{ $people->count() - 2 }} more</span>@endif
                         </td>
                         <td class="cb-c-actions">
-                            <button type="button" class="cb-icon-btn" data-bs-toggle="modal" data-bs-target="#companyModal" data-company-id="{{ $company->id }}" data-open-record title="Open and edit" aria-label="Edit {{ $company->name }}"><i class="bi bi-pencil-square"></i></button>
+                            <button type="button" class="cb-icon-btn" data-bs-toggle="modal" data-bs-target="#companyView" data-company-id="{{ $company->id }}" title="View details" aria-label="View {{ $company->name }}"><i class="bi bi-eye"></i></button>
+                            <a class="cb-icon-btn" href="{{ route('company.view', $company) }}" target="_blank" title="Profile sheet (PDF)" aria-label="Open the PDF profile for {{ $company->name }}"><i class="bi bi-file-earmark-pdf"></i></a>
+                            <button type="button" class="cb-icon-btn" data-bs-toggle="modal" data-bs-target="#companyModal" data-company-id="{{ $company->id }}" data-open-record title="Edit" aria-label="Edit {{ $company->name }}"><i class="bi bi-pencil-square"></i></button>
                             <form method="POST" action="{{ route('company.destroy', $company) }}" class="d-inline" data-confirm-title="Delete {{ $company->name }}?" data-confirm="This company profile will be removed and cannot be restored.">
                                 @csrf @method('DELETE')
                                 <button class="cb-icon-btn danger" title="Delete" aria-label="Delete {{ $company->name }}"><i class="bi bi-trash"></i></button>
@@ -128,7 +138,56 @@
     </div>
 @endif
 
-{{-- One pop-up for a new company or an edit, filled from the JSON below --}}
+{{-- View: everything about one company, read only --}}
+<div class="modal fade pay-form-modal cb-modal co-modal co-view" id="companyView" tabindex="-1" aria-labelledby="companyViewTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+        <div class="modal-header">
+            <div class="co-id">
+                <span class="co-avatar lg" data-v="initials" aria-hidden="true"></span>
+                <div class="co-id-text">
+                    <h5 class="modal-title" id="companyViewTitle" data-v="name"></h5>
+                    <div class="co-view-sub" data-v="sub"></div>
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <div class="co-view-rates" data-v="rates"></div>
+
+            <div class="co-view-grid">
+                <section class="co-view-card">
+                    <h6><i class="bi bi-telephone"></i> Contact</h6>
+                    <dl data-v="contact"></dl>
+                </section>
+                <section class="co-view-card">
+                    <h6><i class="bi bi-geo-alt"></i> Location</h6>
+                    <dl data-v="location"></dl>
+                </section>
+            </div>
+
+            <section class="co-view-card" data-v-section="instruction">
+                <h6><i class="bi bi-chat-left-text"></i> Instruction</h6>
+                <p class="mb-0" data-v="instruction"></p>
+            </section>
+
+            <section class="co-view-card">
+                <h6><i class="bi bi-people"></i> People <span class="co-count" data-v="peopleCount">0</span></h6>
+                <div class="co-view-people" data-v="people"></div>
+            </section>
+        </div>
+        <div class="modal-footer">
+            <form method="POST" action="#" class="me-auto" data-view-delete data-confirm-title="Delete company?" data-confirm="This company profile will be removed and cannot be restored.">
+                @csrf @method('DELETE')
+                <button class="btn btn-outline-danger"><i class="bi bi-trash"></i> Delete</button>
+            </form>
+            <a class="btn btn-outline-p" href="#" target="_blank" data-view-pdf><i class="bi bi-file-earmark-pdf"></i> PDF</a>
+            <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-p" data-view-edit data-write-only><i class="bi bi-pencil-square"></i> Edit</button>
+        </div>
+    </div></div>
+</div>
+
+{{-- Add / edit: one pop-up, filled from the JSON below --}}
 <div class="modal fade pay-form-modal cb-modal co-modal" id="companyModal" tabindex="-1" aria-labelledby="companyModalTitle" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
         <form method="POST" action="{{ route('company.store') }}" id="companyForm">
@@ -145,19 +204,23 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <div class="modal-body">@include('company._fields', ['contacts' => $contacts])</div>
+            <div class="modal-body">@include('company._fields', ['roles' => $roles])</div>
 
             <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger me-auto" data-delete-btn hidden><i class="bi bi-trash"></i> Delete</button>
                 <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
                 <button type="submit" class="btn btn-p" data-busy-label="Saving…" data-save-label><i class="bi bi-check2"></i> Create Company</button>
             </div>
         </form>
+        <form method="POST" action="#" id="companyDeleteForm" hidden data-confirm-title="Delete company?" data-confirm="This company profile will be removed and cannot be restored.">
+            @csrf @method('DELETE')
+        </form>
     </div></div>
 </div>
 
-<script type="application/json" id="companyData">{!! json_encode(['blank' => $blank, 'records' => $forms, 'reopen' => $reopen], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) !!}</script>
+<script type="application/json" id="companyData">{!! json_encode(['blank' => $blank, 'records' => $forms, 'reopen' => $reopen, 'roles' => $roles, 'rates' => $rateLabels], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) !!}</script>
 
 @push('scripts')
-<script src="{{ asset('assets/company.js') }}?v=1"></script>
+<script src="{{ asset('assets/company.js') }}?v=5"></script>
 @endpush
 @endsection

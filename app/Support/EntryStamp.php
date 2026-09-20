@@ -17,6 +17,6 @@ class EntryStamp
         $user = Auth::user();
 
         // No one signed in: seeders, the console and imports set their own
-        return ! $user || $user->isAdmin();
+        return ! $user || $user->can('system.backdate');
     }
 }

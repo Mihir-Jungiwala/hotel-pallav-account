@@ -419,3 +419,11 @@ body.sidebar-collapsed .unit-menu { left: 0; width: 240px; right: auto; }
 .modal .ts-wrapper.single .ts-control:hover { border-color: var(--p300) !important; }
 .modal .ts-wrapper.single.focus .ts-control { border-color: var(--p500) !important; }
 :root[data-theme="dark"] .modal-footer .btn-ghost { background: var(--surface-2); color: var(--ink2); }
+
+/* ---------- How a new account gets its password ---------- */
+.signin-steps { display: grid; gap: 10px; }
+.ss-item { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface, #fff); }
+.ss-num { flex: none; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+          background: linear-gradient(135deg, var(--p500), var(--p700)); color: #fff; font-size: 12.5px; font-weight: 800; }
+.ss-title { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+.ss-text { font-size: 12.5px; color: var(--ink2); margin-top: 2px; }

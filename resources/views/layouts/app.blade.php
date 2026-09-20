@@ -174,10 +174,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/plugins/monthSelect/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
     <link rel="stylesheet" href="{{ asset('assets/pms.css') }}?v=8">
-    <link rel="stylesheet" href="{{ asset('assets/pms-ui.css') }}?v=5">
+    <link rel="stylesheet" href="{{ asset('assets/pms-ui.css') }}?v=6">
     <link rel="stylesheet" href="{{ asset('assets/pms-dash.css') }}?v=8">
     <link rel="stylesheet" href="{{ asset('assets/pms-nav.css') }}?v=4">
-    <link rel="stylesheet" href="{{ asset('assets/pms-payroll.css') }}?v=28">
+    <link rel="stylesheet" href="{{ asset('assets/pms-payroll.css') }}?v=29">
     @stack('styles')
 </head>
 <body class="@hasSection('subnav') has-subnav @else no-subnav @endif @guest guest-page @endguest"
@@ -216,12 +216,15 @@
 
         <div class="sidebar-section">System</div>
         <a href="{{ route('reports.index') }}" class="{{ request()->routeIs('reports.*') ? 'active' : '' }}" title="Reports" data-label="Reports"><i class="bi bi-file-earmark-text"></i><span>Reports</span></a>
-        @if(auth()->user()->isSuperAdmin())
+        @can('masters.view')
             <a href="{{ route('masters.index') }}" class="{{ request()->routeIs('masters.*') ? 'active' : '' }}" title="Master Data" data-label="Master Data"><i class="bi bi-sliders"></i><span>Master Data</span></a>
-        @endif
-        @if(auth()->user()->isAdmin())
+        @endcan
+        @can('users.view')
             <a href="{{ route('users.index') }}" class="{{ request()->routeIs('users.*') ? 'active' : '' }}" title="User Accounts" data-label="User Accounts"><i class="bi bi-people"></i><span>User Accounts</span></a>
-        @endif
+        @endcan
+        @can('access.view')
+            <a href="{{ route('access.index') }}" class="{{ request()->routeIs('access.*') ? 'active' : '' }}" title="Roles and Permissions" data-label="Roles"><i class="bi bi-diagram-3"></i><span>Roles</span></a>
+        @endcan
         <a href="{{ route('profile.show') }}" class="{{ request()->routeIs('profile.*') ? 'active' : '' }}" title="My Profile" data-label="My Profile"><i class="bi bi-person-circle"></i><span>My Profile</span></a>
     </nav>
 

@@ -48,6 +48,42 @@ class PasswordPolicy
         return $minutes.' minutes';
     }
 
+    /**
+     * A password for a new account. Nobody chooses it and nobody keeps it: it
+     * is emailed once and has to be replaced before the account can be used.
+     * Characters that are easy to misread (O/0, l/1) are left out, because
+     * this one gets typed by hand from an email.
+     */
+    public static function generate(int $length = 12): string
+    {
+        $upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+        $lower = 'abcdefghijkmnopqrstuvwxyz';
+        $digits = '23456789';
+        $symbols = '!@#$%^&*?';
+        $all = $upper.$lower.$digits.$symbols;
+
+        // One of each kind first, so the result always passes the policy
+        $characters = [
+            $upper[random_int(0, strlen($upper) - 1)],
+            $lower[random_int(0, strlen($lower) - 1)],
+            $digits[random_int(0, strlen($digits) - 1)],
+            $symbols[random_int(0, strlen($symbols) - 1)],
+        ];
+
+        for ($i = count($characters); $i < max($length, 8); $i++) {
+            $characters[] = $all[random_int(0, strlen($all) - 1)];
+        }
+
+        // Shuffled with the same source of randomness, so the first four
+        // positions do not give the pattern away
+        for ($i = count($characters) - 1; $i > 0; $i--) {
+            $j = random_int(0, $i);
+            [$characters[$i], $characters[$j]] = [$characters[$j], $characters[$i]];
+        }
+
+        return implode('', $characters);
+    }
+
     public static function rules(bool $confirmed = true): array
     {
         return array_values(array_filter([

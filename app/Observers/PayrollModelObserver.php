@@ -62,7 +62,9 @@ class PayrollModelObserver
                 continue;
             }
 
-            $changes[$this->label($field)] = ['was' => $this->show($model->getRawOriginal($field)), 'became' => $this->show($new)];
+            // getOriginal, not getRawOriginal: the old value has to come back
+            // through the same cast as the new one, or a switch reads "0 -> Yes"
+            $changes[$this->label($field)] = ['was' => $this->show($model->getOriginal($field)), 'became' => $this->show($new)];
         }
 
         if ($changes) {
@@ -118,9 +120,23 @@ class PayrollModelObserver
         return in_array($field, self::SKIP, true);
     }
 
+    /** Column names that do not read as English on their own. */
+    private const LABELS = [
+        'eats_at_pallav_food' => 'Meals from Pallav Food',
+        'is_active' => 'Active',
+        'employee_code' => 'Employee ID',
+        'contact_number' => 'Mobile',
+        'contact_country' => 'Mobile country code',
+        'daily_working_hours' => 'Working hours per day',
+        'monthly_amount' => 'Amount per month',
+        'effective_from' => 'Applies from',
+        'is_settled' => 'Settled',
+        'payment_mode' => 'Payment mode',
+    ];
+
     private function label(string $field): string
     {
-        return Str::headline(Str::replaceLast('_id', '', $field));
+        return self::LABELS[$field] ?? Str::headline(Str::replaceLast('_id', '', $field));
     }
 
     private function show(mixed $value): ?string
@@ -131,6 +147,10 @@ class PayrollModelObserver
 
         if (is_bool($value)) {
             return $value ? 'Yes' : 'No';
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('d M Y');
         }
 
         return Str::limit(is_scalar($value) ? (string) $value : json_encode($value), 300);

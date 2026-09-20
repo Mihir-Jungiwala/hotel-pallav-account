@@ -4,29 +4,24 @@ namespace App\Http\Controllers;
 
 use App\Models\CompanyProfile;
 use App\Support\CashLedger;
+use App\Support\PayrollPdf;
+use App\Support\Masters;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class CompanyProfileController extends Controller
 {
-    /** The people kept on file for each company, in the order the form shows them. */
-    public const CONTACTS = [
-        'md_one' => 'Managing Director 1', 'md_second' => 'Managing Director 2',
-        'hr_head' => 'HR Head', 'assistant_hr' => 'Assistant HR',
-        'accountant_head' => 'Accountant Head', 'accountant_assistant_one' => 'Accountant Assistant 1',
-        'accountant_assistant_two' => 'Accountant Assistant 2',
-    ];
-
     private const FIELDS = [
         'name', 'email', 'mobile_number', 'phone_number', 'country', 'nationality', 'pincode', 'gst_number', 'address',
         'discount_percentage', 'gst_percentage', 'tcs_percentage', 'tds_percentage', 'instruction',
     ];
 
-    /** Every column a form carries: the company's own and each contact's name, email and mobile. */
-    private function allFields(): array
+    /** The roles a contact can have, from Master Data. */
+    private function roles(): array
     {
-        return [...self::FIELDS, ...collect(array_keys(self::CONTACTS))->flatMap(fn ($k) => ["{$k}_name", "{$k}_email", "{$k}_mobile"])->all()];
+        return Masters::values('company_contact_role');
     }
 
     public function index()
@@ -42,12 +37,12 @@ class CompanyProfileController extends Controller
         $stats = [
             'total' => CompanyProfile::count(),
             'withGst' => CompanyProfile::whereNotNull('gst_number')->where('gst_number', '!=', '')->count(),
-            'contacts' => CompanyProfile::all()->sum(fn ($c) => $this->contactCount($c)),
+            'contacts' => CompanyProfile::all()->sum(fn ($c) => count($c->contacts ?? [])),
             'month' => CompanyProfile::where('created_at', '>=', now()->startOfMonth())->count(),
         ];
 
         return view('company.index', [
-            'companies' => $companies, 'contacts' => self::CONTACTS, 'forms' => $forms, 'blank' => $blank,
+            'companies' => $companies, 'roles' => $this->roles(), 'forms' => $forms, 'blank' => $blank,
             'reopen' => $reopen, 'stats' => $stats, 'q' => $q,
         ]);
     }
@@ -59,7 +54,7 @@ class CompanyProfileController extends Controller
             return $query;
         }
 
-        $columns = $this->allFields();
+        $columns = [...self::FIELDS, 'contacts'];
         preg_match_all('/"[^"]+"|\S+/u', $q, $found);
 
         foreach ($found[0] as $token) {
@@ -74,23 +69,22 @@ class CompanyProfileController extends Controller
         return $query;
     }
 
-    public function contactCount(CompanyProfile $c): int
-    {
-        return collect(array_keys(self::CONTACTS))->filter(fn ($k) => filled($c->{"{$k}_name"}))->count();
-    }
-
     private function formData(?CompanyProfile $c): array
     {
         $values = [];
-        foreach ($this->allFields() as $field) {
+        foreach (self::FIELDS as $field) {
             $values[$field] = $c?->{$field};
         }
+        $values['contacts'] = array_values($c?->contacts ?? []);
 
         return [
             'id' => $c?->id,
             'title' => $c ? 'Edit '.$c->name : 'Add Company',
             'subtitle' => $c ? 'Company profile · added '.$c->created_at?->format('d M Y').($c->creator ? ' by '.$c->creator->name : '') : null,
             'action' => $c ? route('company.update', $c) : route('company.store'),
+            'destroy' => $c ? route('company.destroy', $c) : null,
+            'pdf' => $c ? route('company.view', $c) : null,
+            'name' => $c?->name,
             'values' => $values,
         ];
     }
@@ -106,6 +100,7 @@ class CompanyProfileController extends Controller
                 $data['values'][$field] = old($field);
             }
         }
+        $data['values']['contacts'] = array_values((array) old('contacts', $data['values']['contacts']));
 
         return $data;
     }
@@ -129,23 +124,50 @@ class CompanyProfileController extends Controller
             'gst_number' => ['nullable', 'string', 'max:50'],
         ];
 
-        foreach (array_keys(self::CONTACTS) as $contact) {
-            $rules["{$contact}_name"] = ['nullable', 'string', 'max:100'];
-            $rules["{$contact}_email"] = ['nullable', 'email', 'max:254'];
-            $rules["{$contact}_mobile"] = ['nullable', 'string', 'max:15'];
-        }
+        // At least one person to contact, and each one needs a name
+        $rules['contacts'] = ['required', 'array', 'min:1', 'max:30'];
+        $rules['contacts.*.role'] = ['nullable', 'string', 'max:60'];
+        $rules['contacts.*.name'] = ['required', 'string', 'max:100'];
+        $rules['contacts.*.email'] = ['nullable', 'email', 'max:254'];
+        $rules['contacts.*.mobile'] = ['nullable', 'string', 'max:15'];
 
         return $rules;
     }
 
+    private function messages(): array
+    {
+        return [
+            'contacts.required' => 'Add at least one person to contact.',
+            'contacts.min' => 'Add at least one person to contact.',
+            'contacts.*.name.required' => 'Every contact person needs a name.',
+        ];
+    }
+
+    /** The contact rows that carry something, tidied; empty rows the form left behind are dropped. */
+    private function people(array $rows): array
+    {
+        return collect($rows)->map(fn ($p) => [
+            'role' => trim((string) ($p['role'] ?? '')), 'name' => trim((string) ($p['name'] ?? '')),
+            'email' => trim((string) ($p['email'] ?? '')), 'mobile' => trim((string) ($p['mobile'] ?? '')),
+        ])->filter(fn ($p) => $p['name'] !== '' || $p['email'] !== '' || $p['mobile'] !== '')->values()->all();
+    }
+
+    /** Rows the form left empty are dropped before checking, so "one is required" means one real person. */
+    private function tidyContacts(Request $request): void
+    {
+        $request->merge(['contacts' => $this->people((array) $request->input('contacts', []))]);
+    }
+
     public function store(Request $request)
     {
-        $data = $request->validate($this->rules());
+        $this->tidyContacts($request);
+        $data = $request->validate($this->rules(), $this->messages());
 
         if (! empty($data['gst_number']) && CompanyProfile::where('gst_number', $data['gst_number'])->exists()) {
             return back()->withErrors(['gst_number' => 'A company with this GST number already exists.'])->withInput();
         }
 
+        $data['contacts'] = $this->people($data['contacts'] ?? []);
         $data['created_by'] = Auth::id();
         $company = CompanyProfile::create($data);
 
@@ -154,16 +176,27 @@ class CompanyProfileController extends Controller
 
     public function update(Request $request, CompanyProfile $company)
     {
-        $data = $request->validate($this->rules($company));
+        $this->tidyContacts($request);
+        $data = $request->validate($this->rules($company), $this->messages());
 
         if (! empty($data['gst_number']) && CompanyProfile::where('gst_number', $data['gst_number'])->where('id', '!=', $company->id)->exists()) {
             return back()->withErrors(['gst_number' => 'A company with this GST number already exists.'])->withInput();
         }
 
+        $data['contacts'] = $this->people($data['contacts'] ?? []);
         $data['modified_by'] = Auth::id();
         $company->update($data);
 
         return back()->with('success', $company->name.' updated.');
+    }
+
+    /** The profile as a sheet to share or print, on the payroll document shell. */
+    public function view(CompanyProfile $company)
+    {
+        $company->loadMissing('creator');
+
+        return PayrollPdf::make('company.pdf', ['record' => $company])
+            ->stream('company-'.Str::slug($company->name).'.pdf');
     }
 
     public function destroy(CompanyProfile $company)

@@ -2,27 +2,40 @@
 
 namespace App\Services;
 
+use App\Models\Role;
 use App\Models\User;
+use Illuminate\Support\Collection;
 
 /**
  * Single source of truth for who may do what to which account.
  *
- *   SuperAdmin → manages Admin, Editor, Viewer. Exactly one exists; it can only
- *                change hands through a transfer to an active Admin.
- *   Admin      → manages Editor and Viewer.
- *   Editor     → no user management.
- *   Viewer     → no user management.
+ * An account manages the rungs below its own on the ladder, and nothing at or
+ * above it. The single SuperAdmin sits on top and changes hands only through
+ * a transfer to an active Admin.
  */
 class UserHierarchy
 {
-    /** Roles the actor may assign when creating or editing an account. */
+    /**
+     * Roles the actor may assign: every rung below their own, whatever it is
+     * called, so a role added on screen can be handed out straight away.
+     *
+     * @return list<string>
+     */
     public function assignableRoles(User $actor): array
     {
-        return match ($actor->role) {
-            User::ROLE_SUPERADMIN => [User::ROLE_ADMIN, User::ROLE_EDITOR, User::ROLE_VIEWER],
-            User::ROLE_ADMIN => [User::ROLE_EDITOR, User::ROLE_VIEWER],
-            default => [],
-        };
+        return $this->assignableRoleRecords($actor)->pluck('name')->values()->all();
+    }
+
+    /** The same rungs as records, for a screen that wants their look. */
+    public function assignableRoleRecords(User $actor): Collection
+    {
+        if (! $this->canManageUsers($actor)) {
+            return collect();
+        }
+
+        return Role::ladder()
+            ->filter(fn (Role $role) => $role->level < $actor->rank())
+            ->values();
     }
 
     public function canManageUsers(User $actor): bool

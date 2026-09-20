@@ -26,6 +26,9 @@ class AuthController extends Controller
     /** Where the half finished sign-in is kept between the two steps. */
     private const PENDING = 'auth.pending';
 
+    /** Signed in with a temporary password, and nothing else until it is replaced. */
+    private const FIRST_PASSWORD = 'auth.first_password';
+
     /** Identifies the one device allowed to hold this account's session. */
     public const DEVICE = 'auth.device';
 
@@ -81,6 +84,14 @@ class AuthController extends Controller
 
         $user->forceFill(['failed_login_attempts' => 0])->save();
         RateLimiter::clear($ipKey);
+
+        // A temporary password is only good for choosing a real one. No session
+        // is opened here: they set the password, then sign in with it properly.
+        if ($user->must_change_password) {
+            $request->session()->put(self::FIRST_PASSWORD, ['id' => $user->id, 'at' => now()->timestamp]);
+
+            return redirect()->route('password.first');
+        }
 
         // Without an email address there is nowhere to send a code, so the
         // password is all we can ask for
@@ -212,6 +223,81 @@ class AuthController extends Controller
 
         return redirect()->intended(route('dashboard'))
             ->with('success', 'Signed in. Any other device using this account has been signed out.');
+    }
+
+    /* ------------------------------------------------- first sign-in password */
+
+    public function showFirstPassword(Request $request)
+    {
+        $user = $this->firstPasswordUser($request);
+
+        if (! $user) {
+            return redirect()->route('login')->with('error', 'Start again, that took too long.');
+        }
+
+        return view('auth.first-password', ['user' => $user]);
+    }
+
+    public function setFirstPassword(Request $request)
+    {
+        $user = $this->firstPasswordUser($request);
+
+        if (! $user) {
+            return redirect()->route('login')->with('error', 'Start again, that took too long.');
+        }
+
+        $request->validate([
+            'current_password' => ['required', 'string', 'max:128'],
+            'password' => PasswordPolicy::rules(),
+        ], ['password.regex' => PasswordPolicy::MESSAGE]);
+
+        // The emailed password stands in for the code the reset screen asks for
+        if (! Hash::check($request->string('current_password')->toString(), $user->password)) {
+            if ($this->registerFailure($user)) {
+                $request->session()->forget(self::FIRST_PASSWORD);
+
+                return redirect()->route('login')->with('error', $this->lockedMessage($user->fresh()));
+            }
+
+            return back()->withErrors(['current_password' => 'That temporary password is not right. Copy it from the email again.']);
+        }
+
+        if (Hash::check($request->string('password')->toString(), $user->password)) {
+            return back()->withErrors(['password' => 'Choose a password different from the temporary one.']);
+        }
+
+        $user->forceFill([
+            'password' => Hash::make($request->string('password')->toString()),
+            'must_change_password' => false,
+            'password_changed_at' => now(),
+            'failed_login_attempts' => 0,
+            'locked_until' => null,
+            'lock_level' => 0,
+            'remember_token' => Str::random(60),
+        ])->save();
+
+        UserAuditLog::record('user.first_password_set', $user, [], $user);
+
+        $request->session()->forget(self::FIRST_PASSWORD);
+
+        return redirect()->route('login')
+            ->with('success', 'Your password is set. Sign in with it now.');
+    }
+
+    /** Who is halfway through setting their first password, if that is still live. */
+    private function firstPasswordUser(Request $request): ?User
+    {
+        $pending = $request->session()->get(self::FIRST_PASSWORD);
+
+        if (! $pending || now()->timestamp - ($pending['at'] ?? 0) > 30 * 60) {
+            $request->session()->forget(self::FIRST_PASSWORD);
+
+            return null;
+        }
+
+        $user = User::find($pending['id']);
+
+        return $user && $user->is_active && $user->must_change_password && ! $user->isLocked() ? $user : null;
     }
 
     private function pendingUser(Request $request): ?User

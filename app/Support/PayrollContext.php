@@ -39,6 +39,7 @@ class PayrollContext
         'bonus-incentive' => ['payroll.bonus-incentive.index', 'Bonus & Incentive', 'bi-gift', 'Money'],
         'salary-update' => ['payroll.salary-update.index', 'Salary Update', 'bi-clock-history', 'Money'],
         'salary-payment' => ['payroll.salary-payment.index', 'Salary Payment', 'bi-credit-card-2-back', 'Money'],
+        'food-charge' => ['payroll.food-charge.index', 'Food Charges', 'bi-cup-hot', 'Money'],
         'experience-letter' => ['payroll.experience-letter.index', 'Experience Letter', 'bi-file-earmark-check', 'People'],
         'separation' => ['payroll.separation.index', 'Resignation', 'bi-box-arrow-right', 'People'],
         'salary-slip' => ['payroll.salary-slip.index', 'Salary Slips', 'bi-receipt', 'Reports'],
