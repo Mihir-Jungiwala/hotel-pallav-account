@@ -1,0 +1,19 @@
+# For hosts whose web root is this whole project folder instead of public/.
+# Every request is sent into public/, so index.php, the assets and the routes
+# work, and nothing outside public/ (.env, vendor, app, storage) is ever served.
+# If your host lets you set the web root, pointing it at public/ is better still.
+
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Already inside public/: leave it to public/.htaccess
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Never show these, whatever the rewrite does
+<FilesMatch "^(\.env|\.env\..*|composer\.(json|lock)|artisan)$">
+    Require all denied
+</FilesMatch>
