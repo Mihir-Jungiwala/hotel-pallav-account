@@ -57,7 +57,7 @@ return new class extends Migration
             $table->dateTime('processed_at');
             $table->timestamps();
 
-            $table->unique(['payroll_company_id', 'employee_id', 'year', 'month']);
+            $table->unique(['payroll_company_id', 'employee_id', 'year', 'month'], 'salary_slip_period_unique');
         });
     }
 

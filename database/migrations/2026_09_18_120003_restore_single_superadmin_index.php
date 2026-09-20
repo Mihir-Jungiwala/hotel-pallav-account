@@ -13,15 +13,21 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement('DROP INDEX IF EXISTS users_single_superadmin');
-
         if (DB::getDriverName() === 'sqlite') {
+            DB::statement('DROP INDEX IF EXISTS users_single_superadmin');
             DB::statement("CREATE UNIQUE INDEX users_single_superadmin ON users (role) WHERE role = 'SuperAdmin' AND deleted_at IS NULL");
+
+            return;
         }
+
+        // MySQL has no partial index: a generated column plus a unique index does the same job
+        \App\Support\SuperAdminIndex::ensure();
     }
 
     public function down(): void
     {
-        DB::statement('DROP INDEX IF EXISTS users_single_superadmin');
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement('DROP INDEX IF EXISTS users_single_superadmin');
+        }
     }
 };

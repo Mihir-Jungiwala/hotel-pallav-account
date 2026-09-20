@@ -50,7 +50,11 @@ return new class extends Migration
         });
 
         // The database itself refuses a second SuperAdmin
-        DB::statement("CREATE UNIQUE INDEX users_single_superadmin ON users (role) WHERE role = 'SuperAdmin'");
+        // (a partial index is SQLite/Postgres syntax; on MySQL the later
+        // restore_single_superadmin_index migration builds it with a generated column)
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement("CREATE UNIQUE INDEX users_single_superadmin ON users (role) WHERE role = 'SuperAdmin'");
+        }
 
         Schema::create('user_audit_logs', function (Blueprint $table) {
             $table->id();
