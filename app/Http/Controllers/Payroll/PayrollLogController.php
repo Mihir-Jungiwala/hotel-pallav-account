@@ -30,7 +30,7 @@ class PayrollLogController extends Controller
     private const PDF_LIMIT = 400;
 
     /** Entities that move money, for the "Money" view. */
-    private const MONEY_ENTITIES = ['Salary slip', 'Advance', 'Bonus / incentive', 'Food charge rate', 'Attendance'];
+    private const MONEY_ENTITIES = ['Salary slip', 'Advance', 'Bonus / incentive', 'Meal price', 'Attendance'];
 
     public function index(Request $request)
     {

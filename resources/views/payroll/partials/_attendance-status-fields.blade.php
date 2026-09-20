@@ -64,9 +64,9 @@
                         <input type="hidden" name="skips_food" value="0">
                         <input class="form-check-input" type="checkbox" role="switch" name="skips_food" value="1"
                                id="as_food_{{ $uid }}" @checked(old('skips_food', $s->skips_food ?? false))>
-                        <label class="form-check-label" for="as_food_{{ $uid }}">Food is not counted on this status</label>
+                        <label class="form-check-label" for="as_food_{{ $uid }}">Meals are not counted on this status</label>
                     </div>
-                    <div class="offer-hint"><i class="bi bi-cup-hot"></i> A day marked with it is left out of the Pallav Food bill, for everyone who eats there.</div>
+                    <div class="offer-hint"><i class="bi bi-cup-hot"></i> A day marked with it is left out of the meals bill, for everyone who takes meals at Pallav Food.</div>
                 </div>
             </div>
         @endif

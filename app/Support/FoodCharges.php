@@ -12,7 +12,8 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * The cost of staff meals at Pallav Food, month by month.
+ * The cost of staff meals at Pallav Food, month by month. It is worked out only
+ * once the month's salary has been generated.
  *
  * Pallav Food alone decides the price, and it is a price per employee for a
  * whole month. A price can change part-way through a month: the old one stays
@@ -95,11 +96,24 @@ class FoodCharges
 
     /* ------------------------------------------------------------ the bill */
 
-    /** Staff who are charged in a company, whether or not the month has any salary processed yet. */
-    public static function chargedStaff(PayrollCompany $company): Collection
+    /** Whether salary has been generated for a company's month. Until it has, there is no bill. */
+    public static function isGenerated(PayrollCompany $company, int $year, int $month): bool
+    {
+        return SalaryProcessing::where('payroll_company_id', $company->id)
+            ->where('year', $year)->where('month', $month)->exists();
+    }
+
+    /**
+     * Staff who are charged for a month: those marked as eating there who were
+     * part of the salary that was generated. It is the salary run that decides
+     * who was on the payroll, so the bill follows it.
+     */
+    public static function chargedStaff(PayrollCompany $company, int $year, int $month): Collection
     {
         return Employee::where('payroll_company_id', $company->id)
             ->where('eats_at_pallav_food', true)
+            ->whereIn('id', SalaryProcessing::where('payroll_company_id', $company->id)
+                ->where('year', $year)->where('month', $month)->select('employee_id'))
             ->orderBy('name')->get();
     }
 
@@ -141,7 +155,7 @@ class FoodCharges
      */
     public static function statement(PayrollCompany $company, int $year, int $month): ?array
     {
-        if (! $company->servesMeals()) {
+        if (! $company->servesMeals() || ! self::isGenerated($company, $year, $month)) {
             return null;
         }
 
@@ -153,7 +167,7 @@ class FoodCharges
             return null;
         }
 
-        $staff = self::chargedStaff($company);
+        $staff = self::chargedStaff($company, $year, $month);
 
         // Anyone relieved and not since rejoined stops being charged after their last day
         $lastDays = EmployeeSeparation::whereIn('employee_id', $staff->pluck('id'))

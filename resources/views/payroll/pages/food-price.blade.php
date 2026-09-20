@@ -1,8 +1,8 @@
-{{-- Food Price: Pallav Food's alone. What it charges per employee per month.
+{{-- Meal Price: Pallav Food's alone. What it charges per employee per month.
      A change starts on its day and the old price stays on record, like a
      salary revision; months whose salary is generated are closed. --}}
 @extends('payroll.layout', [
-    'title' => 'Food Price',
+    'title' => 'Meal Price',
     'subtitle' => 'What '.\App\Models\PayrollCompany::FOOD_PAYEE.' charges for one employee\'s meals for a month. It applies to staff of both companies who eat here.',
 ])
 
@@ -70,8 +70,8 @@
                 <label class="form-label" for="fp_from">Starts on<span class="req">*</span></label>
                 <input type="date" name="effective_from" id="fp_from" class="form-control"
                        value="{{ old('effective_from', $earliest->format('Y-m-d')) }}"
-                       min="{{ $firstOpen->format('Y-m-d') }}" required>
-                <div class="form-text">Today for a change from now on. Earlier days keep their price.</div>
+                       min="{{ $firstOpen->format('Y-m-d') }}" max="{{ $today->format('Y-m-d') }}" required>
+                <div class="form-text">Today, or an earlier day in an open month. It cannot be later than today.</div>
                 @error('effective_from')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
             </div>
             <div class="col-md-4" style="padding-top:29px;">
@@ -141,7 +141,7 @@
                         <div class="empty-state">
                             <div class="es-icon"><i class="bi bi-tag"></i></div>
                             <div class="es-title">No price set yet</div>
-                            <div class="es-text">Set what {{ $payee }} charges above. Until then no food bill can be worked out.</div>
+                            <div class="es-text">Set what {{ $payee }} charges above. Until then no meals bill can be worked out.</div>
                         </div>
                     </td>
                 </tr>

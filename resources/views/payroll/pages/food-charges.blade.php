@@ -1,5 +1,5 @@
-{{-- Food Charges: who in this company eats at Pallav Food, and the month's bill.
-     The price is Pallav Food's to set (Food Price) and is only read here. The
+{{-- Staff Meals: who in this company eats at Pallav Food, and the month's bill.
+     The price is Pallav Food's to set (Meal Price) and is only read here. The
      staff never pay any of it. --}}
 @php
     $payee = \App\Models\PayrollCompany::FOOD_PAYEE;
@@ -7,7 +7,7 @@
     $included = $staff->where('eats_at_pallav_food', true);
 @endphp
 @extends('payroll.layout', [
-    'title' => 'Food Charges',
+    'title' => 'Staff Meals',
     'subtitle' => $company->paysFoodCharges()
         ? $company->name.' pays '.\App\Models\PayrollCompany::FOOD_PAYEE.' for its staff meals. Nothing here is taken from anyone\'s salary.'
         : 'Meals for '.$company->name.'\'s own staff, at the same price. Nothing here is taken from anyone\'s salary.',
@@ -15,7 +15,7 @@
 
 @section('page-actions')
     @if($company->providesFood())
-        <a class="btn btn-outline-p" href="{{ route('payroll.food-price.index') }}"><i class="bi bi-tag"></i> Food price</a>
+        <a class="btn btn-outline-p" href="{{ route('payroll.food-price.index') }}"><i class="bi bi-tag"></i> Meal price</a>
     @endif
     @if($food)
         {{-- The bill is printed as part of the month's report, with the salary --}}
@@ -33,7 +33,7 @@
         <div class="ps-value">{{ $rate === null ? 'Not set' : '₹'.number_format($rate, 2) }}</div>
         <div class="ps-sub">
             @if($rate === null)
-                {{ $company->providesFood() ? 'Set it in Food Price' : $payee.' has not set it yet' }}
+                {{ $company->providesFood() ? 'Set it in Meal Price' : $payee.' has not set it yet' }}
             @else
                 Per month, set by {{ $payee }}
             @endif
@@ -47,7 +47,7 @@
     <div class="pay-stat {{ $food ? 'good' : '' }}">
         <div class="ps-label">{{ $monthStart->format('F Y') }}</div>
         <div class="ps-value">{{ $food ? '₹'.number_format($food['total'], 2) : '₹0.00' }}</div>
-        <div class="ps-sub">{{ $food ? ($owed ? 'Payable to '.$payee : 'Cost of staff meals') : 'Nothing to count yet' }}</div>
+        <div class="ps-sub">{{ $food ? ($owed ? 'Payable to '.$payee : 'Cost of staff meals') : ($generated ? 'Nothing to count' : 'After salary is generated') }}</div>
     </div>
     <div class="pay-stat">
         <div class="ps-label">Counted by</div>
@@ -59,7 +59,7 @@
 @if($rate === null && ! $company->providesFood())
     <div class="alert alert-warning d-flex align-items-start gap-2">
         <i class="bi bi-exclamation-triangle mt-1"></i>
-        <span>{{ $payee }} has not set a price yet, so no bill can be worked out. It is set in <strong>Food Price</strong> under the {{ $payee }} payroll.</span>
+        <span>{{ $payee }} has not set a price yet, so no bill can be worked out. It is set in <strong>Meal Price</strong> under the {{ $payee }} payroll.</span>
     </div>
 @endif
 
@@ -75,7 +75,7 @@
             <i class="bi bi-info-circle"></i>
             <span>
                 Switch someone on and their meals are counted from their joining date. It is the same switch as the one on their staff record.
-                A day marked with an attendance status that says <strong>food is not counted</strong> is left out.
+                A day marked with an attendance status that says <strong>meals are not counted</strong> is left out.
             </span>
         </div>
     </div>
@@ -139,10 +139,16 @@
     @else
         <div class="empty-state">
             <div class="es-icon"><i class="bi bi-cup-hot"></i></div>
-            <div class="es-title">Nothing to count for {{ $monthStart->format('F Y') }}</div>
+            <div class="es-title">
+                {{ ! $generated ? 'Not worked out yet for '.$monthStart->format('F Y') : 'Nothing to count for '.$monthStart->format('F Y') }}
+            </div>
             <div class="es-text">
-                @if($rate === null)
-                    No price has been set{{ $company->providesFood() ? ' - set it in Food Price' : ' by '.$payee.' yet' }}.
+                @if(! $generated)
+                    The meals bill is calculated once salary has been generated for the month. Generate it in
+                    <a href="{{ route('payroll.attendance.index', ['year' => $monthStart->year, 'month' => $monthStart->month]) }}" class="fw-semibold">Attendance Management</a>
+                    and it appears here and in the Monthly Report.
+                @elseif($rate === null)
+                    No price has been set{{ $company->providesFood() ? ' - set it in Meal Price' : ' by '.$payee.' yet' }}.
                 @elseif($included->isEmpty())
                     Switch on the staff who eat at {{ $payee }}, above.
                 @else

@@ -35,6 +35,8 @@ class FoodChargeController extends Controller
             'monthStart' => $monthStart,
             'rate' => FoodCharges::currentRate(),
             'food' => FoodCharges::statement($company, $monthStart->year, $monthStart->month),
+            // No bill exists until the month's salary has been generated
+            'generated' => FoodCharges::isGenerated($company, $monthStart->year, $monthStart->month),
             // Everyone who could eat there, so the switches are all in one list
             'staff' => Employee::where('payroll_company_id', $company->id)
                 ->orderByDesc('is_active')->orderBy('name')->get(),

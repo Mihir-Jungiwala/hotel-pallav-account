@@ -1,5 +1,5 @@
 {{-- The month's food bill: one line per person, with why a month is part of one.
-     Used on the Food Charges page and at the foot of the Monthly Report. --}}
+     Used on the Staff Meals page and at the foot of the Monthly Report. --}}
 @if(count($food['prices']) > 1)
     <div class="px-3 pt-3">
         <div class="master-note">

@@ -167,7 +167,7 @@
                        value="{{ old('department', $e->department ?? '') }}">
             </div>
 
-            {{-- Both companies eat at Pallav Food; what it costs is in Food Charges --}}
+            {{-- Both companies eat at Pallav Food; what it costs is in Staff Meals --}}
             @if(\App\Support\PayrollContext::current()?->servesMeals())
                 <div class="col-12">
                     <div class="offer-toggle">
@@ -175,9 +175,9 @@
                             <input type="hidden" name="eats_at_pallav_food" value="0">
                             <input class="form-check-input" type="checkbox" role="switch" name="eats_at_pallav_food" value="1"
                                    id="emp_food_{{ $uid }}" @checked(old('eats_at_pallav_food', $e->eats_at_pallav_food ?? false))>
-                            <label class="form-check-label" for="emp_food_{{ $uid }}">Meals from Pallav Food</label>
+                            <label class="form-check-label" for="emp_food_{{ $uid }}">Takes meals at Pallav Food</label>
                         </div>
-                        <div class="offer-hint"><i class="bi bi-cup-hot"></i> The cost of this person's meals is worked out in Food Charges. It is never taken from their salary.</div>
+                        <div class="offer-hint"><i class="bi bi-cup-hot"></i> Their meals are billed in Staff Meals once salary is generated. Nothing is taken from their salary.</div>
                     </div>
                 </div>
             @endif

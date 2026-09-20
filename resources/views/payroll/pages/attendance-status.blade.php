@@ -58,7 +58,7 @@
                     </td>
                     <td>
                         {{ $row->status_type }}
-                        @if($row->skips_food)<span class="cell-sub"><i class="bi bi-cup-hot"></i> Food not counted</span>@endif
+                        @if($row->skips_food)<span class="cell-sub"><i class="bi bi-cup-hot"></i> Meals not counted</span>@endif
                     </td>
                     <td>
                         <form method="POST" action="{{ route('payroll.attendance-status.toggle-active', $row) }}" data-status-toggle>@csrf

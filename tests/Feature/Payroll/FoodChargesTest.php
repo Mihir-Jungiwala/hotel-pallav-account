@@ -35,9 +35,18 @@ class FoodChargesTest extends TestCase
     {
         parent::setUp();
 
+        Carbon::setTestNow(Carbon::create(2026, 9, 20, 10));
+
         PayrollCompany::ensureFixed();
         $this->hotel = PayrollCompany::where('code', 'HP01')->firstOrFail();
         $this->food = PayrollCompany::where('code', 'PF01')->firstOrFail();
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
     }
 
     private function staff(PayrollCompany $company, string $code, string $name, string $joined, bool $eats = true, bool $slip = true): Employee
@@ -125,11 +134,11 @@ class FoodChargesTest extends TestCase
         $this->open($this->hotel);
         $this->get(route('payroll.food-price.index'))->assertNotFound();
         $this->post(route('payroll.food-price.store'), ['monthly_amount' => 9999, 'effective_from' => '2026-10-01'])->assertNotFound();
-        $this->get(route('payroll.staff.index'))->assertDontSee('Food Price');
+        $this->get(route('payroll.staff.index'))->assertDontSee('Meal Price');
 
         $this->open($this->food);
         $this->get(route('payroll.food-price.index'))->assertOk()->assertSee('Set a new price');
-        $this->get(route('payroll.staff.index'))->assertSee('Food Price');
+        $this->get(route('payroll.staff.index'))->assertSee('Meal Price')->assertSee('Staff Meals');
 
         $this->assertSame(0, FoodChargeRate::count());
     }
@@ -137,28 +146,31 @@ class FoodChargesTest extends TestCase
     public function test_a_price_change_starts_on_its_day_and_the_old_price_stays_on_record(): void
     {
         $this->price(3000, '2026-01-01');
-        $employee = $this->staff($this->hotel, 'E-1', 'Asha Menon', '2025-06-01');
+        $employee = $this->staff($this->hotel, 'E-1', 'Asha Menon', '2025-06-01', slip: false);
 
         $this->actingAs(User::factory()->admin()->create());
         $this->open($this->food);
 
-        // Changed on the 15th of a 31-day month
-        $this->post(route('payroll.food-price.store'), ['monthly_amount' => 3300, 'effective_from' => '2026-10-15'])->assertSessionHasNoErrors();
+        // Changed on the 15th of the current, still open, month (today is the 20th)
+        $this->post(route('payroll.food-price.store'), ['monthly_amount' => 3300, 'effective_from' => '2026-09-15'])->assertSessionHasNoErrors();
 
         // Both prices are still there
         $this->assertSame([3000.0, 3300.0], FoodCharges::rates()->pluck('monthly_amount')->map(fn ($a) => (float) $a)->all());
 
-        // October has 31 days: 14 days at 3000, 17 days at 3300, each worth a day's share of the month
-        $this->slip($this->hotel, $employee, 2026, 10);
-        $statement = FoodCharges::statement($this->hotel, 2026, 10);
+        // Salary generated for August and September once the prices were set
+        $this->slip($this->hotel, $employee, 2026, 8);
+        $this->slip($this->hotel, $employee, 2026, 9);
 
-        $this->assertSame(round(3000 * 14 / 31 + 3300 * 17 / 31, 2), $statement['rows'][0]['amount']);
+        // September has 30 days: 14 at 3000 and 16 at 3300, each worth a day's share of the month
+        $statement = FoodCharges::statement($this->hotel, 2026, 9);
+
+        $this->assertSame(round(3000 * 14 / 30 + 3300 * 16 / 30, 2), $statement['rows'][0]['amount']);
         $this->assertCount(2, $statement['prices']);
         $this->assertSame(3000.0, $statement['prices'][0]['amount']);
         $this->assertSame(3300.0, $statement['prices'][1]['amount']);
 
-        // September, before the change, is untouched
-        $this->assertSame(3000.0, FoodCharges::statement($this->hotel, 2026, 9)['total']);
+        // August, before the change, is untouched
+        $this->assertSame(3000.0, FoodCharges::statement($this->hotel, 2026, 8)['total']);
     }
 
     public function test_a_second_price_on_the_same_day_replaces_the_first_rather_than_stacking(): void
@@ -266,7 +278,7 @@ class FoodChargesTest extends TestCase
         foreach ([$this->hotel, $this->food] as $company) {
             $this->open($company);
 
-            $this->get(route('payroll.attendance-status.index'))->assertOk()->assertSee('Food is not counted on this status');
+            $this->get(route('payroll.attendance-status.index'))->assertOk()->assertSee('Meals are not counted on this status');
 
             $this->post(route('payroll.attendance-status.store'), [
                 'name' => 'Leave', 'shortcut_key' => 'L', 'color' => '#aa0000',
@@ -352,7 +364,7 @@ class FoodChargesTest extends TestCase
 
         foreach ([$this->hotel, $this->food] as $company) {
             $this->open($company);
-            $this->get(route('payroll.staff.index'))->assertSee('Meals from Pallav Food');
+            $this->get(route('payroll.staff.index'))->assertSee('Takes meals at Pallav Food');
             $this->get(route('payroll.food-charge.index'))->assertOk()->assertSee('Who eats at Pallav Food');
         }
     }
@@ -430,5 +442,100 @@ class FoodChargesTest extends TestCase
 
         $this->get(route('payroll.food-charge.index', ['year' => 2026, 'month' => 9]))
             ->assertOk()->assertSee('The price changed during September')->assertSee('from 15 Sep');
+    }
+
+    /* ------------------------------------------- only after salary is generated */
+
+    public function test_nothing_is_worked_out_until_salary_has_been_generated_for_the_month(): void
+    {
+        $this->price(3000);
+        $this->staff($this->hotel, 'E-1', 'Asha Menon', '2025-06-01', slip: false);
+        $this->staff($this->food, 'F-1', 'Cook', '2025-06-01', slip: false);
+
+        // Price set, people switched on - and still no bill for either company
+        $this->assertNull(FoodCharges::statement($this->hotel, 2026, 9));
+        $this->assertNull(FoodCharges::statement($this->food, 2026, 9));
+
+        $this->actingAs(User::factory()->admin()->create());
+        $this->open($this->hotel);
+
+        $this->get(route('payroll.food-charge.index', ['year' => 2026, 'month' => 9]))
+            ->assertOk()->assertSee('Not worked out yet for September 2026')
+            ->assertSee('calculated once salary has been generated');
+
+        $this->get(route('payroll.monthly-report.index', ['year' => 2026, 'month' => 9]))
+            ->assertOk()->assertDontSee('Pay to Pallav Food');
+    }
+
+    public function test_the_bill_appears_when_salary_is_generated_and_only_for_people_in_that_salary_run(): void
+    {
+        $this->price(3000);
+        $asha = $this->staff($this->hotel, 'E-1', 'Asha Menon', '2025-06-01', slip: false);
+        $this->staff($this->hotel, 'E-2', 'Bhavin Shah', '2025-06-01', slip: false);
+
+        // Salary is generated for Asha only (Bhavin was not in that run)
+        $this->slip($this->hotel, $asha, 2026, 9);
+
+        $statement = FoodCharges::statement($this->hotel, 2026, 9);
+
+        $this->assertSame(['Asha Menon'], array_column($statement['rows'], 'name'));
+        $this->assertSame(3000.0, $statement['total']);
+    }
+
+    public function test_generating_salary_in_one_company_does_not_produce_a_bill_in_the_other(): void
+    {
+        $this->price(3000);
+        $this->staff($this->hotel, 'E-1', 'Asha Menon', '2025-06-01');                       // Hotel Pallav generated September
+        $this->staff($this->food, 'F-1', 'Cook', '2025-06-01', slip: false);                  // Pallav Food has not
+
+        $this->assertNotNull(FoodCharges::statement($this->hotel, 2026, 9));
+        $this->assertNull(FoodCharges::statement($this->food, 2026, 9));
+    }
+
+    /* ------------------------------------------------ not ahead of today */
+
+    public function test_a_price_cannot_start_after_today(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+        $this->open($this->food);
+
+        // "Today" is 20 September 2026
+        $this->post(route('payroll.food-price.store'), ['monthly_amount' => 3300, 'effective_from' => '2026-09-21'])
+            ->assertSessionHasErrors('effective_from');
+        $this->post(route('payroll.food-price.store'), ['monthly_amount' => 3300, 'effective_from' => '2026-10-01'])
+            ->assertSessionHasErrors('effective_from');
+        $this->assertSame(0, FoodChargeRate::count());
+
+        // Today is fine, and so is any earlier day in an open month
+        $this->post(route('payroll.food-price.store'), ['monthly_amount' => 3300, 'effective_from' => '2026-09-20'])
+            ->assertSessionHasNoErrors();
+        $this->post(route('payroll.food-price.store'), ['monthly_amount' => 3100, 'effective_from' => '2026-09-05'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame(2, FoodChargeRate::count());
+    }
+
+    public function test_the_date_field_stops_at_today_and_starts_at_the_first_open_month(): void
+    {
+        $this->price(3000);
+        $employee = $this->staff($this->hotel, 'E-1', 'Asha Menon', '2025-06-01', slip: false);
+        $this->slip($this->hotel, $employee, 2026, 8);
+
+        $this->actingAs(User::factory()->admin()->create());
+        $this->open($this->food);
+
+        $this->get(route('payroll.food-price.index'))->assertOk()
+            ->assertSee('max="2026-09-20"', false)->assertSee('min="2026-09-01"', false)
+            ->assertSee('value="2026-09-20"', false)
+            ->assertSee('cannot be later than today');
+    }
+
+    public function test_the_meal_price_and_staff_meals_are_named_in_the_menu_and_the_old_names_are_gone(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+        $this->open($this->food);
+
+        $this->get(route('payroll.staff.index'))
+            ->assertSee('Meal Price')->assertSee('Staff Meals')
+            ->assertDontSee('Food Price')->assertDontSee('Food Charges');
     }
 }

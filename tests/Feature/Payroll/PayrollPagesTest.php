@@ -137,7 +137,7 @@ class PayrollPagesTest extends TestCase
         foreach (PayrollContext::MODULES as $slug => [$route, $label]) {
             // The price is Pallav Food's alone; Hotel Pallav's menu rightly leaves it out
             if ($slug === 'food-price') {
-                $response->assertDontSee('Food Price');
+                $response->assertDontSee('Meal Price');
 
                 continue;
             }

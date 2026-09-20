@@ -58,9 +58,9 @@ class FoodPriceController extends Controller
             }),
             'lockedThrough' => $lockedThrough,
             'firstOpen' => $firstOpen,
-            // Where the date starts: today, the usual case (a change from now on), unless
-            // today is somehow inside a closed month, in which case the first open one
-            'earliest' => now()->startOfDay()->greaterThan($firstOpen) ? now()->startOfDay() : $firstOpen,
+            'today' => now()->startOfDay(),
+            // Where the date starts: today, the usual case (a change from now on)
+            'earliest' => now()->startOfDay(),
         ]);
     }
 
@@ -70,7 +70,10 @@ class FoodPriceController extends Controller
 
         $data = $request->validate([
             'monthly_amount' => ['required', 'numeric', 'min:0', 'max:1000000'],
-            'effective_from' => ['required', 'date'],
+            // Today at the latest: a price is entered when it starts, never ahead of time
+            'effective_from' => ['required', 'date', 'before_or_equal:today'],
+        ], [
+            'effective_from.before_or_equal' => 'A price cannot start after today. Choose today or an earlier day in an open month.',
         ]);
 
         $from = Carbon::parse($data['effective_from'])->startOfDay();
@@ -118,7 +121,7 @@ class FoodPriceController extends Controller
     {
         $open = FoodCharges::firstOpenMonth();
 
-        return 'Salary has already been generated for '.$date->format('F Y').', so its food price is closed. '
+        return 'Salary has already been generated for '.$date->format('F Y').', so its meal price is closed. '
             .'A new price can start from '.$open->format('F Y').' onwards.';
     }
 }
