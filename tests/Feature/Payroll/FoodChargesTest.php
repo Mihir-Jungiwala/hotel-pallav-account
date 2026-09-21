@@ -595,15 +595,56 @@ class FoodChargesTest extends TestCase
         $this->get(route('payroll.monthly-report.index', ['year' => 2026, 'month' => 9]))->assertOk()->assertDontSee('Pay to Pallav Food');
     }
 
-    public function test_the_bill_covers_only_the_people_in_the_salary_run(): void
+    public function test_the_bill_includes_everyone_with_a_meals_record_whether_or_not_they_are_in_the_salary_run(): void
     {
         $this->price(3000);
         $asha = $this->staff($this->hotel, 'E-1', 'Asha Menon', '2025-06-01', slip: false);
-        $this->staff($this->hotel, 'E-2', 'Bhavin Shah', '2025-06-01', slip: false);
+        $this->staff($this->hotel, 'E-2', 'Bhavin Shah', '2025-06-01', slip: false);   // ate, but is not paid salary this month
+        $this->staff($this->hotel, 'E-3', 'Chirag Dave', '2025-06-01', eats: false, slip: false);
 
+        // Salary is generated (for Asha), which is what lets a bill exist at all
         $this->slip($this->hotel, $asha, 2026, 9);
 
-        $this->assertSame(['Asha Menon'], array_column($this->billFor($this->hotel)['rows'], 'name'));
+        $this->assertSame(['Asha Menon', 'Bhavin Shah'], array_column($this->billFor($this->hotel)['rows'], 'name'));
+    }
+
+    public function test_meals_eaten_after_someone_left_are_charged_when_the_record_has_dates(): void
+    {
+        // Left on 31 July, no salary since - but ate on 1, 2 and 3 September and has to be paid for
+        $this->price(3000);
+        $left = $this->staff($this->hotel, 'E-6', 'Pooja Trivedi', '2024-06-16', eats: false, slip: false);
+        EmployeeSeparation::create([
+            'payroll_company_id' => $this->hotel->id, 'employee_id' => $left->id,
+            'separation_type' => 'Resignation', 'resignation_date' => '2026-07-01', 'reason' => 'Moving city',
+            'last_working_date' => '2026-07-31', 'status' => 'Relieved',
+        ]);
+        $this->meals($left, '2026-09-01', '2026-09-03');
+
+        // Salary is generated for someone else, which is what lets September's bill exist
+        $other = $this->staff($this->hotel, 'E-1', 'Asha Menon', '2025-06-01', eats: false);
+
+        $row = collect($this->billFor($this->hotel)['rows'])->firstWhere('name', 'Pooja Trivedi');
+
+        $this->assertSame(3, $row['days']);
+        $this->assertSame(300.0, $row['amount']);   // 3 days of 30 at 3000
+        $this->assertStringNotContainsString('left', (string) $row['note']);
+    }
+
+    public function test_a_record_with_no_end_date_still_stops_when_the_person_leaves(): void
+    {
+        // Nobody said the meals stopped, so they are not charged for ever after the last working day
+        $this->price(3000);
+        $left = $this->staff($this->hotel, 'E-6', 'Pooja Trivedi', '2024-06-16', eats: false, slip: false);
+        EmployeeSeparation::create([
+            'payroll_company_id' => $this->hotel->id, 'employee_id' => $left->id,
+            'separation_type' => 'Resignation', 'resignation_date' => '2026-07-01', 'reason' => 'Moving city',
+            'last_working_date' => '2026-07-31', 'status' => 'Relieved',
+        ]);
+        $this->meals($left, '2024-06-16', null);   // still open
+        $this->staff($this->hotel, 'E-1', 'Asha Menon', '2025-06-01', eats: false);
+
+        // September: nothing, because the open record ended with their employment in July
+        $this->assertNull($this->billFor($this->hotel));
     }
 
     public function test_generating_salary_in_one_company_does_not_produce_a_bill_in_the_other(): void

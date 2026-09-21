@@ -27,8 +27,10 @@ use Illuminate\Support\Collection;
  * so starting or stopping someone changes only the days it covers.
  *
  * Which days count:
- *  - a calendar day within one of the person's meals records and within their
- *    service (joining date to last working day), absent days and week-offs included
+ *  - a calendar day within one of the person's meals records, absent days and
+ *    week-offs included. A record with an end date is honoured as written (even
+ *    after someone has left, because those are real meals); one with no end date
+ *    stops at their last working day
  *  - except a day marked with an attendance status that says food is not
  *    counted (leave, for example): that day is left out
  *
@@ -141,9 +143,12 @@ class FoodCharges
     /* ------------------------------------------------------- who is charged */
 
     /**
-     * Staff charged for a month: people whose meals records cover part of it and
-     * who were in the salary run that was generated. The salary run decides who
-     * was on the payroll, so the bill follows it.
+     * Staff charged for a month: everyone whose meals records cover part of it.
+     *
+     * Not limited to the salary run. Someone can eat and still have to be paid
+     * for after they have left - they are not on that month's payroll, but
+     * their meals are real and owed - so the record decides, not the payroll.
+     * The month still has to have its salary generated before any bill exists.
      */
     public static function chargedStaff(PayrollCompany $company, int $year, int $month): Collection
     {
@@ -151,8 +156,6 @@ class FoodCharges
         $end = $start->copy()->endOfMonth()->startOfDay();
 
         return Employee::where('payroll_company_id', $company->id)
-            ->whereIn('id', SalaryProcessing::where('payroll_company_id', $company->id)
-                ->where('year', $year)->where('month', $month)->select('employee_id'))
             ->whereHas('mealPeriods', fn ($q) => $q
                 ->whereDate('starts_on', '<=', $end)
                 ->where(fn ($w) => $w->whereNull('ends_on')->orWhereDate('ends_on', '>=', $start)))
@@ -163,12 +166,18 @@ class FoodCharges
     /**
      * Days of one month that someone is charged for.
      *
-     * A day counts when it is within their service (joining to last working
-     * day), within one of their meals records, and not marked with a status that
-     * leaves meals out.
+     * With meals records, a day counts when a record covers it and it is not
+     * marked with a status that leaves meals out. A record with an end date is
+     * honoured exactly as written, even past someone's last working day: it is
+     * the days they really ate. A record with no end date is different - nobody
+     * has said it stopped - so it stops at their last working day rather than
+     * charging for ever after they have gone.
+     *
+     * Without records (null), it is simply the person's service: joining date to
+     * last working day.
      *
      * @param  array<int, int>  $skipped  day numbers marked with a status that leaves meals out
-     * @param  Collection<int, EmployeeMealPeriod>|null  $periods  their meals records; null means no limit
+     * @param  Collection<int, EmployeeMealPeriod>|null  $periods  their meals records
      * @return array<int, int>  the day numbers that count
      */
     public static function countedDays(Carbon $monthStart, ?Carbon $joined, ?Carbon $lastWorkingDay = null, array $skipped = [], ?Collection $periods = null): array
@@ -176,12 +185,14 @@ class FoodCharges
         $from = $monthStart->copy()->startOfMonth();
         $to = $monthStart->copy()->endOfMonth()->startOfDay();
 
-        if ($joined !== null && $joined->greaterThan($from)) {
-            $from = $joined->copy()->startOfDay();
-        }
+        if ($periods === null) {
+            if ($joined !== null && $joined->greaterThan($from)) {
+                $from = $joined->copy()->startOfDay();
+            }
 
-        if ($lastWorkingDay !== null && $lastWorkingDay->lessThan($to)) {
-            $to = $lastWorkingDay->copy()->startOfDay();
+            if ($lastWorkingDay !== null && $lastWorkingDay->lessThan($to)) {
+                $to = $lastWorkingDay->copy()->startOfDay();
+            }
         }
 
         $days = [];
@@ -191,7 +202,8 @@ class FoodCharges
                 continue;
             }
 
-            if ($periods !== null && ! $periods->contains(fn (EmployeeMealPeriod $p) => $p->covers($day))) {
+            if ($periods !== null && ! $periods->contains(fn (EmployeeMealPeriod $p) => $p->covers($day)
+                && ($p->ends_on !== null || $lastWorkingDay === null || $day->lessThanOrEqualTo($lastWorkingDay)))) {
                 continue;
             }
 
@@ -200,7 +212,6 @@ class FoodCharges
 
         return $days;
     }
-
     /**
      * The statement for one month in one company, or null when the company
      * does not use Pallav Food, salary is not generated yet, no price is set,
@@ -317,7 +328,8 @@ class FoodCharges
             $parts[] = 'joined '.$joined->format('j M');
         }
 
-        if ($left !== null && $left->isSameMonth($monthStart) && $left->isSameYear($monthStart)) {
+        // Only an open-ended record is cut short by leaving; a dated one is honoured as written
+        if ($left !== null && $left->isSameMonth($monthStart) && $left->isSameYear($monthStart) && $periods->contains(fn ($p) => $p->ends_on === null)) {
             $parts[] = 'left '.$left->format('j M');
         }
 
