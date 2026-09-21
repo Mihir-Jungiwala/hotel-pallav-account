@@ -577,24 +577,104 @@ class FoodChargesTest extends TestCase
 
     /* ----------------------------------------------------- only after salary is generated */
 
-    public function test_nothing_is_worked_out_until_salary_has_been_generated_for_the_month(): void
+    /* ---------------------------- live on the Staff Meals page, final in the reports */
+
+    public function test_the_reports_wait_for_salary_but_the_staff_meals_page_is_live(): void
     {
         $this->price(3000);
-        $this->staff($this->hotel, 'E-1', 'Asha Menon', '2025-06-01', slip: false);
-        $this->staff($this->food, 'F-1', 'Cook', '2025-06-01', slip: false);
+        $this->staff($this->hotel, 'E-1', 'Asha Menon', '2025-06-01', slip: false);   // salary for September is not generated
 
+        // Final (what the reports use): nothing until salary is generated
         $this->assertNull($this->billFor($this->hotel));
-        $this->assertNull($this->billFor($this->food));
+
+        // Live (the Staff Meals page): worked out now, up to today (the 20th of a 30-day month)
+        $live = FoodCharges::statement($this->hotel, 2026, 9, live: true);
+
+        $this->assertNotNull($live);
+        $this->assertFalse($live['final']);
+        $this->assertSame('2026-09-20', $live['asOf']->toDateString());
+        $this->assertSame(20, $live['rows'][0]['days']);
+        $this->assertSame(2000.0, $live['total']);           // 20 days of 30 at 3000
 
         $this->admin();
         $this->open($this->hotel);
 
-        $this->get(route('payroll.food-charge.index', ['year' => 2026, 'month' => 9]))
-            ->assertOk()->assertSee('Not worked out yet for September 2026')->assertSee('calculated once salary has been generated');
+        // The page shows it without being asked for a month, marked live
+        $this->get(route('payroll.food-charge.index'))->assertOk()
+            ->assertSee('SEPTEMBER 2026')->assertSee('Live')->assertSee('2,000.00')
+            ->assertSee('Counted up to 20 September')->assertDontSee('Not worked out yet');
 
+        // The Monthly Report still carries nothing until salary is generated
         $this->get(route('payroll.monthly-report.index', ['year' => 2026, 'month' => 9]))->assertOk()->assertDontSee('Pay to Pallav Food');
     }
 
+    public function test_the_staff_meals_page_opens_on_the_current_month_not_the_last_month_with_salary(): void
+    {
+        $this->price(3000);
+        $employee = $this->staff($this->hotel, 'E-1', 'Asha Menon', '2025-06-01', slip: false);
+        $this->slip($this->hotel, $employee, 2026, 8);   // August has salary; today is in September
+
+        $this->admin();
+        $this->open($this->hotel);
+
+        $this->get(route('payroll.food-charge.index'))->assertOk()->assertSee('SEPTEMBER 2026')->assertDontSee('AUGUST 2026');
+
+        // August is still one click away, and is final
+        $this->get(route('payroll.food-charge.index', ['year' => 2026, 'month' => 8]))->assertOk()
+            ->assertSee('AUGUST 2026')->assertSee('Final')->assertSee('3,000.00');
+
+        // A month that has not begun is not shown: it falls back to this one
+        $this->get(route('payroll.food-charge.index', ['year' => 2026, 'month' => 12]))->assertOk()->assertSee('SEPTEMBER 2026');
+    }
+
+    public function test_a_month_that_is_over_is_counted_in_full_even_before_its_salary_is_generated(): void
+    {
+        $this->price(3000);
+        $this->staff($this->hotel, 'E-1', 'Asha Menon', '2025-06-01', slip: false);
+
+        // August is over, salary not generated: live counts all 31 days and says it is not final
+        $august = FoodCharges::statement($this->hotel, 2026, 8, live: true);
+
+        $this->assertSame(31, $august['rows'][0]['days']);
+        $this->assertNull($august['asOf']);
+        $this->assertFalse($august['final']);
+        $this->assertSame(3000.0, $august['total']);
+        $this->assertNull(FoodCharges::statement($this->hotel, 2026, 8));   // the report still waits
+    }
+
+    public function test_someone_who_ate_for_three_days_after_leaving_shows_on_the_meals_page_straight_away(): void
+    {
+        $this->price(5000);
+        $left = $this->staff($this->hotel, 'E-6', 'Pooja Trivedi', '2024-06-16', eats: false, slip: false);
+        EmployeeSeparation::create([
+            'payroll_company_id' => $this->hotel->id, 'employee_id' => $left->id,
+            'separation_type' => 'Resignation', 'resignation_date' => '2026-07-01', 'reason' => 'Moving city',
+            'last_working_date' => '2026-07-31', 'status' => 'Relieved',
+        ]);
+        $this->meals($left, '2026-09-01', '2026-09-03');
+        $this->staff($this->hotel, 'E-1', 'Asha Menon', '2025-06-01');
+
+        $this->admin();
+        $this->open($this->hotel);
+
+        $this->get(route('payroll.food-charge.index'))->assertOk()
+            ->assertSee('Pooja Trivedi')->assertSee('meals until 3 Sep')->assertSee('500.00');
+    }
+
+    public function test_the_live_notice_is_not_shown_once_the_bill_is_final(): void
+    {
+        $this->price(3000);
+        $this->staff($this->hotel, 'E-1', 'Asha Menon', '2025-06-01');   // salary generated for September
+
+        $this->admin();
+        $this->open($this->hotel);
+
+        $this->get(route('payroll.food-charge.index', ['year' => 2026, 'month' => 9]))->assertOk()
+            ->assertSee('Final')->assertDontSee('It becomes final, and joins the Monthly Report');
+
+        // and the report carries it
+        $this->get(route('payroll.monthly-report.index', ['year' => 2026, 'month' => 9]))->assertOk()->assertSee('Pay to Pallav Food')->assertDontSee('Live.');
+    }
     public function test_the_bill_includes_everyone_with_a_meals_record_whether_or_not_they_are_in_the_salary_run(): void
     {
         $this->price(3000);

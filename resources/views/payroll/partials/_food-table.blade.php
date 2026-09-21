@@ -1,5 +1,23 @@
 {{-- The month's food bill: one line per person, with why a month is part of one.
      Used on the Staff Meals page and at the foot of the Monthly Report. --}}
+{{-- This page works the bill out live; the report only carries it once salary is generated --}}
+@if(isset($food['final']) && ! $food['final'])
+    <div class="px-3 pt-3">
+        <div class="master-note">
+            <i class="bi bi-broadcast"></i>
+            <span>
+                <strong>Live.</strong>
+                @if($food['asOf'])
+                    Counted up to {{ $food['asOf']->format('j F') }}, the days that have happened so far; it grows each day.
+                @else
+                    Worked out for the whole month.
+                @endif
+                It becomes final, and joins the Monthly Report, once salary is generated for {{ $food['month']->format('F Y') }}.
+            </span>
+        </div>
+    </div>
+@endif
+
 @if(count($food['prices']) > 1)
     <div class="px-3 pt-3">
         <div class="master-note">

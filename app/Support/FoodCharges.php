@@ -178,12 +178,18 @@ class FoodCharges
      *
      * @param  array<int, int>  $skipped  day numbers marked with a status that leaves meals out
      * @param  Collection<int, EmployeeMealPeriod>|null  $periods  their meals records
+     * @param  Carbon|null  $until  count no further than this day (a month still running)
      * @return array<int, int>  the day numbers that count
      */
-    public static function countedDays(Carbon $monthStart, ?Carbon $joined, ?Carbon $lastWorkingDay = null, array $skipped = [], ?Collection $periods = null): array
+    public static function countedDays(Carbon $monthStart, ?Carbon $joined, ?Carbon $lastWorkingDay = null, array $skipped = [], ?Collection $periods = null, ?Carbon $until = null): array
     {
         $from = $monthStart->copy()->startOfMonth();
         $to = $monthStart->copy()->endOfMonth()->startOfDay();
+
+        // A running month is counted only up to the day it has reached
+        if ($until !== null && $until->lessThan($to)) {
+            $to = $until->copy()->startOfDay();
+        }
 
         if ($periods === null) {
             if ($joined !== null && $joined->greaterThan($from)) {
@@ -212,22 +218,34 @@ class FoodCharges
 
         return $days;
     }
+
     /**
-     * The statement for one month in one company, or null when the company
-     * does not use Pallav Food, salary is not generated yet, no price is set,
-     * or nobody was charged.
+     * The statement for one month in one company, or null when the company does
+     * not use Pallav Food, no price is set, or nobody was charged.
+     *
+     * Two ways to ask for it:
+     *  - final (the default, used by the reports): only once the month's salary
+     *    has been generated, for the whole month
+     *  - live (the Staff Meals page): worked out now, for any month. A month
+     *    still running counts only the days up to today; a month that is over
+     *    counts in full. It says whether it is final yet.
      *
      * @return array<string, mixed>|null
      */
-    public static function statement(PayrollCompany $company, int $year, int $month): ?array
+    public static function statement(PayrollCompany $company, int $year, int $month, bool $live = false): ?array
     {
-        if (! $company->servesMeals() || ! self::isGenerated($company, $year, $month)) {
+        $generated = self::isGenerated($company, $year, $month);
+
+        if (! $company->servesMeals() || (! $live && ! $generated)) {
             return null;
         }
 
         $start = Carbon::create($year, $month, 1)->startOfDay();
         $rates = self::rates();
         $daysInMonth = $start->daysInMonth;
+
+        // Only a live look at the month that is still running stops short of its end
+        $asOf = $live && $start->isSameMonth(now()) && $start->isSameYear(now()) ? now()->startOfDay() : null;
 
         if ($rates->isEmpty() || self::rateOn($start->copy()->endOfMonth()->startOfDay(), $rates) === null) {
             return null;
@@ -247,12 +265,12 @@ class FoodCharges
             ->get(['employee_id', 'day'])
             ->groupBy('employee_id')->map(fn ($rows) => $rows->pluck('day')->map(fn ($d) => (int) $d)->all());
 
-        $rows = $staff->map(function (Employee $employee) use ($start, $rates, $daysInMonth, $lastDays, $skippedDays) {
+        $rows = $staff->map(function (Employee $employee) use ($start, $rates, $daysInMonth, $lastDays, $skippedDays, $asOf) {
             $left = ($lastDays[$employee->id] ?? null) ? Carbon::parse($lastDays[$employee->id]) : null;
             $skipped = $skippedDays[$employee->id] ?? [];
             $periods = $employee->mealPeriods;
 
-            $counted = self::countedDays($start, $employee->joining_date, $left, $skipped, $periods);
+            $counted = self::countedDays($start, $employee->joining_date, $left, $skipped, $periods, $asOf);
 
             // Each day at the price in force that day, each worth a day's share of the month
             $total = 0.0;
@@ -261,7 +279,7 @@ class FoodCharges
             }
 
             // Days that were on meals but left out for their status, so the bill explains itself
-            $withoutSkips = self::countedDays($start, $employee->joining_date, $left, [], $periods);
+            $withoutSkips = self::countedDays($start, $employee->joining_date, $left, [], $periods, $asOf);
             $leftOut = count($withoutSkips) - count($counted);
 
             return [
@@ -289,6 +307,10 @@ class FoodCharges
             'owed' => $owed,
             'title' => $owed ? 'Pay to '.PayrollCompany::FOOD_PAYEE : 'Staff meals',
             'month' => $start,
+            // Final once the month's salary is generated; until then the figures can still move
+            'final' => $generated,
+            // Set while the month is still running: the day the count has reached
+            'asOf' => $asOf,
             'daysInMonth' => $daysInMonth,
             'prices' => self::pricesIn($start, $rates),
             'rate' => self::rateOn($start->copy()->endOfMonth()->startOfDay(), $rates),

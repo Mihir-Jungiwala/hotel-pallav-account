@@ -37,7 +37,16 @@ class FoodChargeController extends Controller
     public function index(Request $request)
     {
         $company = $this->company();
-        $monthStart = SalaryReportController::resolveMonth($company->id, $request);
+        // This month unless another was asked for, and never a month that has not begun.
+        // (Not the last month with salary, as the reports use: this page is about now.)
+        $thisMonth = now()->startOfMonth();
+        $monthStart = $request->filled('year') && $request->filled('month')
+            ? Carbon::create((int) $request->input('year'), (int) $request->input('month'), 1)->startOfDay()
+            : $thisMonth;
+
+        if ($monthStart->greaterThan($thisMonth)) {
+            $monthStart = $thisMonth;
+        }
 
         $staff = Employee::with(['mealPeriods' => fn ($q) => $q->with('creator')->orderByDesc('starts_on')->orderByDesc('id')])
             ->where('payroll_company_id', $company->id)
@@ -52,7 +61,8 @@ class FoodChargeController extends Controller
             'firstOpen' => FoodCharges::firstOpenDayFor($company),
             'lockedThrough' => FoodCharges::lockedThroughFor($company),
             'rate' => FoodCharges::currentRate(),
-            'food' => FoodCharges::statement($company, $monthStart->year, $monthStart->month),
+            // Live: worked out now, whether or not the month's salary has been generated
+            'food' => FoodCharges::statement($company, $monthStart->year, $monthStart->month, live: true),
             // No bill exists until the month's salary has been generated
             'generated' => FoodCharges::isGenerated($company, $monthStart->year, $monthStart->month),
             'staff' => $staff,

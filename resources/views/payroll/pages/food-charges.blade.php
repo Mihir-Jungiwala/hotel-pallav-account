@@ -19,8 +19,8 @@
     @if($company->providesFood())
         <a class="btn btn-outline-p" href="{{ route('payroll.food-price.index') }}"><i class="bi bi-tag"></i> Meal price</a>
     @endif
-    @if($food)
-        {{-- The bill is printed as part of the month's report, with the salary --}}
+    @if($food && $food['final'])
+        {{-- Once salary is generated the bill is printed in the month's report, with the salary --}}
         <a class="btn btn-outline-p" href="{{ route('payroll.monthly-report.index', ['year' => $monthStart->year, 'month' => $monthStart->month]) }}">
             <i class="bi bi-bar-chart"></i> Monthly report
         </a>
@@ -49,7 +49,15 @@
     <div class="pay-stat {{ $food ? 'good' : '' }}">
         <div class="ps-label">{{ $monthStart->format('F Y') }}</div>
         <div class="ps-value">{{ $food ? '₹'.number_format($food['total'], 2) : '₹0.00' }}</div>
-        <div class="ps-sub">{{ $food ? ($owed ? 'Payable to '.$payee : 'Cost of staff meals') : ($generated ? 'Nothing to count' : 'After salary is generated') }}</div>
+        <div class="ps-sub">
+            @if(! $food)
+                Nothing to count
+            @elseif(! $food['final'])
+                {{ $food['asOf'] ? 'So far, to '.$food['asOf']->format('j M') : 'Not final yet' }}
+            @else
+                {{ $owed ? 'Payable to '.$payee : 'Cost of staff meals' }}
+            @endif
+        </div>
     </div>
     <div class="pay-stat">
         <div class="ps-label">Counted by</div>
@@ -155,7 +163,14 @@
 {{-- 2. The month's bill --}}
 <div class="card">
     <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <span><i class="bi bi-receipt me-1"></i> {{ $owed ? 'Pay to '.$payee : 'Staff meals' }} &middot; {{ strtoupper($monthStart->format('F Y')) }}</span>
+        <span class="d-inline-flex align-items-center gap-2 flex-wrap">
+            <span><i class="bi bi-receipt me-1"></i> {{ $owed ? 'Pay to '.$payee : 'Staff meals' }} &middot; {{ strtoupper($monthStart->format('F Y')) }}</span>
+            @if($food && $food['final'])
+                <span class="pill pill-locked"><i class="bi bi-lock-fill"></i> Final</span>
+            @elseif($food)
+                <span class="pill pill-live"><span class="dot"></span> Live</span>
+            @endif
+        </span>
         @include('payroll.partials._month-nav', ['route' => 'payroll.food-charge.index', 'monthStart' => $monthStart])
     </div>
 
@@ -164,15 +179,9 @@
     @else
         <div class="empty-state">
             <div class="es-icon"><i class="bi bi-cup-hot"></i></div>
-            <div class="es-title">
-                {{ ! $generated ? 'Not worked out yet for '.$monthStart->format('F Y') : 'Nothing to count for '.$monthStart->format('F Y') }}
-            </div>
+            <div class="es-title">Nothing to count for {{ $monthStart->format('F Y') }}</div>
             <div class="es-text">
-                @if(! $generated)
-                    The meals bill is calculated once salary has been generated for the month. Generate it in
-                    <a href="{{ route('payroll.attendance.index', ['year' => $monthStart->year, 'month' => $monthStart->month]) }}" class="fw-semibold">Attendance Management</a>
-                    and it appears here and in the Monthly Report.
-                @elseif($rate === null)
+                @if($rate === null)
                     No price has been set{{ $company->providesFood() ? ' - set it in Meal Price' : ' by '.$payee.' yet' }}.
                 @elseif($onMealsCount === 0 && $staff->every(fn ($p) => $p->mealPeriods->isEmpty()))
                     Nobody has meals recorded yet. Start someone above.
