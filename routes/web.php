@@ -291,7 +291,9 @@ Route::middleware(['auth', 'auth.session', 'single.session', 'account.usable', '
         // Food charges paid to Pallav Food
         Route::post('/food-price', [\App\Http\Controllers\Payroll\FoodPriceController::class, 'store'])->name('food-price.store');
         Route::delete('/food-price/{rate}', [\App\Http\Controllers\Payroll\FoodPriceController::class, 'destroy'])->name('food-price.destroy');
-        Route::post('/food-charges/{employee}/toggle', [\App\Http\Controllers\Payroll\FoodChargeController::class, 'toggleEmployee'])->name('food-charge.toggle');
+        Route::post('/food-charges/{employee}/start', [\App\Http\Controllers\Payroll\FoodChargeController::class, 'start'])->name('food-charge.start');
+        Route::put('/food-charges/periods/{period}/stop', [\App\Http\Controllers\Payroll\FoodChargeController::class, 'stop'])->name('food-charge.stop');
+        Route::delete('/food-charges/periods/{period}', [\App\Http\Controllers\Payroll\FoodChargeController::class, 'destroy'])->name('food-charge.destroy');
 
         // Salary payments
         Route::put('/salary-payments/{processing}', [SalaryPaymentController::class, 'update'])->name('salary-payment.update');

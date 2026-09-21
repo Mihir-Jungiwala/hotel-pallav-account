@@ -1,10 +1,12 @@
-{{-- Staff Meals: who in this company eats at Pallav Food, and the month's bill.
-     The price is Pallav Food's to set (Meal Price) and is only read here. The
-     staff never pay any of it. --}}
+{{-- Staff Meals: who in this company takes meals at Pallav Food, and the month's
+     bill. The price is Pallav Food's to set (Meal Price) and is only read here.
+     A person's meals are dated records, from a day to a day, so starting or
+     stopping someone touches only those days. The staff never pay any of it. --}}
 @php
     $payee = \App\Models\PayrollCompany::FOOD_PAYEE;
     $owed = $company->paysFoodCharges();
-    $included = $staff->where('eats_at_pallav_food', true);
+    $onMealsCount = count($onMeals);
+    $ongoing = fn ($person) => $person->mealPeriods->first(fn ($p) => $p->isOngoing());
 @endphp
 @extends('payroll.layout', [
     'title' => 'Staff Meals',
@@ -40,8 +42,8 @@
         </div>
     </div>
     <div class="pay-stat">
-        <div class="ps-label">Staff included</div>
-        <div class="ps-value">{{ $included->count() }}</div>
+        <div class="ps-label">On meals today</div>
+        <div class="ps-value">{{ $onMealsCount }}</div>
         <div class="ps-sub">of {{ $staff->count() }} on the payroll</div>
     </div>
     <div class="pay-stat {{ $food ? 'good' : '' }}">
@@ -63,19 +65,21 @@
     </div>
 @endif
 
-{{-- 1. Who it covers --}}
+{{-- 1. Who takes meals, and when --}}
 <div class="card mb-3">
     <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <span><i class="bi bi-cup-hot me-1"></i> Who eats at {{ $payee }}</span>
-        <span class="text-muted" style="font-size:12.5px;">{{ $included->count() }} switched on</span>
+        <span><i class="bi bi-cup-hot me-1"></i> Who takes meals at {{ $payee }}</span>
+        <span class="text-muted" style="font-size:12.5px;">{{ $onMealsCount }} on meals today</span>
     </div>
 
     <div class="px-3 pt-3">
         <div class="master-note">
             <i class="bi bi-info-circle"></i>
             <span>
-                Switch someone on and their meals are counted from their joining date. It is the same switch as the one on their staff record.
-                A day marked with an attendance status that says <strong>meals are not counted</strong> is left out.
+                Each person has dated records: meals <strong>from</strong> a day, and <strong>to</strong> a day when they stop. Starting or stopping
+                someone adds or closes a record and leaves every other month as it was. A day cannot be after today, and months whose salary is
+                already generated{{ $lockedThrough ? ' (up to '.$lockedThrough->format('F Y').')' : '' }} are closed.
+                A day marked with a status that says <strong>meals are not counted</strong> is left out.
             </span>
         </div>
     </div>
@@ -87,27 +91,48 @@
                     <th class="col-sno">S.No.</th>
                     <th>Employee</th>
                     <th>Designation</th>
-                    <th>Joined</th>
-                    <th class="text-center">Eats there</th>
+                    <th>Meals</th>
+                    <th class="text-end">Action</th>
                 </tr>
             </thead>
             <tbody>
             @forelse($staff as $row)
+                @php
+                    $current = $row->mealPeriods->first(fn ($p) => $p->covers($today));
+                    $last = $row->mealPeriods->first();
+                    $open = $ongoing($row);
+                @endphp
                 <tr class="{{ $row->is_active ? '' : 'row-inherited' }}">
                     <td class="col-sno">{{ $loop->iteration }}</td>
                     <td>
                         <span class="cell-main">{{ $row->name }}</span>
-                        <span class="cell-sub">{{ $row->employee_code }}@unless($row->is_active) &middot; inactive @endunless</span>
+                        <span class="cell-sub">{{ $row->employee_code }} &middot; joined {{ optional($row->joining_date)->format('d M Y') }}@unless($row->is_active) &middot; inactive @endunless</span>
                     </td>
                     <td>{{ $row->designation }}</td>
-                    <td class="text-nowrap">{{ optional($row->joining_date)->format('d M Y') ?: '-' }}</td>
-                    <td class="text-center">
-                        <form method="POST" action="{{ route('payroll.food-charge.toggle', $row) }}" data-status-toggle>
-                            @csrf
-                            <button class="btn btn-sm {{ $row->eats_at_pallav_food ? 'btn-outline-success' : 'btn-outline-secondary' }}">
-                                {{ $row->eats_at_pallav_food ? 'Yes' : 'No' }}
+                    <td>
+                        @if($current)
+                            <span class="pill pill-live"><span class="dot"></span> On meals</span>
+                            <span class="cell-sub">since {{ $current->starts_on->format('d M Y') }}{{ $current->ends_on ? ', until '.$current->ends_on->format('d M Y') : '' }}</span>
+                        @elseif($last)
+                            <span class="pill pill-locked">Stopped</span>
+                            <span class="cell-sub">{{ $last->label() }}</span>
+                        @else
+                            <span class="text-muted">Not on meals</span>
+                        @endif
+                    </td>
+                    <td class="text-end text-nowrap">
+                        @if($open)
+                            <button class="btn btn-sm btn-outline-p" data-bs-toggle="modal" data-bs-target="#stopMeals{{ $open->id }}" data-write-only>
+                                <i class="bi bi-stop-circle"></i> Stop
                             </button>
-                        </form>
+                        @else
+                            <button class="btn btn-sm btn-p" data-bs-toggle="modal" data-bs-target="#startMeals{{ $row->id }}" data-write-only>
+                                <i class="bi bi-play-circle"></i> Start
+                            </button>
+                        @endif
+                        @if($row->mealPeriods->isNotEmpty())
+                            <button class="btn-icon" data-bs-toggle="modal" data-bs-target="#mealRecords{{ $row->id }}" title="Meal records"><i class="bi bi-clock-history"></i></button>
+                        @endif
                     </td>
                 </tr>
             @empty
@@ -149,14 +174,158 @@
                     and it appears here and in the Monthly Report.
                 @elseif($rate === null)
                     No price has been set{{ $company->providesFood() ? ' - set it in Meal Price' : ' by '.$payee.' yet' }}.
-                @elseif($included->isEmpty())
-                    Switch on the staff who eat at {{ $payee }}, above.
+                @elseif($onMealsCount === 0 && $staff->every(fn ($p) => $p->mealPeriods->isEmpty()))
+                    Nobody has meals recorded yet. Start someone above.
                 @else
-                    Nobody on the list was on the payroll during this month.
+                    Nobody had meals recorded for this month.
                 @endif
             </div>
         </div>
     @endif
 </div>
+
+{{-- Start meals: one small dialog per person, so the date rules sit beside the field --}}
+@foreach($staff as $row)
+    @php
+        $from = max($firstOpen, $row->joining_date ?? $firstOpen);
+    @endphp
+    <div class="modal fade pay-form-modal" id="startMeals{{ $row->id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog"><div class="modal-content">
+            <form method="POST" action="{{ route('payroll.food-charge.start', $row) }}">
+                @csrf
+                <div class="modal-header">
+                    <div>
+                        <div class="pms-eyebrow">{{ $row->employee_code }}</div>
+                        <h5 class="modal-title">Start meals for {{ $row->name }}</h5>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="ms_from_{{ $row->id }}">Meals start on<span class="req">*</span></label>
+                            <input type="date" name="starts_on" id="ms_from_{{ $row->id }}" class="form-control" required
+                                   value="{{ old('starts_on', $today->format('Y-m-d')) }}"
+                                   min="{{ $from->format('Y-m-d') }}" max="{{ $today->format('Y-m-d') }}">
+                            <div class="form-text">Today, or an earlier day in an open month.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="ms_to_{{ $row->id }}">Meals end on<span class="opt">optional</span></label>
+                            <input type="date" name="ends_on" id="ms_to_{{ $row->id }}" class="form-control"
+                                   value="{{ old('ends_on') }}" min="{{ $from->format('Y-m-d') }}" max="{{ $today->format('Y-m-d') }}">
+                            <div class="form-text">Leave empty while the meals carry on.</div>
+                        </div>
+                    </div>
+                    @if($errors->has('starts_on') && (int) old('_person') === $row->id)
+                        <div class="text-danger small mt-2">{{ $errors->first('starts_on') }}</div>
+                    @endif
+                    <input type="hidden" name="_person" value="{{ $row->id }}">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-p"><i class="bi bi-play-circle"></i> Start meals</button>
+                </div>
+            </form>
+        </div></div>
+    </div>
+
+    {{-- The record that is still going, to be stopped --}}
+    @if($open = $ongoing($row))
+        @php $stopFrom = max($open->starts_on, $firstOpen->copy()->subDay()); @endphp
+        <div class="modal fade pay-form-modal" id="stopMeals{{ $open->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog"><div class="modal-content">
+                <form method="POST" action="{{ route('payroll.food-charge.stop', $open) }}">
+                    @csrf @method('PUT')
+                    <div class="modal-header">
+                        <div>
+                            <div class="pms-eyebrow">{{ $row->employee_code }} &middot; on meals since {{ $open->starts_on->format('d M Y') }}</div>
+                            <h5 class="modal-title">Stop meals for {{ $row->name }}</h5>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label class="form-label" for="me_to_{{ $open->id }}">Last day of meals<span class="req">*</span></label>
+                        <input type="date" name="ends_on" id="me_to_{{ $open->id }}" class="form-control" required
+                               value="{{ $today->format('Y-m-d') }}" min="{{ $stopFrom->format('Y-m-d') }}" max="{{ $today->format('Y-m-d') }}">
+                        <div class="form-text">
+                            This day is the last one charged. The record from {{ $open->starts_on->format('j M Y') }} stays on file, now with an end date.
+                            Earlier months are not affected.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
+                        <button class="btn btn-p"><i class="bi bi-stop-circle"></i> Stop meals</button>
+                    </div>
+                </form>
+            </div></div>
+        </div>
+    @endif
+
+    {{-- Every record, like a salary history --}}
+    @if($row->mealPeriods->isNotEmpty())
+        <div class="modal fade pay-form-modal" id="mealRecords{{ $row->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <div class="pms-eyebrow">Newest first</div>
+                        <h5 class="modal-title">Meal records - {{ $row->name }}</h5>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr><th class="col-sno">S.No.</th><th>From</th><th>To</th><th>Entered</th><th class="text-end">Action</th></tr>
+                        </thead>
+                        <tbody>
+                        @foreach($row->mealPeriods as $period)
+                            @php $closed = \App\Support\FoodCharges::isClosedFor($company, $period->starts_on); @endphp
+                            <tr>
+                                <td class="col-sno">{{ $loop->iteration }}</td>
+                                <td class="text-nowrap fw-semibold">{{ $period->starts_on->format('d M Y') }}</td>
+                                <td class="text-nowrap">
+                                    @if($period->ends_on){{ $period->ends_on->format('d M Y') }}@else<span class="pill pill-live"><span class="dot"></span> Ongoing</span>@endif
+                                </td>
+                                <td>
+                                    {{ $period->created_at->format('d M Y') }}
+                                    <span class="cell-sub">{{ optional($period->creator)->name ?? 'System' }}</span>
+                                </td>
+                                <td class="text-end">
+                                    @if($closed)
+                                        <span class="text-muted" style="font-size:12px;"><i class="bi bi-lock-fill"></i> Closed</span>
+                                    @else
+                                        <form method="POST" action="{{ route('payroll.food-charge.destroy', $period) }}" class="d-inline"
+                                              data-confirm-title="Remove this record?"
+                                              data-confirm="Every day it covers stops being charged, from {{ $period->starts_on->format('j F Y') }}."
+                                              data-confirm-label="Remove">
+                                            @csrf @method('DELETE')
+                                            <button class="btn-icon danger" title="Remove"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                    <div class="form-text mt-2">A record in a month whose salary is generated is closed. To stop meals from a later day, end the record instead.</div>
+                </div>
+            </div></div>
+        </div>
+    @endif
+@endforeach
+
+@if($errors->any())
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            @if($errors->has('ends_on'))
+                var open = document.querySelector('.modal[id^="stopMeals"]');
+                if (open && window.bootstrap) { bootstrap.Modal.getOrCreateInstance(open).show(); }
+            @elseif(old('_person'))
+                var m = document.getElementById('startMeals{{ (int) old('_person') }}');
+                if (m && window.bootstrap) { bootstrap.Modal.getOrCreateInstance(m).show(); }
+            @endif
+        });
+    </script>
+@endif
 
 @endsection

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\AttendanceStatus;
 use App\Models\Employee;
+use App\Models\EmployeeMealPeriod;
 use App\Models\FoodChargeRate;
 use App\Models\PayrollCompany;
 use App\Models\PayrollMasterItem;
@@ -111,15 +112,18 @@ class PayrollDemoSeeder extends Seeder
                 [
                     'name' => $name, 'designation' => $designation, 'department' => $department,
                     'salary' => $salary, 'joining_date' => $joined, 'daily_working_hours' => 8,
-                    'payment_mode' => 'Cash', 'is_active' => true, 'eats_at_pallav_food' => $eats,
+                    'payment_mode' => 'Cash', 'is_active' => true,
                     'contact_country' => '91', 'contact_number' => '98250'.str_pad((string) random_int(0, 99999), 5, '0', STR_PAD_LEFT),
                 ],
             );
 
-            // Someone already on the payroll keeps everything else they have, but
-            // the meals switch is what makes the food charge visible at all
-            if ($eats && ! $employee->eats_at_pallav_food) {
-                $employee->update(['eats_at_pallav_food' => true]);
+            // Meals are a dated record per person: from the day they joined, still going
+            if ($eats && ! $employee->mealPeriods()->exists()) {
+                EmployeeMealPeriod::create([
+                    'payroll_company_id' => $company->id,
+                    'employee_id' => $employee->id,
+                    'starts_on' => $employee->joining_date,
+                ]);
             }
         }
     }

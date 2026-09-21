@@ -12,7 +12,6 @@ class Employee extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
-        'eats_at_pallav_food' => 'boolean',
         'joining_date' => 'date',
         'date_of_birth' => 'date',
         'salary' => 'decimal:2',
@@ -22,6 +21,12 @@ class Employee extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(PayrollCompany::class, 'payroll_company_id');
+    }
+
+    /** Stretches of taking meals at Pallav Food, each from a day to a day. */
+    public function mealPeriods(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(EmployeeMealPeriod::class);
     }
 
     /** "+91 98765 43210": the stored country code and number, as they would be dialled. */

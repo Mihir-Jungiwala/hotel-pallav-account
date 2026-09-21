@@ -71,7 +71,10 @@ class PayrollNav
             'bonus-incentive' => BonusIncentive::where('payroll_company_id', $id)->count(),
             'salary-slip' => SalaryProcessing::where('payroll_company_id', $id)->count(),
             'salary-payment' => SalaryProcessing::where('payroll_company_id', $id)->where('payment_status', '!=', 'Paid')->count(),
-            'food-charge' => $company->servesMeals() ? Employee::where('payroll_company_id', $id)->where('eats_at_pallav_food', true)->count() : 0,
+            'food-charge' => $company->servesMeals() ? \App\Models\EmployeeMealPeriod::where('payroll_company_id', $id)
+                ->whereDate('starts_on', '<=', today())
+                ->where(fn ($q) => $q->whereNull('ends_on')->orWhereDate('ends_on', '>=', today()))
+                ->distinct('employee_id')->count('employee_id') : 0,
         ];
     }
 }

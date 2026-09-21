@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\AttendanceEntry;
 use App\Models\Employee;
+use App\Models\EmployeeMealPeriod;
 use App\Models\EmployeeSeparation;
 use App\Models\FoodChargeRate;
 use App\Models\PayrollCompany;
@@ -22,9 +23,12 @@ use Illuminate\Support\Collection;
  * divided by the days in that month). That is why the amount is worked out a
  * day at a time.
  *
+ * Who takes meals is a set of dated records per person (from a day, to a day),
+ * so starting or stopping someone changes only the days it covers.
+ *
  * Which days count:
- *  - every calendar day of someone's service, from their joining date to their
- *    last working day, absent days and week-offs included
+ *  - a calendar day within one of the person's meals records and within their
+ *    service (joining date to last working day), absent days and week-offs included
  *  - except a day marked with an attendance status that says food is not
  *    counted (leave, for example): that day is left out
  *
@@ -103,27 +107,71 @@ class FoodCharges
             ->where('year', $year)->where('month', $month)->exists();
     }
 
+    /* ------------------------------------------- a company's own closed months */
+
     /**
-     * Staff who are charged for a month: those marked as eating there who were
-     * part of the salary that was generated. It is the salary run that decides
-     * who was on the payroll, so the bill follows it.
+     * The latest month whose salary has been generated in this company, as the
+     * first of that month. A person's meals belong to their own company's bill,
+     * so this - unlike the price - is worked out company by company.
+     */
+    public static function lockedThroughFor(PayrollCompany $company): ?Carbon
+    {
+        $latest = SalaryProcessing::where('payroll_company_id', $company->id)
+            ->orderByDesc('year')->orderByDesc('month')->first(['year', 'month']);
+
+        return $latest ? Carbon::create($latest->year, $latest->month, 1)->startOfDay() : null;
+    }
+
+    /** Whether a day falls in a month whose salary this company has already generated. */
+    public static function isClosedFor(PayrollCompany $company, Carbon $day): bool
+    {
+        $locked = self::lockedThroughFor($company);
+
+        return $locked !== null && $day->copy()->startOfMonth()->lessThanOrEqualTo($locked);
+    }
+
+    /** The first day a meals record can still change things from. */
+    public static function firstOpenDayFor(PayrollCompany $company): Carbon
+    {
+        $locked = self::lockedThroughFor($company);
+
+        return $locked ? $locked->copy()->addMonthNoOverflow() : Carbon::create(2000, 1, 1)->startOfDay();
+    }
+
+    /* ------------------------------------------------------- who is charged */
+
+    /**
+     * Staff charged for a month: people whose meals records cover part of it and
+     * who were in the salary run that was generated. The salary run decides who
+     * was on the payroll, so the bill follows it.
      */
     public static function chargedStaff(PayrollCompany $company, int $year, int $month): Collection
     {
+        $start = Carbon::create($year, $month, 1)->startOfDay();
+        $end = $start->copy()->endOfMonth()->startOfDay();
+
         return Employee::where('payroll_company_id', $company->id)
-            ->where('eats_at_pallav_food', true)
             ->whereIn('id', SalaryProcessing::where('payroll_company_id', $company->id)
                 ->where('year', $year)->where('month', $month)->select('employee_id'))
+            ->whereHas('mealPeriods', fn ($q) => $q
+                ->whereDate('starts_on', '<=', $end)
+                ->where(fn ($w) => $w->whereNull('ends_on')->orWhereDate('ends_on', '>=', $start)))
+            ->with('mealPeriods')
             ->orderBy('name')->get();
     }
 
     /**
      * Days of one month that someone is charged for.
      *
-     * @param  array<int, int>  $skipped  day numbers marked with a status that leaves food out
+     * A day counts when it is within their service (joining to last working
+     * day), within one of their meals records, and not marked with a status that
+     * leaves meals out.
+     *
+     * @param  array<int, int>  $skipped  day numbers marked with a status that leaves meals out
+     * @param  Collection<int, EmployeeMealPeriod>|null  $periods  their meals records; null means no limit
      * @return array<int, int>  the day numbers that count
      */
-    public static function countedDays(Carbon $monthStart, ?Carbon $joined, ?Carbon $lastWorkingDay = null, array $skipped = []): array
+    public static function countedDays(Carbon $monthStart, ?Carbon $joined, ?Carbon $lastWorkingDay = null, array $skipped = [], ?Collection $periods = null): array
     {
         $from = $monthStart->copy()->startOfMonth();
         $to = $monthStart->copy()->endOfMonth()->startOfDay();
@@ -139,9 +187,15 @@ class FoodCharges
         $days = [];
 
         for ($day = $from->copy(); $day->lessThanOrEqualTo($to); $day->addDay()) {
-            if (! in_array($day->day, $skipped, true)) {
-                $days[] = $day->day;
+            if (in_array($day->day, $skipped, true)) {
+                continue;
             }
+
+            if ($periods !== null && ! $periods->contains(fn (EmployeeMealPeriod $p) => $p->covers($day))) {
+                continue;
+            }
+
+            $days[] = $day->day;
         }
 
         return $days;
@@ -149,7 +203,8 @@ class FoodCharges
 
     /**
      * The statement for one month in one company, or null when the company
-     * does not use Pallav Food, no price is set yet, or nobody was charged.
+     * does not use Pallav Food, salary is not generated yet, no price is set,
+     * or nobody was charged.
      *
      * @return array<string, mixed>|null
      */
@@ -174,7 +229,7 @@ class FoodCharges
             ->whereNull('rejoined_at')->where('status', 'Relieved')
             ->pluck('last_working_date', 'employee_id');
 
-        // Days marked with a status that leaves food out, per employee
+        // Days marked with a status that leaves meals out, per employee
         $skippedDays = AttendanceEntry::query()
             ->whereHas('month', fn ($q) => $q->where('payroll_company_id', $company->id)->where('year', $year)->where('month', $month))
             ->where('skips_food', true)
@@ -184,7 +239,9 @@ class FoodCharges
         $rows = $staff->map(function (Employee $employee) use ($start, $rates, $daysInMonth, $lastDays, $skippedDays) {
             $left = ($lastDays[$employee->id] ?? null) ? Carbon::parse($lastDays[$employee->id]) : null;
             $skipped = $skippedDays[$employee->id] ?? [];
-            $counted = self::countedDays($start, $employee->joining_date, $left, $skipped);
+            $periods = $employee->mealPeriods;
+
+            $counted = self::countedDays($start, $employee->joining_date, $left, $skipped, $periods);
 
             // Each day at the price in force that day, each worth a day's share of the month
             $total = 0.0;
@@ -192,17 +249,18 @@ class FoodCharges
                 $total += (self::rateOn($start->copy()->day($day), $rates) ?? 0.0) / $daysInMonth;
             }
 
-            // Days that would have counted but were left out, so the bill explains itself
-            $inService = self::countedDays($start, $employee->joining_date, $left);
+            // Days that were on meals but left out for their status, so the bill explains itself
+            $withoutSkips = self::countedDays($start, $employee->joining_date, $left, [], $periods);
+            $leftOut = count($withoutSkips) - count($counted);
 
             return [
                 'name' => $employee->name,
                 'code' => $employee->employee_code,
                 'designation' => $employee->designation,
                 'days' => count($counted),
-                'left_out' => count($inService) - count($counted),
+                'left_out' => $leftOut,
                 'amount' => round($total, 2),
-                'note' => self::note($start, $employee->joining_date, $left, count($inService) - count($counted)),
+                'note' => self::note($start, $periods, $employee->joining_date, $left, $leftOut),
             ];
         })
             ->filter(fn ($row) => $row['days'] > 0)
@@ -227,7 +285,6 @@ class FoodCharges
             'total' => round(array_sum(array_column($rows, 'amount')), 2),
         ];
     }
-
     /**
      * The prices in force during a month, in order, for saying "3,000 until 14
      * Sep, then 3,500". A single entry when the price did not change.
@@ -251,8 +308,9 @@ class FoodCharges
         return $prices;
     }
 
-    private static function note(Carbon $monthStart, ?Carbon $joined, ?Carbon $left, int $leftOut): ?string
+    private static function note(Carbon $monthStart, Collection $periods, ?Carbon $joined, ?Carbon $left, int $leftOut): ?string
     {
+        $end = $monthStart->copy()->endOfMonth()->startOfDay();
         $parts = [];
 
         if ($joined !== null && $joined->isSameMonth($monthStart) && $joined->isSameYear($monthStart)) {
@@ -261,6 +319,17 @@ class FoodCharges
 
         if ($left !== null && $left->isSameMonth($monthStart) && $left->isSameYear($monthStart)) {
             $parts[] = 'left '.$left->format('j M');
+        }
+
+        // Where the meals themselves began or stopped part-way through this month
+        foreach ($periods->sortBy('starts_on') as $period) {
+            if ($period->starts_on->greaterThan($monthStart) && $period->starts_on->lessThanOrEqualTo($end)) {
+                $parts[] = 'meals from '.$period->starts_on->format('j M');
+            }
+
+            if ($period->ends_on !== null && $period->ends_on->greaterThanOrEqualTo($monthStart) && $period->ends_on->lessThan($end)) {
+                $parts[] = 'meals until '.$period->ends_on->format('j M');
+            }
         }
 
         if ($leftOut > 0) {
