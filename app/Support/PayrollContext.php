@@ -104,6 +104,6 @@ class PayrollContext
      */
     public static function selectable()
     {
-        return PayrollCompany::where('is_active', true)->orderBy('name')->get();
+        return PayrollCompany::inFixedOrder(PayrollCompany::where('is_active', true))->get();
     }
 }

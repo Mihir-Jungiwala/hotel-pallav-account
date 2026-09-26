@@ -21,6 +21,20 @@ class PayrollCompany extends Model
     ];
 
     /**
+     * Both places that list the companies - the sidebar dropdown and the Company
+     * Listing page - order them by this fixed order, so switching between them
+     * never shows the two companies in a different order.
+     */
+    public static function inFixedOrder($query)
+    {
+        $codes = array_column(self::FIXED, 'code');
+
+        return $query->orderByRaw('CASE code '.implode(' ', array_map(
+            fn ($code, $i) => "WHEN '{$code}' THEN {$i}", $codes, array_keys($codes)
+        )).' ELSE '.count($codes).' END');
+    }
+
+    /**
      * Pallav Food cooks for both companies and alone decides the price. Hotel
      * Pallav's staff eat there and Hotel Pallav (the owner) pays for it; Pallav
      * Food's own staff eat there too, at the same price, as a cost of its own.

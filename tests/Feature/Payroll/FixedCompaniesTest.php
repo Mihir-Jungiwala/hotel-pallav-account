@@ -4,6 +4,7 @@ namespace Tests\Feature\Payroll;
 
 use App\Models\PayrollCompany;
 use App\Models\User;
+use App\Support\PayrollContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
@@ -49,5 +50,27 @@ class FixedCompaniesTest extends TestCase
         $this->assertSame('Hotel Pallav', $company->name);
         $this->assertSame('HP01', $company->code);
         $this->assertSame('Rajkot', $company->city);
+    }
+
+    /**
+     * The sidebar dropdown and the Company Listing page must never show the two
+     * companies in a different order from each other, whatever order they were
+     * created, saved or last touched in.
+     */
+    public function test_the_sidebar_dropdown_and_the_listing_page_show_companies_in_the_same_order(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+        $this->get(route('payroll.index'));
+
+        // Pallav Food is touched last and would sort first by recency or id-desc
+        $food = PayrollCompany::where('code', 'PF01')->firstOrFail();
+        $food->touch();
+
+        $dropdownOrder = PayrollContext::selectable()->pluck('code')->all();
+        $listingOrder = $this->get(route('payroll.index'))
+            ->viewData('companies')->pluck('code')->all();
+
+        $this->assertSame(['HP01', 'PF01'], $dropdownOrder);
+        $this->assertSame($dropdownOrder, $listingOrder);
     }
 }

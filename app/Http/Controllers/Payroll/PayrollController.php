@@ -68,10 +68,7 @@ class PayrollController extends Controller
                 ->where('name', 'like', "%{$search}%")
                 ->orWhere('code', 'like', "%{$search}%")
                 ->orWhere('owner_name', 'like', "%{$search}%")))
-            // Live companies first, then the most recently added
-            ->orderByDesc('is_active')
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
+            ->tap(fn ($q) => PayrollCompany::inFixedOrder($q))
             ->get();
 
         return view('payroll.companies.index', [
