@@ -6,9 +6,9 @@ use App\Models\OptionItem;
 use App\Models\OptionSet;
 
 /**
- * The people who hand cash in or take it out, kept in Master Data. A name
- * typed on a Revenue or Expense form that is not on the list yet is added to
- * it, so the next entry can just pick it.
+ * The people who receive cash when it leaves the till, kept in Master Data as
+ * a list of names and nothing else. A name typed on the Expense form that is
+ * not on the list yet is added to it, so the next entry can just pick it.
  */
 class CashPeople
 {
@@ -29,8 +29,8 @@ class CashPeople
         }
 
         $set = OptionSet::firstOrCreate(['key' => self::KEY], [
-            'name' => 'Cash Handlers',
-            'description' => 'People who hand cash in (Revenue) or take it out (Expense)',
+            'name' => 'Receiver Names',
+            'description' => 'Who cash is handed to when it leaves the till. Names only.',
             'icon' => 'bi-person-vcard', 'input' => 'select', 'is_system' => true,
             'sort_order' => (int) OptionSet::max('sort_order') + 1,
         ]);
